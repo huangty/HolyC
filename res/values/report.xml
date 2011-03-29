@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="report_title">Controller Status Report</string>
+    <string name="openflow_channel_started">Openflow Controller Started</string>
+    <string name="openflow_channel_stopped">Openflow Controller Stopped</string>
+    <string name="openflow_channel_binded">Openflow Switch Control Channel Binded</string>
+    <string name="openflow_channel_unbinded">Openflow Switch Control Channel Unbinded</string>
+    <string name="envinit_started">Environment Initiation Started</string>
+    <string name="envinit_stopped">Environment Initiation Stopped</string>
+</resources>

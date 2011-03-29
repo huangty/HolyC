@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">Hello World, HOLY Controller!</string>
+    <string name="app_name">HOLY Controller</string>
+    <string name="title">Huang-Liu\'s Openly LazY (HOLY) Controller</string>
+    <string name="port">Binding Port:</string>
+    <string name="portRangeReminder">Port number can only be with [1024, 65535]</string>
+</resources>
