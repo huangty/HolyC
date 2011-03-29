@@ -42,8 +42,6 @@ public class EnvInitService extends Service{
     public static final int MSG_START_ENVINIT = 3;
 	private boolean wifi_included;
 	private boolean mobile_included;
-	private String wifiMACaddr = "";
-	private String wifiIPaddr = "";
         
     /** Handler of incoming messages from clients (Activities). */
     class IncomingHandler extends Handler {
@@ -104,12 +102,13 @@ public class EnvInitService extends Service{
     public void doRoutingInit(){
     	NativeCallWrapper.runCommand("su -c \"ip route del dev eth0\"");
     	NativeCallWrapper.runCommand("su -c \"ip route del dev rmnet0\"");
-    	String cmd = "su -c \"/data/local/bin/busybox ifconfig veth1 "+ HostNetworkState.vethIP+" netmask "+ HostNetworkState.vethIPMask + "\"";
-    	NativeCallWrapper.runCommand(cmd);
     	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default dev veth1\"");    	
     }
     public void doOpenflowdInit(){    	
     	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd dp0 tcp:127.0.0.1 --out-of-band --detach\"");
+    	/**
+    	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
+    	 */
     }
     public void doOVSInit(){
     	NativeCallWrapper.runCommand("su -c \"insmod /sdcard/openvswitch_mod.ko\"");
@@ -121,16 +120,18 @@ public class EnvInitService extends Service{
     public void doVethInit(){
     	/**
     	 * /data/local/bin/busybox ip link add type veth
+    	 * /data/local/bin/busybox ifconfig veth1 192.168.0.2 netmask 255.255.255.0 
     	 * MAC_VETH=`/data/local/bin/busybox ifconfig veth1 | awk 'NR==1{ print $5}'`
-    	 * ifconfig veth1 192.168.0.2 netmask 255.255.255.0
-    	 * IP_VETH=192.168.0.2
-    	 * IP_VETH_MASK=255.255.255.0
     	 * */    	
     	//1. to create veth0 and veth1
     	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox ip link add type veth\"");
     	//2. Setup the address of veth1
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox ifconfig veth1 192.168.0.2 netmask 255.255.255.0\"");
-    	//2. Get MAC address
+    	String cmd = "su -c \"/data/local/bin/busybox ifconfig veth1 "+ HostNetworkState.vethIP+" netmask "+ HostNetworkState.vethIPMask + "\"";
+    	NativeCallWrapper.runCommand(cmd);
+    	//3. Get MAC address
+    	/**
+    	 * @TODO: 1. How to get veth1's MAC address
+    	 */
 
     }
     public void doMobileInit(){
@@ -141,6 +142,12 @@ public class EnvInitService extends Service{
     	 * IP_MOBILE=`ifconfig rmnet0 | awk '{print $3}'`
     	 */
     	
+    	/**
+    	 * @TODO: 1. How to get 3G Mac address, 
+    	 * 		  2. How to get 3G's IP address,
+    	 * 		  3. How to get GW's MAC address,
+    	 */
+    	HostNetworkState.mobileGWIP = System.getProperty("net.rmnet0.gw");
     }
     public void doWiFiInit(){
     	/**
@@ -148,17 +155,19 @@ public class EnvInitService extends Service{
     	 * IP_WIFI=`ifconfig eth0 | awk '{print $3}'`
     	 * IP_WIFI_GW=`busybox route -n | grep eth0 | grep UG | awk '{print $2}'`
     	 * MAC_WIFI_GW=`/data/local/bin/busybox arping -I eth0 -c 1 $IP_WIFI_GW | awk 'NR==2{print$5}' |  sed 's/\[//g' | sed 's/\]//g'`
-    	 * 
     	 * */
     	WifiManager wifiMan = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
     	if(wifi_included && !wifiMan.isWifiEnabled()){    		
     		wifiMan.setWifiEnabled(true);    	
     	}
     	WifiInfo wifiInf = wifiMan.getConnectionInfo();
-    	wifiMACaddr = wifiInf.getMacAddress();
+    	HostNetworkState.wifiMACaddr = wifiInf.getMacAddress();
     	int wifiIP = wifiInf.getIpAddress();
-    	wifiIPaddr = IPv4.fromIPv4Address(wifiIP);
+    	HostNetworkState.wifiIPaddr = IPv4.fromIPv4Address(wifiIP);
     	
+    	/** 
+    	 * @TODO: How to get arp management
+    	 * */    	
     }
 	@Override
 	public IBinder onBind(Intent arg0) {
