@@ -98,6 +98,9 @@ public class EnvInitService extends Service{
     	doOVSInit();
     	doOpenflowdInit();
     	doRoutingInit();
+    	/**
+    	 * TODO: Notify the statusUI that environment initiation is finished, time to start the Monitor service
+    	 */
     }
     public void doRoutingInit(){
     	NativeCallWrapper.runCommand("su -c \"ip route del dev eth0\"");
