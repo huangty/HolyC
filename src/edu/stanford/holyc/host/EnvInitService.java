@@ -129,7 +129,7 @@ public class EnvInitService extends Service{
     	//1. to create veth0 and veth1
     	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox ip link add type veth\"");
     	//2. Setup the address of veth1
-    	String cmd = "su -c \"/data/local/bin/busybox ifconfig veth1 "+ HostNetworkState.vethIP+" netmask "+ HostNetworkState.vethIPMask + "\"";
+    	String cmd = "su -c \"/data/local/bin/busybox ifconfig veth1 "+ HostNetworkConfig.vethIP+" netmask "+ HostNetworkConfig.vethIPMask + "\"";
     	NativeCallWrapper.runCommand(cmd);
     	//3. Get MAC address
     	/**
@@ -150,7 +150,7 @@ public class EnvInitService extends Service{
     	 * 		  2. How to get 3G's IP address,
     	 * 		  3. How to get GW's MAC address,
     	 */
-    	HostNetworkState.mobileGWIP = System.getProperty("net.rmnet0.gw");
+    	HostNetworkConfig.mobileGWIP = System.getProperty("net.rmnet0.gw");
     }
     public void doWiFiInit(){
     	/**
@@ -164,9 +164,9 @@ public class EnvInitService extends Service{
     		wifiMan.setWifiEnabled(true);    	
     	}
     	WifiInfo wifiInf = wifiMan.getConnectionInfo();
-    	HostNetworkState.wifiMACaddr = wifiInf.getMacAddress();
+    	HostNetworkConfig.wifiMACaddr = wifiInf.getMacAddress();
     	int wifiIP = wifiInf.getIpAddress();
-    	HostNetworkState.wifiIPaddr = IPv4.fromIPv4Address(wifiIP);
+    	HostNetworkConfig.wifiIPaddr = IPv4.fromIPv4Address(wifiIP);
     	
     	/** 
     	 * @TODO: How to get arp management
