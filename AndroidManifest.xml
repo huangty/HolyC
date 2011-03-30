@@ -5,7 +5,9 @@
       android:versionName="1.0">
     <uses-sdk android:minSdkVersion="3" />
     <permission android:name="android.permission.ACCESS_NETWORK_STATE"></permission>
-    <permission android:name="android.permission.CHANGE_NETWORK_STATE"></permission>	
+    <permission android:name="android.permission.CHANGE_NETWORK_STATE"></permission>
+    <permission android:name="android.permission.ACCESS_WIFI_STATE"></permission>		
+    <permission android:name="android.permission.CHANGE_WIFI_STATE"></permission>	
     <uses-permission android:name="android.permission.INTERNET"/>	    
 
     <application android:icon="@drawable/icon" android:label="@string/app_name">
