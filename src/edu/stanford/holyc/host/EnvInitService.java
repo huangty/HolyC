@@ -117,8 +117,12 @@ public class EnvInitService extends Service{
     	NativeCallWrapper.runCommand("su -c \"insmod /sdcard/openvswitch_mod.ko\"");
     	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-dp dp0\"");
     	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 veth0\"");
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 eth0\"");
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 rmnet0\"");
+    	if(wifi_included){
+    		NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 eth0\"");
+    	}
+    	if(mobile_included){
+    		NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 rmnet0\"");
+    	}
     }
     public void doVethInit(){
     	/**
@@ -163,6 +167,9 @@ public class EnvInitService extends Service{
     	if(wifi_included && !wifiMan.isWifiEnabled()){    		
     		wifiMan.setWifiEnabled(true);    	
     	}
+    	/** 
+    	 * TODO: Make sure Wifi is connected, checking is needed
+    	 * */
     	WifiInfo wifiInf = wifiMan.getConnectionInfo();
     	HostNetworkConfig.wifiMACaddr = wifiInf.getMacAddress();
     	int wifiIP = wifiInf.getIpAddress();
