@@ -3,9 +3,6 @@ package edu.stanford.holyc.host;
 import java.util.ArrayList;
 
 import net.beaconcontroller.packet.IPv4;
-
-import edu.stanford.holyc.statusUI;
-import edu.stanford.holyc.jni.NativeCallWrapper;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -18,16 +15,28 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
+import edu.stanford.holyc.statusUI;
+import edu.stanford.holyc.jni.NativeCallWrapper;
 
 /**
  * To Initiate Environment Setup, including
  * 1. Get Environment Variables
+ *    veth0:  mac
+ *    rmnet0: mac, ip
+ *    wifi: mac, ip
+ *    gateway(wifi, 3g): mac, ip
  * 2. OVS setups
  * 3. initiate openflowd
  * 4. Routing table setup
  *
+ *
  * @author Te-Yuan Huang (huangty@stanford.edu)
  *
+ */
+/** For LYQ
+ * 1. device name
+ * 2. 3G enable
+ * 3. popen
  */
 
 public class EnvInitService extends Service{
@@ -113,6 +122,9 @@ public class EnvInitService extends Service{
     	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
     	 */
     }
+    /**
+     * @TODO: device name should be variables
+     */
     public void doOVSInit(){
     	NativeCallWrapper.runCommand("su -c \"insmod /sdcard/openvswitch_mod.ko\"");
     	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-dp dp0\"");
@@ -124,6 +136,7 @@ public class EnvInitService extends Service{
     		NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 rmnet0\"");
     	}
     }
+    
     public void doVethInit(){
     	/**
     	 * /data/local/bin/busybox ip link add type veth
@@ -154,7 +167,16 @@ public class EnvInitService extends Service{
     	 * 		  2. How to get 3G's IP address,
     	 * 		  3. How to get GW's MAC address,
     	 */
-    	HostNetworkConfig.mobileGWIP = System.getProperty("net.rmnet0.gw");
+    	HostNetworkConfig.mobileGWIP = NativeCallWrapper.getProp("net.rmnet0.gw");
+    	Log.d(TAG, "mobile gw is " + HostNetworkConfig.mobileGWIP);
+    	ThreeGInterface g3 = new ThreeGInterface();
+    	Log.d(TAG, "3G name is " + g3.getName());
+    	Log.d(TAG, "3G IP is " + g3.getIP());
+    	Log.d(TAG, "3G Mask is " + g3.getMask());
+    	Log.d(TAG, "3G Mac is " + g3.getMac());
+    	HostInterface g3gw = g3.getGateway();
+    	Log.d(TAG, "3G GW IP is " + g3gw.getIP());
+    	Log.d(TAG, "3G GW Mac is " + g3gw.getMac());
     }
     public void doWiFiInit(){
     	/**
@@ -163,18 +185,26 @@ public class EnvInitService extends Service{
     	 * IP_WIFI_GW=`busybox route -n | grep eth0 | grep UG | awk '{print $2}'`
     	 * MAC_WIFI_GW=`/data/local/bin/busybox arping -I eth0 -c 1 $IP_WIFI_GW | awk 'NR==2{print$5}' |  sed 's/\[//g' | sed 's/\]//g'`
     	 * */
-    	WifiManager wifiMan = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
+    	/*WifiManager wifiMan = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
     	if(wifi_included && !wifiMan.isWifiEnabled()){    		
     		wifiMan.setWifiEnabled(true);    	
-    	}
+    	}*/
     	/** 
     	 * TODO: Make sure Wifi is connected, checking is needed
     	 * */
-    	WifiInfo wifiInf = wifiMan.getConnectionInfo();
+    	/*WifiInfo wifiInf = wifiMan.getConnectionInfo();
     	HostNetworkConfig.wifiMACaddr = wifiInf.getMacAddress();
     	int wifiIP = wifiInf.getIpAddress();
     	HostNetworkConfig.wifiIPaddr = IPv4.fromIPv4Address(wifiIP);
+    	*/
     	
+    	WifiInterface wifi = new WifiInterface(this);
+    	Log.d(TAG, "wifi Name is " + wifi.getName());
+    	Log.d(TAG, "wifi IP is " + wifi.getIP());
+    	Log.d(TAG, "wifi mac is " + wifi.getMac());
+    	HostInterface wifiGW = wifi.getGateway();
+    	Log.d(TAG, "wifi gw IP is " + wifiGW.getIP());
+    	Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());
     	/** 
     	 * @TODO: How to get arp management
     	 * */    	

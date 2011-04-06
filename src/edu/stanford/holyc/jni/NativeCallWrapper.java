@@ -21,6 +21,7 @@ public class NativeCallWrapper{
         }
       
 	}
-	//public static native String getProp(String name);
+	public static native String getProp(String name);
+	public static native String getResultByCommand(String name);
     public static native int runCommand(String command);
 }
