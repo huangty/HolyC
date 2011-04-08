@@ -17,7 +17,7 @@
 #define LINE_LEN 128
 
 
-JNIEXPORT jstring JNICALL Java_edu_stanford_holyc_jni_NativeCallWrapper_getProp
+JNIEXPORT jstring JNICALL Java_net_holyc_jni_NativeCallWrapper_getProp
   (JNIEnv *env, jclass class, jstring name)
 {
   const char *nameString;
@@ -37,7 +37,7 @@ JNIEXPORT jstring JNICALL Java_edu_stanford_holyc_jni_NativeCallWrapper_getProp
   return jstrOutput;
 }
 
-JNIEXPORT jint JNICALL Java_edu_stanford_holyc_jni_NativeCallWrapper_runCommand
+JNIEXPORT jint JNICALL Java_net_holyc_jni_NativeCallWrapper_runCommand
   (JNIEnv *env, jclass class, jstring command)
 {
   const char *commandString;
