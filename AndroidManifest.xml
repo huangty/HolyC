@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="edu.stanford.holyc"
+      package="net.holyc"
       android:versionCode="1"
       android:versionName="1.0">
     <uses-sdk android:minSdkVersion="3" />
@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="statusUI"
+        <activity android:name=".statusUI"
         		  android:label="@string/report_title"
                   android:configChanges="keyboardHidden|orientation"
                   android:screenOrientation="portrait"
