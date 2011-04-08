@@ -5,6 +5,11 @@ import java.lang.reflect.Method;
 
 import android.util.Log;
 
+/**
+ *
+ *
+ * @author Yongqiang Liu (yliu78@stanford.edu)
+ */
 public class Utility {
 	
 	static final String TAG = "Utility";

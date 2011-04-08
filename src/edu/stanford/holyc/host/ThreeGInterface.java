@@ -8,16 +8,19 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import edu.stanford.holyc.jni.NativeCallWrapper;
 
+/**
+*
+*
+* @author Yongqiang Liu (yliu78@stanford.edu)
+*/
 
 public class ThreeGInterface extends HostInterface {
 	private Context context = null;
+	String TAG = "HOLYC.3GInterface";
 	
 	public ThreeGInterface(Context context) {
 		this.context = context;
 	}
-	
-	public ThreeGInterface() {}
-	
 	@Override
     public String searchName() {
     	final String[] devices = {"ppp0", "rmnet0", "pdp0"};
@@ -30,11 +33,13 @@ public class ThreeGInterface extends HostInterface {
 	
 	@Override
 	public HostInterface searchGateway() {
-		ThreeGInterface gateway = new ThreeGInterface();
-		String gwIP = NativeCallWrapper.getProp("net.rmnet0.gw");
+		HostInterface gateway = new ThreeGInterface(context);
+		String devName = getName();
+		String prop = "net." + devName +".gw";
+		String gwIP = NativeCallWrapper.getProp(prop);
 		gateway.setIP(gwIP);
 		if (gwIP != null) {
-			gateway.setMac(getMacFromIPByPing(gwIP));
+			gateway.setMac(getMacFromIPByArpRequest(gwIP));
 		}
 		return gateway;
 	}
@@ -54,5 +59,5 @@ public class ThreeGInterface extends HostInterface {
         Method m = Utility.getMethodFromClass(cm, "setMobileDataEnabled");
         Utility.runMethodofClass(cm, m, enable);
 	}
-	
+
 }

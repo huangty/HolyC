@@ -7,16 +7,19 @@ import android.net.wifi.WifiManager;
 import android.util.Log;
 import edu.stanford.holyc.jni.NativeCallWrapper;
 
+/**
+*
+*
+* @author Yongqiang Liu (yliu78@stanford.edu)
+*/
+
 public class WifiInterface extends HostInterface {
-	static final String TAG = "WifiInterface"; 
+	static final String TAG = "HOLYC.WifiInterface"; 
 	private Context context;
 	
 	public WifiInterface(Context context) {
 		this.context = context;
-	}
-	
-	public WifiInterface() {}
-	
+	}	
 	@Override	
 	public String searchName() {
 		return NativeCallWrapper.getProp("wifi.interface");
@@ -45,11 +48,12 @@ public class WifiInterface extends HostInterface {
 	@Override
 	public HostInterface searchGateway() {
 		if (context == null || getInterfaceEnable() == false) return super.searchGateway();
-		WifiInterface gateway = new WifiInterface();
-		String gwIP = NativeCallWrapper.getProp("dhcp.eth0.gateway");
+		WifiInterface gateway = new WifiInterface(context);
+		String prop = "dhcp."+ getName() + ".gateway";
+		String gwIP = NativeCallWrapper.getProp(prop);
 		gateway.setIP(gwIP);
 		if (gwIP != null) {
-			String mac = getMacFromIPByPing(gwIP);
+			String mac = getMacFromIPByArpRequest(gwIP);
 			//Log.d(TAG, "get mac is " + mac);
 			gateway.setMac(mac);
 		}
@@ -78,4 +82,5 @@ public class WifiInterface extends HostInterface {
 	private WifiManager getWifiManager() {
 		return (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 	}
+
 }

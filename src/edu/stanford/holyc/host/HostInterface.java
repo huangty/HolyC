@@ -1,5 +1,7 @@
 package edu.stanford.holyc.host;
 
+import java.util.StringTokenizer;
+
 import android.util.Log;
 import edu.stanford.holyc.jni.NativeCallWrapper;
 
@@ -8,7 +10,8 @@ import edu.stanford.holyc.jni.NativeCallWrapper;
  * the basic attributes of an interface and provides 
  * API to get/set these attributes.
  * 
- *   @author Leo
+ * @author Yongqiang Liu (yliu78@stanford.edu)
+ * @author Te-Yuan Huang (huangty@stanford.edu)
  */
 public abstract class HostInterface {
 	static final String TAG = "HostInterface";
@@ -18,8 +21,7 @@ public abstract class HostInterface {
 	private String mac = null;
 	private HostInterface gateway;
 	
-	public abstract void setInterfaceEnable(boolean enable);;
-	
+	public abstract void setInterfaceEnable(boolean enable);	
 	public abstract boolean getInterfaceEnable();
 	
 	
@@ -69,11 +71,10 @@ public abstract class HostInterface {
 	}
 	
 	/**
-	 * It must be overrode by derived class.
+	 * It must be overwritten by derived class.
+	 * (Te-Yuan: since it must be overwritten, I made it abstract) 
 	 */
-	public String searchName() {
-		return null;
-	}
+	public abstract String searchName();
 	
 	/**
 	 * the super class provides a set of methods to 
@@ -83,21 +84,21 @@ public abstract class HostInterface {
 	 */
 	public String searchIP() {
 		if (name == null) return null;
-		String command = "su -c \" busybox ifconfig " + name + " | grep inet\"";
+		String command = "su -c \" /data/local/bin/busybox ifconfig " + name + " | grep inet\"";
 		String token = "addr:";
 		return this.getValueByBusyBox(command, token);
 	}
 	
 	public String searchMask() {
 		if (name == null) return null;
-		String command = "su -c \" busybox ifconfig " + name + " | grep Mask\"";
+		String command = "su -c \" /data/local/bin/busybox ifconfig " + name + " | grep Mask\"";
 		String token = "Mask:";
 		return this.getValueByBusyBox(command, token);
 	}
 	
 	public String searchMac() {
 		if (name == null) return null;
-		String command = "su -c \" busybox ifconfig " + name + " | grep HWaddr\"";
+		String command = "su -c \" /data/local/bin/busybox ifconfig " + name + " | grep HWaddr\"";
 		String token = "HWaddr ";
 		return this.getValueByBusyBox(command, token);
 	}
@@ -107,7 +108,7 @@ public abstract class HostInterface {
 	}
 	
 	
-	public String getMacFromIPByPing(String IP) {
+	/*public String getMacFromIPByPing(String IP) {
 		String mac = null;
 		NativeCallWrapper.runCommand("su -c \"busybox ping " + IP + " -c 1 -w 1\"");
 		String resLine = NativeCallWrapper.getResultByCommand("su -c \"arp -a -n | grep " + IP + "\"");
@@ -120,6 +121,18 @@ public abstract class HostInterface {
 			}
 		}
 		return mac;
+	}*/
+	
+	public String getMacFromIPByArpRequest(String IP){
+		String mac = null;
+		String command = "su -c \"/data/local/bin/busybox arping -I "+ getName()+" -c 1 "+ IP + " | awk 'NR==2{print\\$5}' | sed 's/\\[//g' | sed 's/\\]//g' \"";
+		while(mac == null || !isValidMAC(mac)){
+			mac = NativeCallWrapper.getResultByCommand(command);
+			Log.d(TAG, "ARP Reply:" + mac);
+			mac.replace("\n", "");
+			mac.replace("\r", "");
+		}		
+		return patchMAC(mac);
 	}
 	
 	private String getValueByBusyBox(String command, String token) {
@@ -139,5 +152,46 @@ public abstract class HostInterface {
 		}
 		return value;
 	}
-
+	
+	/** The function to patch the returned MAC address from "2:50:f3:0:0:0" to "02:50:f3:00:00:00" */
+	public String patchMAC(String mac){
+		String patched = null;
+		if(isValidMAC(mac)){
+			StringTokenizer st = new StringTokenizer(mac, ":");
+		    while (st.hasMoreTokens()) {
+		    	String seg = st.nextToken();		    	
+		    	if(seg.length() < 2 ){
+		    		seg = "0" + seg;
+		    	}
+		    	if(patched == null){
+		    		patched = seg;
+		    	}else{
+		    		patched = patched + ":" + seg;
+		    	}
+		    }
+		}
+		return patched;
+	}
+	
+	/** The function to check if the MAC address is valid */
+	public boolean isValidMAC(String mac){
+		boolean valid = true;
+		String[] segments = mac.split(":");
+		Log.d(TAG, "original MAC = " + mac);
+	    if(segments.length != 6){
+	    	valid = false;	    	
+	    }else{
+			for (int i = 0 ; i< segments.length ; i++){
+				try{
+					Integer.parseInt(segments[i].trim(), 16);
+				}catch(Exception e){
+					valid = false;
+				}
+			}
+	    }
+	    if(valid == false){
+	    	Log.d(TAG, mac + " is an invalid MAC address");
+	    }
+		return valid;
+	}
 }

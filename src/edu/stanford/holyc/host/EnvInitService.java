@@ -31,17 +31,13 @@ import edu.stanford.holyc.jni.NativeCallWrapper;
  *
  *
  * @author Te-Yuan Huang (huangty@stanford.edu)
- *
+ * @author Yongqiang Liu (yliu78@stanford.edu)
  */
-/** For LYQ
- * 1. device name
- * 2. 3G enable
- * 3. popen
- */
+
 
 public class EnvInitService extends Service{
 
-	String TAG = "HOLYC.EnvInit";
+	String TAG = "HOLYC.EnvInit";	
 	
 	/** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
@@ -51,6 +47,13 @@ public class EnvInitService extends Service{
     public static final int MSG_START_ENVINIT = 3;
 	private boolean wifi_included;
 	private boolean mobile_included;
+	/** The interfaces in the host*/
+	private VirtualInterfacePair vIFs = null;
+	private ThreeGInterface threeGIF = null;
+	private WifiInterface wifiIF = null;
+	private HostInterface wifiGW = null;
+	private HostInterface threeGGW= null;
+	private VirtualSwitch ovs = null;
         
     /** Handler of incoming messages from clients (Activities). */
     class IncomingHandler extends Handler {
@@ -101,9 +104,9 @@ public class EnvInitService extends Service{
     }
   
     public void doEnvInit(){
-    	doVethInit();
-    	doWiFiInit();
+       	doWiFiInit();
     	doMobileInit();
+    	doVethInit();
     	doOVSInit();
     	doOpenflowdInit();
     	doRoutingInit();
@@ -111,104 +114,87 @@ public class EnvInitService extends Service{
     	 * TODO: Notify the statusUI that environment initiation is finished, time to start the Monitor service
     	 */
     }
-    public void doRoutingInit(){
-    	NativeCallWrapper.runCommand("su -c \"ip route del dev eth0\"");
-    	NativeCallWrapper.runCommand("su -c \"ip route del dev rmnet0\"");
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default dev veth1\"");    	
+    
+    public void doWiFiInit(){
+    	wifiIF = new WifiInterface(this);
+    	wifiIF.setInterfaceEnable(wifi_included);
+    	wifiGW = wifiIF.getGateway();
+    	
+    	/** debug messages*/
+    	Log.d(TAG, "wifi Name is " + wifiIF.getName());
+    	Log.d(TAG, "wifi IP is " + wifiIF.getIP());
+    	Log.d(TAG, "wifi mac is " + wifiIF.getMac());
+    	Log.d(TAG, "wifi gw IP is " + wifiGW.getIP());
+    	Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());    		
     }
-    public void doOpenflowdInit(){    	
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd dp0 tcp:127.0.0.1 --out-of-band --detach\"");
-    	/**
-    	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
-    	 */
+    
+    public void doMobileInit(){
+    	threeGIF = new ThreeGInterface(this);
+    	/** Need to compile with cyanogenmod to make this work*/
+    	//threeGIF.setInterfaceEnable(mobile_included);
+    	threeGGW = threeGIF.getGateway();
+    	
+    	/** debug messages*/
+    	Log.d(TAG, "3G name is " + threeGIF.getName());
+    	Log.d(TAG, "3G IP is " + threeGIF.getIP());
+    	Log.d(TAG, "3G Mask is " + threeGIF.getMask());
+    	Log.d(TAG, "3G Mac is " + threeGIF.getMac());
+    	Log.d(TAG, "3G GW IP is " + threeGGW.getIP());
+    	Log.d(TAG, "3G GW Mac is " + threeGGW.getMac());
     }
+    
+    public void doVethInit(){    	
+    	/** 1. ip link add type veth (init)
+    	 *  2. set the IP address and mask  */
+    	
+    	vIFs = new VirtualInterfacePair();    
+    	if( !wifiIF.getIP().startsWith("192.168") && !threeGIF.getIP().startsWith("192.168")){
+    		vIFs.setIP("veth1", "192.168.0.2", "255.255.255.0");
+    	}else if(!wifiIF.getIP().startsWith("10.38") && !threeGIF.getIP().startsWith("10.38")){
+    		vIFs.setIP("veth1", "10.38.0.2", "255.255.255.0");
+    	}else{
+    		Log.e(TAG, "Couldn't find an IP to initilize virtual interface");
+    	}
+
+    	/** debug messages*/
+    	Log.d(TAG, "veth name is " + vIFs.getNames());
+    	Log.d(TAG, "veth IP is " + vIFs.getIPs());
+    	Log.d(TAG, "veth Mac is " + vIFs.getMacs());    	
+    }
+    
     /**
      * @TODO: device name should be variables
      */
     public void doOVSInit(){
-    	NativeCallWrapper.runCommand("su -c \"insmod /sdcard/openvswitch_mod.ko\"");
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-dp dp0\"");
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 veth0\"");
+    	/**
+    	 * 1. init: load openflowvswitch_mod.ko
+    	 * 2. add datapath
+    	 * 3. add interfaces     	
+    	 * */
+    	ovs = new VirtualSwitch();
+    	ovs.addDP("dp0");
+    	ovs.addIF("dp0", vIFs.getVeth0().getName());
     	if(wifi_included){
-    		NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 eth0\"");
+    		ovs.addIF("dp0", wifiIF.getName());
     	}
     	if(mobile_included){
-    		NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if dp0 rmnet0\"");
+    		ovs.addIF("dp0", threeGIF.getName());
     	}
-    }
+    }         
     
-    public void doVethInit(){
-    	/**
-    	 * /data/local/bin/busybox ip link add type veth
-    	 * /data/local/bin/busybox ifconfig veth1 192.168.0.2 netmask 255.255.255.0 
-    	 * MAC_VETH=`/data/local/bin/busybox ifconfig veth1 | awk 'NR==1{ print $5}'`
-    	 * */    	
-    	//1. to create veth0 and veth1
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox ip link add type veth\"");
-    	//2. Setup the address of veth1
-    	String cmd = "su -c \"/data/local/bin/busybox ifconfig veth1 "+ HostNetworkConfig.vethIP+" netmask "+ HostNetworkConfig.vethIPMask + "\"";
-    	NativeCallWrapper.runCommand(cmd);
-    	//3. Get MAC address
-    	/**
-    	 * @TODO: 1. How to get veth1's MAC address
-    	 */
-
+    public void doRoutingInit(){
+    	NativeCallWrapper.runCommand("su -c \"ip route del dev "+ wifiIF.getName()+"\"");
+    	NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
+    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName()+ "\"");    	
     }
-    public void doMobileInit(){
+    public void doOpenflowdInit(){    	
+    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach\"");
     	/**
-    	 * MAC_MOBILE=`/data/local/bin/busybox ifconfig rmnet0 | awk 'NR==1{ print $5}'`
-    	 * IP_MOBILE_GW=`getprop net.rmnet0.gw`
-    	 * MAC_MOBILE_GW=`/data/local/bin/busybox arping -I rmnet0 -c 1 $IP_MOBILE_GW | awk 'NR==2{print$5}' |  sed 's/\[//g' | sed 's/\]//g'`
-    	 * IP_MOBILE=`ifconfig rmnet0 | awk '{print $3}'`
+    	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
     	 */
-    	
-    	/**
-    	 * @TODO: 1. How to get 3G Mac address, 
-    	 * 		  2. How to get 3G's IP address,
-    	 * 		  3. How to get GW's MAC address,
-    	 */
-    	HostNetworkConfig.mobileGWIP = NativeCallWrapper.getProp("net.rmnet0.gw");
-    	Log.d(TAG, "mobile gw is " + HostNetworkConfig.mobileGWIP);
-    	ThreeGInterface g3 = new ThreeGInterface();
-    	Log.d(TAG, "3G name is " + g3.getName());
-    	Log.d(TAG, "3G IP is " + g3.getIP());
-    	Log.d(TAG, "3G Mask is " + g3.getMask());
-    	Log.d(TAG, "3G Mac is " + g3.getMac());
-    	HostInterface g3gw = g3.getGateway();
-    	Log.d(TAG, "3G GW IP is " + g3gw.getIP());
-    	Log.d(TAG, "3G GW Mac is " + g3gw.getMac());
     }
-    public void doWiFiInit(){
-    	/**
-    	 * MAC_WIFI=`/data/local/bin/busybox ifconfig eth0 | awk 'NR==1{ print $5}'`
-    	 * IP_WIFI=`ifconfig eth0 | awk '{print $3}'`
-    	 * IP_WIFI_GW=`busybox route -n | grep eth0 | grep UG | awk '{print $2}'`
-    	 * MAC_WIFI_GW=`/data/local/bin/busybox arping -I eth0 -c 1 $IP_WIFI_GW | awk 'NR==2{print$5}' |  sed 's/\[//g' | sed 's/\]//g'`
-    	 * */
-    	/*WifiManager wifiMan = (WifiManager) this.getSystemService(Context.WIFI_SERVICE);
-    	if(wifi_included && !wifiMan.isWifiEnabled()){    		
-    		wifiMan.setWifiEnabled(true);    	
-    	}*/
-    	/** 
-    	 * TODO: Make sure Wifi is connected, checking is needed
-    	 * */
-    	/*WifiInfo wifiInf = wifiMan.getConnectionInfo();
-    	HostNetworkConfig.wifiMACaddr = wifiInf.getMacAddress();
-    	int wifiIP = wifiInf.getIpAddress();
-    	HostNetworkConfig.wifiIPaddr = IPv4.fromIPv4Address(wifiIP);
-    	*/
-    	
-    	WifiInterface wifi = new WifiInterface(this);
-    	Log.d(TAG, "wifi Name is " + wifi.getName());
-    	Log.d(TAG, "wifi IP is " + wifi.getIP());
-    	Log.d(TAG, "wifi mac is " + wifi.getMac());
-    	HostInterface wifiGW = wifi.getGateway();
-    	Log.d(TAG, "wifi gw IP is " + wifiGW.getIP());
-    	Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());
-    	/** 
-    	 * @TODO: How to get arp management
-    	 * */    	
-    }
+       
+    
 	@Override
 	public IBinder onBind(Intent arg0) {
 		return mMessenger.getBinder();
