@@ -30,4 +30,5 @@ Here is the instruction for using ant.
 4. To install or uninstall the apk file into the device, type 'ant install' or 'ant uninstall'
 5. To clean up, type 'ant clean'
 
-A typical workflow would be: 'ant clean; ant compile; ant release; ant install'
+A typical workflow would be: 'ant clean; ant compile; ant release; ant install' 
+or if you are lazy as I am, 'ant clean release install' is essentially the same. (compile is included in the step of building a release)
