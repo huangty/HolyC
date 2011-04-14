@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    >
+	<TextView  
+	    android:layout_width="fill_parent" 
+	    android:layout_height="wrap_content"
+	    android:gravity="center_vertical|center_horizontal" 
+	    android:text="@string/title"
+	    />
+	<View
+		android:layout_width="fill_parent"
+		android:layout_height="2dip"
+		android:background="#FFBFBFBF" 
+		/>
+		
+	<View
+		android:layout_width="fill_parent"
+		android:layout_height="10dip"
+		/>
+	<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:layout_alignParentBottom="true">  
+		<TableRow 
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:weightSum="100">		
+			<ToggleButton
+				android:id="@+id/dispatcher_starter_button"
+			    android:layout_height="wrap_content"
+				android:text="To Start"
+				android:layout_weight="50"/>
+			<ToggleButton
+				android:id="@+id/dispatcher_binder_button"
+			    android:layout_height="wrap_content"
+				android:text="To Bind"
+				android:layout_weight="50"/>
+		</TableRow>			
+	</TableLayout>	
+	<ScrollView android:id="@+id/dispatch_scrollview" 
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		>	
+		<TextView android:id="@+id/dispatch_report_txtview" 
+		    android:layout_width="fill_parent" 
+		    android:layout_height="wrap_content" 
+		    android:text="Dispatch Service Running ... "
+		    android:scrollbarAlwaysDrawVerticalTrack="true"
+		    />
+	</ScrollView>        
+</LinearLayout>

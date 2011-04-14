@@ -2,7 +2,10 @@
 <resources>
     <string name="hello">Hello World, HOLY Controller!</string>
     <string name="app_name">HOLY Controller</string>
-    <string name="title">Huang-Liu\'s Openly LazY (HOLY) Controller</string>
+    <string name="entry_UI">Entry User Interface</string>
+    <string name="control_UI">Control Interface</string>    
+    <string name="title">Huang-Liu\'s Openly LazY (HOLY) Controller</string>    
     <string name="port">Binding Port:</string>
     <string name="portRangeReminder">Port number can only be with [1024, 65535]</string>
+    <string name="BindServiceReminder">Please Bind the Service to Terminate it</string>
 </resources>

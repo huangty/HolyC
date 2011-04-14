@@ -7,4 +7,10 @@
     <string name="openflow_channel_unbinded">Openflow Switch Control Channel Unbinded</string>
     <string name="envinit_started">Environment Initiation Started</string>
     <string name="envinit_stopped">Environment Initiation Stopped</string>
+    <string name="dispatcher_started">HolyC Dispatcher Started</string>
+    <string name="dispatcher_stopped">HolyC Dispatcher Stopped</string>
+    <string name="dispatcher_binded">HolyC Dispatcher Binded</string>
+    <string name="dispatcher_unbinded">HolyC Dispatcher Unbinded</string>        
+            
 </resources>
+
