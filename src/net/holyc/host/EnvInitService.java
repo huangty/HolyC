@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import net.beaconcontroller.packet.IPv4;
 import net.holyc.statusUI;
+import net.holyc.dispatcher.DispatchService;
 import net.holyc.jni.NativeCallWrapper;
 import android.app.Service;
 import android.content.Context;
@@ -77,6 +78,7 @@ public class EnvInitService extends Service{
                 	}                	
                 	sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	doEnvInit();
+                	sendStartOFCommand();
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -92,9 +94,9 @@ public class EnvInitService extends Service{
     public void sendReportToUI(String str){
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
-            	Message msg = Message.obtain(null, statusUI.MSG_REPORT_UPDATE);
+            	Message msg = Message.obtain(null, DispatchService.MSG_UIREPORT_UPDATE);
             	Bundle data = new Bundle();
-            	data.putString("MSG_REPORT_UPDATE", str+"\n -------------------------------");
+            	data.putString("MSG_UIREPORT_UPDATE", str+"\n -------------------------------");
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {
@@ -102,7 +104,19 @@ public class EnvInitService extends Service{
             }
         }
     }
-  
+    public void sendStartOFCommand(){
+    	for (int i=mClients.size()-1; i>=0; i--) {
+            try {
+            	Message msg = Message.obtain(null, DispatchService.MSG_START_OFCOMM);
+            	Bundle data = new Bundle();
+            	data.putString("MSG_START_OFCOMM", "START");
+            	msg.setData(data);
+                mClients.get(i).send(msg);
+            } catch (RemoteException e) {
+                mClients.remove(i);
+            }
+        }
+    }
     public void doEnvInit(){
        	doWiFiInit();
     	doMobileInit();

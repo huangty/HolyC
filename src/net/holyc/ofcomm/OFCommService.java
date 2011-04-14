@@ -18,6 +18,7 @@ import java.util.Set;
 
 import net.holyc.statusUI;
 import net.holyc.R;
+import net.holyc.dispatcher.DispatchService;
 
 import org.openflow.protocol.OFFeaturesReply;
 import org.openflow.util.HexString;
@@ -146,9 +147,9 @@ public class OFCommService extends Service implements Runnable{
     	//Log.d("AVSC", "size of clients = " + mClients.size() );
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
-            	Message msg = Message.obtain(null, statusUI.MSG_REPORT_UPDATE);
+            	Message msg = Message.obtain(null, DispatchService.MSG_UIREPORT_UPDATE);
             	Bundle data = new Bundle();
-            	data.putString("MSG_REPORT_UPDATE", str+"\n -------------------------------");
+            	data.putString("MSG_UIREPORT_UPDATE", str+"\n -------------------------------");
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {

@@ -41,8 +41,10 @@ public class DispatchService extends Service implements Runnable{
 	public static final int MSG_REGISTER_CLIENT = 1;
     public static final int MSG_UNREGISTER_CLIENT = 2;
     public static final int MSG_DISPATCH_REPORT = 3;
-    // 4 is reserved for statusUI.MSG_REPORT_UPDATE
-    
+    public static final int MSG_UIREPORT_UPDATE = 4;
+    public static final int MSG_NEW_EVENT = 5;
+    public static final int MSG_START_OFCOMM = 6;
+
 	/** Messenger for communicating with service. */
 	Messenger mOFService = null;
 	Messenger mEnvService = null;
@@ -61,8 +63,12 @@ public class DispatchService extends Service implements Runnable{
                 case MSG_UNREGISTER_CLIENT:
                     mClients.remove(msg.replyTo);
                     break;
-                case statusUI.MSG_REPORT_UPDATE:
-                	sendReportToControlUI(msg.getData().getString("MSG_REPORT_UPDATE"));
+                case MSG_UIREPORT_UPDATE:
+                	sendReportToControlUI(msg.getData().getString("MSG_UIREPORT_UPDATE"));
+                	break;
+                case MSG_START_OFCOMM:
+                	Log.d(TAG, "got startcommand to start binding OFCommService");
+                	doBindOFService();
                 	break;
                 /*case MSG_START_DISPATCH:            		
                 	sendReportToUI("Initiating the Dispatch Service");
@@ -177,7 +183,7 @@ public class DispatchService extends Service implements Runnable{
     }
     
     private void doBindServices(){
-        doBindOFService();        
+        //doBindOFService();        
         doBindEnvService();        
     }
     

@@ -26,7 +26,7 @@ class VirtualSwitch{
 	public void loadKernelModule(){
 		String result = NativeCallWrapper.getResultByCommand("lsmod | grep openvswitch");
 		if(result == ""){
-			NativeCallWrapper.runCommand("su -c \"insmod /sdcard/openvswitch_mod.ko\"");
+			NativeCallWrapper.runCommand("su -c \"insmod /data/local/lib/openvswitch_mod.ko\"");
 		}
 	}
 	public void addDP(String dp){

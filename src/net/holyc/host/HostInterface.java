@@ -1,7 +1,5 @@
 package net.holyc.host;
 
-import java.util.StringTokenizer;
-
 import net.holyc.jni.NativeCallWrapper;
 
 import android.util.Log;
