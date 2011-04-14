@@ -1,34 +1,48 @@
 HOLYC: Huang-Liu's Openly LazY Controller
-========
+=========================================
 I. Overview
 
-This controller is for controlling an openflow switch resides in an android phone. 
-Right now, it's just a toy. Since we are openly lazy, it's still in its infancy. 
+This controller is for manipulating an OpenFlow switch residing in an
+Android phone.  Right now, it's just a toy. Since we are openly lazy,
+it might remain in its infancy for a while.
 
 II. Code Structure
 
 Currently, we have four packages:
 1. net.holyc/: this is where the UI sits
-2. net.holyc.host/: this is all the codes regarding to host environment setting
+2. net.holyc.host/: this is all the codes regarding to host
+   environment setting
 3. net.holyc.jni/: this is code for java-native interface. 
-4. net.holyc.ofcomm/: this package handles the communication between the controller and the switch
-5. net.beaconcontroller.packet/: this is the code for constructing and intrepreting packets. We openly steal this package from the Beacon Controller. 
+4. net.holyc.ofcomm/: this package handles the communication between
+   the controller and the switch
+5. net.beaconcontroller.packet/: this is the code for constructing and
+   intrepreting packets. We openly steal this package from the Beacon
+   Controller.
 
-III. Dependency
+III. Dependencies
 
-HOLYC depends on Android SDK (preferably 2.2 or above) and openflowj. 
+HOLYC depends on 
+* Android SDK (preferably 2.2 or above) and 
+* OpenFlowJ. 
 
 
 IV. Compile
 
-You can either use Eclipse or Command line (we use ant) to compile this project. 
+You can either use Eclipse or command line (we use ant) to compile
+this project.
 
 Here is the instruction for using ant. 
 1. To see all the target ant support, type 'ant help'
 2. To compile, type 'ant compile'
 3. To build apk file, type 'ant release'
-4. To install or uninstall the apk file into the device, type 'ant install' or 'ant uninstall'
+4. To install or uninstall the apk file into the device, type 'ant
+   install' or 'ant uninstall'
 5. To clean up, type 'ant clean'
 
-A typical workflow would be: 'ant clean; ant compile; ant release; ant install' 
-or if you are lazy as I am, 'ant clean release install' is essentially the same. (compile is included in the step of building a release)
+
+A typical workflow would be: 
+ $ ant clean; ant compile; ant release; ant install
+or if you are lazy as I am, 
+ $ ant clean release install
+is essentially the same. (compile is included in the step of building
+a release)
