@@ -48,7 +48,7 @@ JNIEXPORT jint JNICALL Java_net_holyc_jni_NativeCallWrapper_runCommand
   return (jint)exitcode;
 }
 
-JNIEXPORT jstring JNICALL Java_edu_stanford_holyc_jni_NativeCallWrapper_getResultByCommand
+JNIEXPORT jstring JNICALL Java_net_holyc_jni_NativeCallWrapper_getResultByCommand
   (JNIEnv *env, jclass class, jstring command)
 {
   const char *commandString;
