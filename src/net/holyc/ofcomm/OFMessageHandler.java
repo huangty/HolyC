@@ -1,6 +1,5 @@
 package net.holyc.ofcomm;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
@@ -29,7 +28,7 @@ import android.util.Log;
 
 public class OFMessageHandler implements Runnable{
 
-	private List msgQueue = new LinkedList();
+	private List<OFMessageEvent> msgQueue = new LinkedList<OFMessageEvent>();
 	  
 	public void processData(OFCommService server, SocketChannel socket, byte[] data, int count) {
 	    byte[] dataCopy = new byte[count];
@@ -86,7 +85,8 @@ public class OFMessageHandler implements Runnable{
 	    		
 	            OFMatch match = new OFMatch();
 	            match.loadFromPacket(ofp_in.getPacketData(), ofp_in.getInPort());
-	            if ( match.getDataLayerType() == (short) 0x0806 && match.getInputPort()==1){ //arp from the virtual interface
+	            if ( match.getDataLayerType() == (short) 0x0806 && match.getInputPort()==1){ 
+	            	//arp from the virtual interface
 	            	Log.d("AVSC", "Receive an ARP packet: " + match.toString());
 	            	msgEvent.server.sendReportToUI("ARP packet + match = " + match.toString());
 	            	
@@ -139,11 +139,11 @@ public class OFMessageHandler implements Runnable{
 	    		msgEvent.server.sendReportToUI(ofp_in.toString());
 	    	}else if(ofm.getType() == OFType.FEATURES_REPLY){
 	    		Log.d("AVSC", "Received Switch Feature Reply");
-	    		msgEvent.server.sendReportToUI("Received Switch Feature Reply");
+	    		msgEvent.server.sendReportToUI("Received Switch Feature Reply"); 
 	    		OFFeaturesReply offr = new OFFeaturesReply();	    		
 	    		offr.readFrom(ByteBuffer.wrap(msgEvent.data));	    			    		
 	    		msgEvent.server.sendReportToUI("Switch("+offr.getDatapathId()+"): port size = "+ offr.getPorts().size());
-	    		msgEvent.server.switchData.put(offr.getDatapathId(), offr);
+	    		msgEvent.server.switchData.put(new Long(offr.getDatapathId()), offr);
 	    	}else{	    		
 	    		msgEvent.server.sendReportToUI("Received OF Message type = " + ofm.getType().toString());
 	    	}

@@ -2,18 +2,13 @@ package net.holyc.ofcomm;
 
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -25,21 +20,8 @@ import net.holyc.statusUI;
 import net.holyc.R;
 
 import org.openflow.protocol.OFFeaturesReply;
-import org.openflow.protocol.OFFlowMod;
-import org.openflow.protocol.OFHello;
-import org.openflow.protocol.OFMatch;
-import org.openflow.protocol.OFMessage;
-import org.openflow.protocol.OFPort;
-import org.openflow.protocol.OFType;
-import org.openflow.protocol.action.OFAction;
-import org.openflow.protocol.action.OFActionOutput;
-import org.openflow.protocol.action.OFActionType;
-import org.openflow.protocol.factory.BasicFactory;
-import org.openflow.protocol.factory.OFActionFactory;
-import org.openflow.protocol.factory.OFMessageFactory;
 import org.openflow.util.HexString;
-import org.openflow.util.U16;
-import org.openflow.util.U32;
+
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -71,11 +53,11 @@ public class OFCommService extends Service implements Runnable{
 	//OpenflowDaemon openflowd = null;
 
 	// A list of PendingChange instances
-	private List pendingChanges = new LinkedList();
+	private List<NIOChangeRequest> pendingChanges = new LinkedList<NIOChangeRequest>();
 
 	// Maps a SocketChannel to a list of ByteBuffer instances
-	private Map pendingData = new HashMap();
-	public Map switchData = new HashMap<String, OFFeaturesReply>();
+	private Map<SocketChannel, List<ByteBuffer>> pendingData = new HashMap<SocketChannel, List<ByteBuffer>>();
+	public Map<Long, OFFeaturesReply> switchData = new HashMap<Long, OFFeaturesReply>();
 	
 	/** For showing and hiding our notification. */
     NotificationManager mNM;
@@ -183,7 +165,7 @@ public class OFCommService extends Service implements Runnable{
      * Show a notification while this service is running.
      */
     private void showNotification() {
-        CharSequence text = getText(R.string.openflow_channel_started);
+        /*CharSequence text = getText(R.string.openflow_channel_started);
 
         // Set the icon, scrolling text and timestamp for notification
         Notification notification = new Notification(R.drawable.icon, text, System.currentTimeMillis());
@@ -197,7 +179,7 @@ public class OFCommService extends Service implements Runnable{
 
         // Send the notification.
         // We use a string id because it is a unique number.  We use it later to cancel.
-        mNM.notify(R.string.openflow_channel_started, notification);
+        mNM.notify(R.string.openflow_channel_started, notification);*/
     }
 
     /**
@@ -210,13 +192,14 @@ public class OFCommService extends Service implements Runnable{
     }
 
 	@Override
+	/** This service is also a thread, which running a server to listen to the message from the swtch*/
 	public void run() {
 		try {
         	ctlServer = ServerSocketChannel.open();
     		ctlServer.configureBlocking(false);
     		ctlServer.socket().bind(new InetSocketAddress(bind_port));
     		selector = Selector.open();
-	        SelectionKey sk = ctlServer.register(selector, SelectionKey.OP_ACCEPT);	        
+	        ctlServer.register(selector, SelectionKey.OP_ACCEPT);	        
 	        new Thread(ofm_handler).start();
 	    	Log.d(TAG, "Started the Controller TCP server, listening on Port " + bind_port); 
 		} catch (IOException e) {
@@ -232,7 +215,7 @@ public class OFCommService extends Service implements Runnable{
     		while (!Thread.interrupted()) {
     			
     			synchronized (this.pendingChanges) {
-					Iterator changes = this.pendingChanges.iterator();
+					Iterator<NIOChangeRequest> changes = this.pendingChanges.iterator();
 					while (changes.hasNext()) {
 						NIOChangeRequest change = (NIOChangeRequest) changes.next();
 						switch (change.type) {
@@ -246,9 +229,9 @@ public class OFCommService extends Service implements Runnable{
     			/*if(selector == null){
     				
     			}*/
-    			int num = selector.select();
-    			Set selectedKeys = selector.selectedKeys();
-    			Iterator it = selectedKeys.iterator();
+    			selector.select();
+    			Set<SelectionKey> selectedKeys = selector.selectedKeys();
+    			Iterator<SelectionKey> it = selectedKeys.iterator();
     			while(it.hasNext()){
     				SelectionKey key = (SelectionKey) it.next();
     				it.remove();
@@ -260,7 +243,7 @@ public class OFCommService extends Service implements Runnable{
     					ServerSocketChannel scc = (ServerSocketChannel) key.channel();
     					SocketChannel sc = scc.accept();
     					sc.configureBlocking(false);
-    					SelectionKey newKey = sc.register(selector, SelectionKey.OP_READ);
+    					sc.register(selector, SelectionKey.OP_READ);
     					sendReportToUI("Accpet New Connection");
     					Log.d(TAG, "accept new connection");
     				}else if(key.isReadable()){
@@ -298,11 +281,11 @@ public class OFCommService extends Service implements Runnable{
 		SocketChannel socketChannel = (SocketChannel) key.channel();
 
 		synchronized (this.pendingData) {
-			List queue = (List) this.pendingData.get(socketChannel);
+			List<ByteBuffer> queue = (List<ByteBuffer>) this.pendingData.get(socketChannel);
 
 			// Write until there's not more data ...
 			while (!queue.isEmpty()) {
-				ByteBuffer buf = (ByteBuffer) queue.get(0);
+				ByteBuffer buf = queue.get(0);
 				socketChannel.write(buf);
 				if (buf.remaining() > 0) {
 					// ... or the socket's buffer fills up
@@ -326,12 +309,11 @@ public class OFCommService extends Service implements Runnable{
 
 			// And queue the data we want written
 			synchronized (this.pendingData) {
-				List queue = (List) this.pendingData.get(socket);
+				List<ByteBuffer> queue = (List<ByteBuffer>) this.pendingData.get(socket);
 				if (queue == null) {
-					queue = new ArrayList();
+					queue = new ArrayList<ByteBuffer>();
 					this.pendingData.put(socket, queue);
-				}
-				
+				}			
 				queue.add(ByteBuffer.wrap(data));
 				Log.d(TAG, "wrap data = " + HexString.toHexString(data));
 			}
@@ -342,9 +324,9 @@ public class OFCommService extends Service implements Runnable{
 	}
 	
 	public void insertFixRule(SocketChannel socket){		
-		sendReportToUI("Insert Fix Rule");
+		/*sendReportToUI("Insert Fix Rule");
 		OFMessageFactory messageFactory = new BasicFactory();
-		OFActionFactory actionFactory = new BasicFactory();
+		OFActionFactory actionFactory = new BasicFactory();*/
 		
 		/*Assumption: 
 		 * 
