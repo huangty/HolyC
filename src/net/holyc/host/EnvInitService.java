@@ -2,15 +2,10 @@ package net.holyc.host;
 
 import java.util.ArrayList;
 
-import net.beaconcontroller.packet.IPv4;
-import net.holyc.statusUI;
 import net.holyc.dispatcher.DispatchService;
 import net.holyc.jni.NativeCallWrapper;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -78,7 +73,6 @@ public class EnvInitService extends Service{
                 	}                	
                 	sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	doEnvInit();
-                	sendStartOFCommand();
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -97,19 +91,6 @@ public class EnvInitService extends Service{
             	Message msg = Message.obtain(null, DispatchService.MSG_UIREPORT_UPDATE);
             	Bundle data = new Bundle();
             	data.putString("MSG_UIREPORT_UPDATE", str+"\n -------------------------------");
-            	msg.setData(data);
-                mClients.get(i).send(msg);
-            } catch (RemoteException e) {
-                mClients.remove(i);
-            }
-        }
-    }
-    public void sendStartOFCommand(){
-    	for (int i=mClients.size()-1; i>=0; i--) {
-            try {
-            	Message msg = Message.obtain(null, DispatchService.MSG_START_OFCOMM);
-            	Bundle data = new Bundle();
-            	data.putString("MSG_START_OFCOMM", "START");
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {
@@ -139,7 +120,12 @@ public class EnvInitService extends Service{
     	Log.d(TAG, "wifi IP is " + wifiIF.getIP());
     	Log.d(TAG, "wifi mac is " + wifiIF.getMac());
     	Log.d(TAG, "wifi gw IP is " + wifiGW.getIP());
-    	Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());    		
+    	Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());
+    	sendReportToUI("wifi Name is " + wifiIF.getName());
+    	sendReportToUI("wifi IP is " + wifiIF.getIP());
+    	sendReportToUI("wifi mac is " + wifiIF.getMac());
+    	sendReportToUI("wifi gw IP is " + wifiGW.getIP());
+    	sendReportToUI("wifi gw mac is " + wifiGW.getMac());
     }
     
     public void doMobileInit(){
@@ -155,6 +141,12 @@ public class EnvInitService extends Service{
     	Log.d(TAG, "3G Mac is " + threeGIF.getMac());
     	Log.d(TAG, "3G GW IP is " + threeGGW.getIP());
     	Log.d(TAG, "3G GW Mac is " + threeGGW.getMac());
+    	sendReportToUI("3G name is " + threeGIF.getName());
+    	sendReportToUI("3G IP is " + threeGIF.getIP());
+    	sendReportToUI("3G Mask is " + threeGIF.getMask());
+    	sendReportToUI("3G Mac is " + threeGIF.getMac());
+    	sendReportToUI("3G GW IP is " + threeGGW.getIP());
+    	sendReportToUI("3G GW Mac is " + threeGGW.getMac());
     }
     
     public void doVethInit(){    	
@@ -174,6 +166,9 @@ public class EnvInitService extends Service{
     	Log.d(TAG, "veth name is " + vIFs.getNames());
     	Log.d(TAG, "veth IP is " + vIFs.getIPs());
     	Log.d(TAG, "veth Mac is " + vIFs.getMacs());    	
+    	sendReportToUI("veth name is " + vIFs.getNames());
+    	sendReportToUI("veth IP is " + vIFs.getIPs());
+    	sendReportToUI("veth Mac is " + vIFs.getMacs());
     }
     
     /**
@@ -194,6 +189,8 @@ public class EnvInitService extends Service{
     	if(mobile_included){
     		ovs.addIF("dp0", threeGIF.getName());
     	}
+    	/** debug messages*/
+    	sendReportToUI("Setup OVS");
     }         
     
     public void doRoutingInit(){
@@ -206,6 +203,8 @@ public class EnvInitService extends Service{
     	/**
     	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
     	 */
+    	/** debug messages*/
+    	sendReportToUI("Setup Openflowd");
     }
        
     

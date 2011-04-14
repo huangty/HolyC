@@ -66,14 +66,6 @@ public class DispatchService extends Service implements Runnable{
                 case MSG_UIREPORT_UPDATE:
                 	sendReportToControlUI(msg.getData().getString("MSG_UIREPORT_UPDATE"));
                 	break;
-                case MSG_START_OFCOMM:
-                	Log.d(TAG, "got startcommand to start binding OFCommService");
-                	doBindOFService();
-                	break;
-                /*case MSG_START_DISPATCH:            		
-                	sendReportToUI("Initiating the Dispatch Service");
-                	startDispatchThread();
-                	break;*/                   
                 default:
                     super.handleMessage(msg);
             }
@@ -183,7 +175,7 @@ public class DispatchService extends Service implements Runnable{
     }
     
     private void doBindServices(){
-        //doBindOFService();        
+        doBindOFService();        
         doBindEnvService();        
     }
     
