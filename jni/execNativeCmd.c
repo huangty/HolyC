@@ -67,6 +67,8 @@ JNIEXPORT jstring JNICALL Java_net_holyc_jni_NativeCallWrapper_getResultByComman
   }*/
   sleep(2);
   fgets(result, MAX_RESULT_LEN, pin);
+  //clear the result from pin
+  while(fgets(line, LINE_LEN, pin)){}
   pclose(pin);
   memset(result2, '\0', MAX_RESULT_LEN);
   strcpy(result2, result);
