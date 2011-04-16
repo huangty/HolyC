@@ -19,9 +19,13 @@ import java.util.Set;
 import net.holyc.statusUI;
 import net.holyc.R;
 import net.holyc.dispatcher.DispatchService;
+import net.holyc.dispatcher.OFEvent;
+import net.holyc.dispatcher.OFPacketOutEvent;
 
 import org.openflow.protocol.OFFeaturesReply;
 import org.openflow.util.HexString;
+
+import com.google.gson.Gson;
 
 
 import android.app.Notification;
@@ -48,18 +52,18 @@ import android.widget.Toast;
 public class OFCommService extends Service implements Runnable{
 	int bind_port = 6633;
     ServerSocketChannel ctlServer = null; 
-	Selector selector = null; 
-	OFMessageHandler ofm_handler = new OFMessageHandler();
+	Selector selector = null;
+	//the function of OFMessageHandler is replaced by DispatchService
+	//OFMessageHandler ofm_handler = new OFMessageHandler();
 	String TAG = "HOLYC.OFCOMM";
-	//OpenflowDaemon openflowd = null;
 
 	// A list of PendingChange instances
 	private List<NIOChangeRequest> pendingChanges = new LinkedList<NIOChangeRequest>();
 
 	// Maps a SocketChannel to a list of ByteBuffer instances
-	private Map<SocketChannel, List<ByteBuffer>> pendingData = new HashMap<SocketChannel, List<ByteBuffer>>();
+	private Map<SocketChannel, List<ByteBuffer>> pendingData = new HashMap<SocketChannel, List<ByteBuffer>>();	
 	public Map<Long, OFFeaturesReply> switchData = new HashMap<Long, OFFeaturesReply>();
-	
+	private ArrayList<SocketChannel> openedSocketChannels = new ArrayList<SocketChannel>();
 	/** For showing and hiding our notification. */
     NotificationManager mNM;
     /** Keeps track of all current registered clients. */
@@ -77,6 +81,8 @@ public class OFCommService extends Service implements Runnable{
     public static final int MSG_START_OPENFLOWD = 4;
 
     final int BUFFER_SIZE = 8192;
+    
+    Gson gson = new Gson();
     /**
      * Handler of incoming messages from clients.
      */
@@ -107,6 +113,18 @@ public class OFCommService extends Service implements Runnable{
                 	Log.d(TAG, "Send msg on bind: " + bind_port);
                 	//openflowd = new OpenflowDaemon(bind_port);
                 	startOpenflowD();
+                	break;
+                case DispatchService.MSG_OFPACKETOUT_EVENT:
+                	OFPacketOutEvent ofpoe =  gson.fromJson(msg.getData().getString("OF_PACKETOUT"), OFPacketOutEvent.class);
+                	// TODO: send back to openflowd based on socketChannelNumber
+                	int scn = ofpoe.getSocketChannelNumber();
+                	Log.d(TAG, "send packet out through socket channel #"+scn);
+                	SocketChannel sc = openedSocketChannels.get(scn);
+                	
+                	if(sc != null){
+                		send(sc, ofpoe.getData());
+                	}
+                	Log.d(TAG, "sending out packet = "+ ofpoe.toString());
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -157,6 +175,22 @@ public class OFCommService extends Service implements Runnable{
             }
         }
     }
+    public void sendOFEventToDispatchService(int socket, byte[] OFdata){
+    	//Log.d("AVSC", "size of clients = " + mClients.size() );
+    	Gson gson = new Gson();
+    	for (int i=mClients.size()-1; i>=0; i--) {
+            try {
+            	Message msg = Message.obtain(null, DispatchService.MSG_OFCOMM_EVENT);
+            	OFEvent ofe = new OFEvent(socket, OFdata);            	
+            	Bundle data = new Bundle();            	
+            	data.putString("OFEVENT", gson.toJson(ofe, OFEvent.class));
+            	msg.setData(data);
+                mClients.get(i).send(msg);    	
+            } catch (RemoteException e) {
+                mClients.remove(i);
+            }
+        }
+    }
     
     public void startOpenflowD(){    	
     	new Thread(this).start();
@@ -198,10 +232,11 @@ public class OFCommService extends Service implements Runnable{
 		try {
         	ctlServer = ServerSocketChannel.open();
     		ctlServer.configureBlocking(false);
+    		ctlServer.socket().setReuseAddress(true);
     		ctlServer.socket().bind(new InetSocketAddress(bind_port));
     		selector = Selector.open();
 	        ctlServer.register(selector, SelectionKey.OP_ACCEPT);	        
-	        new Thread(ofm_handler).start();
+	        //new Thread(ofm_handler).start();
 	    	Log.d(TAG, "Started the Controller TCP server, listening on Port " + bind_port); 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block			
@@ -227,9 +262,6 @@ public class OFCommService extends Service implements Runnable{
 					}
 					this.pendingChanges.clear();
 				}
-    			/*if(selector == null){
-    				
-    			}*/
     			selector.select();
     			Set<SelectionKey> selectedKeys = selector.selectedKeys();
     			Iterator<SelectionKey> it = selectedKeys.iterator();
@@ -263,27 +295,42 @@ public class OFCommService extends Service implements Runnable{
 		SocketChannel sc = (SocketChannel) key.channel();
 		readBuffer.clear();
 		int numRead = -1;
+		
+		
 		try {
 			numRead = sc.read(readBuffer);
 		} catch (IOException e) {
 			key.cancel();
 			sc.close();
+			if(openedSocketChannels.contains(sc)){
+				openedSocketChannels.remove(sc);
+			}
 			return;
 		}
 		if (numRead == -1) {
 			key.channel().close();
 			key.cancel();
+			if(openedSocketChannels.contains(sc)){
+				openedSocketChannels.remove(sc);
+			}
 			return;
 		}
 		// Hand the data off to OFMessage Handler
-		this.ofm_handler.processData(this, sc, readBuffer.array(), numRead);
+		if(!openedSocketChannels.contains(sc)){
+			openedSocketChannels.add(sc);
+		}
+		int scn = openedSocketChannels.indexOf(sc);
+	
+		sendOFEventToDispatchService(scn, readBuffer.array());
+    	Log.d(TAG, "read OF packet through socket channel #"+scn);
+		//this.ofm_handler.processData(this, sc, readBuffer.array(), numRead);
 	}
 	private void write(SelectionKey key) throws IOException {
 		SocketChannel socketChannel = (SocketChannel) key.channel();
 
 		synchronized (this.pendingData) {
 			List<ByteBuffer> queue = (List<ByteBuffer>) this.pendingData.get(socketChannel);
-
+			
 			// Write until there's not more data ...
 			while (!queue.isEmpty()) {
 				ByteBuffer buf = queue.get(0);
@@ -303,6 +350,7 @@ public class OFCommService extends Service implements Runnable{
 			}
 		}
 	}
+	
 	public void send(SocketChannel socket, byte[] data) {
 		synchronized (this.pendingChanges) {
 			// Indicate we want the interest ops set changed
@@ -316,7 +364,6 @@ public class OFCommService extends Service implements Runnable{
 					this.pendingData.put(socket, queue);
 				}			
 				queue.add(ByteBuffer.wrap(data));
-				Log.d(TAG, "wrap data = " + HexString.toHexString(data));
 			}
 		}
 		// Finally, wake up our selecting thread so it can make the required changes

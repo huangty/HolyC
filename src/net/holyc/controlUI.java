@@ -45,8 +45,7 @@ public class controlUI extends Activity{
         dispatchServiceName = this.getPackageName()+".dispatcher.DispatchService";
         setContentView(R.layout.control);
         findViews();
-        setListeners();
-        
+        setListeners();        
     }
     @Override
     public void onDestroy(){

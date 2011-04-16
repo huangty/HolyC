@@ -12,6 +12,7 @@ import android.util.Log;
  * @author Yongqiang Liu (yliu78@stanford.edu)
  * @author Te-Yuan Huang (huangty@stanford.edu)
  */
+
 public abstract class HostInterface {
 	static final String TAG = "HostInterface";
 	private String name = null;
@@ -84,6 +85,9 @@ public abstract class HostInterface {
 	 */
 	public abstract String searchName();
 	
+	public void removeIP(){
+		NativeCallWrapper.runCommand("su -c \"busybox ifconfig " + getName() + " 0.0.0.0\"");
+	}
 	/**
 	 * the super class provides a set of methods to 
 	 * retrieve IP address by using busybox output.
@@ -116,7 +120,7 @@ public abstract class HostInterface {
 	}
 	
 	
-	/*public String getMacFromIPByPing(String IP) {
+	public String getMacFromIPByPing(String IP) {
 		String mac = null;
 		NativeCallWrapper.runCommand("su -c \"busybox ping " + IP + " -c 1 -w 1\"");
 		String resLine = NativeCallWrapper.getResultByCommand("su -c \"arp -a -n | grep " + IP + "\"");
@@ -129,9 +133,9 @@ public abstract class HostInterface {
 			}
 		}
 		return mac;
-	}*/
+	}
 	
-	public String getMacFromIPByArpRequest(String IP){
+	/*public String getMacFromIPByArpRequest(String IP){
 		String mac = null;
 		String command = "su -c \"/data/local/bin/busybox arping -I "+ getName()+" -c 1 "+ IP + " | awk 'NR==2{print\\$5}' | sed 's/\\[//g' | sed 's/\\]//g' \"";
 		while(mac == null || !isValidMAC(mac)){
@@ -141,7 +145,7 @@ public abstract class HostInterface {
 			mac.replace("\r", "");
 		}		
 		return patchMAC(mac);
-	}
+	}*/
 	
 	private String getValueByBusyBox(String command, String token) {
 		String value = null;

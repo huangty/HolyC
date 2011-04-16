@@ -2,18 +2,25 @@ package net.holyc.dispatcher;
 
 import java.util.ArrayList;
 
+import org.openflow.protocol.OFMessage;
+
+import com.google.gson.Gson;
+
 import net.holyc.R;
 import net.holyc.controlUI;
 import net.holyc.statusUI;
 import net.holyc.host.EnvInitService;
 import net.holyc.ofcomm.OFCommService;
+import net.holyc.ofcomm.OFMessageEvent;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,12 +36,16 @@ public class DispatchService extends Service implements Runnable{
     private NotificationManager mNM;
     private String TAG = "HolyC.DispatcherService";
     private int bind_port = 6633;
+    /** TODO: link this to UI */
     private boolean wifi_included = true;
-    private boolean mobile_included = true;
+    private boolean mobile_included = false;
     private static DispatchService sInstance = null;
     public static boolean isRunning = false;    
     public static DispatchService getInstance() { return sInstance; }
     private volatile Thread dispatchThread = null;
+    private ArrayList<OFEvent> eventQueue = new ArrayList<OFEvent>();
+    public static final String OFEVENT_UPDATE = "holyc.intent.OFEVENT";
+    public static final String OF_PACKETOUT_EVENT = "holyc.intent.OFPACKETOUT";
     /** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
 	/** Message Types Between statusUI Activity and This Service */
@@ -43,7 +54,8 @@ public class DispatchService extends Service implements Runnable{
     public static final int MSG_DISPATCH_REPORT = 3;
     public static final int MSG_UIREPORT_UPDATE = 4;
     public static final int MSG_NEW_EVENT = 5;
-    public static final int MSG_START_OFCOMM = 6;
+    public static final int MSG_OFCOMM_EVENT = 6;
+    public static final int MSG_OFPACKETOUT_EVENT = 7;
 
 	/** Messenger for communicating with service. */
 	Messenger mOFService = null;
@@ -51,6 +63,28 @@ public class DispatchService extends Service implements Runnable{
 	/** Flag indicating whether we have called bind on the service. */
 	boolean mIsOFBound;
 	boolean mIsEnvBound;
+	Gson gson = new Gson();
+	IntentFilter mIntentFilter;
+    /* Service binding */
+    BroadcastReceiver mPacketOutReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+        	Log.d(TAG, "receive packetout broadcast");
+        	//just acting as a relay from OFHandler to OFComm
+			Bundle bundle = intent.getBundleExtra("OF_PACKETOUT");		
+			//received_ofe = gson.fromJson(bundle.getString("OF_PACKETOUT"), OFPacketOutEvent.class);
+	    	Message msg = Message.obtain(null, DispatchService.MSG_OFPACKETOUT_EVENT);
+	    	msg.setData(bundle);
+
+			try {
+				mOFService.send(msg);
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+    };
+
 
     /** Handler of incoming messages from (Activities). */
     class IncomingHandler extends Handler {
@@ -66,11 +100,28 @@ public class DispatchService extends Service implements Runnable{
                 case MSG_UIREPORT_UPDATE:
                 	sendReportToControlUI(msg.getData().getString("MSG_UIREPORT_UPDATE"));
                 	break;
+                case MSG_OFCOMM_EVENT:
+                	OFEvent de = gson.fromJson(msg.getData().getString("OFEVENT"), OFEvent.class);
+                	synchronized(eventQueue){
+                		eventQueue.add(de);
+                		eventQueue.notify();
+                	}
+                	Log.d(TAG, "OF event enqueued, queue size = " + eventQueue.size());
+                	break;
+                case MSG_OFPACKETOUT_EVENT:
+                	//just acting as a relay from OFHandler to OFComm
+					/*try {
+						mOFService.send(msg);
+					} catch (RemoteException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}*/
+                	break;
                 default:
                     super.handleMessage(msg);
             }
         }
-    }    
+    }        
     /**
      * Target we publish for clients to send messages to IncomingHandler.
      */
@@ -82,7 +133,7 @@ public class DispatchService extends Service implements Runnable{
             try {
             	Message msg = Message.obtain(null, MSG_DISPATCH_REPORT);
             	Bundle data = new Bundle();
-            	data.putString("MSG_DISPATCH_REPORT", str+"\n -------------------------------");
+            	data.putString("MSG_DISPATCH_REPORT", str);
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {
@@ -107,6 +158,9 @@ public class DispatchService extends Service implements Runnable{
         mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         sInstance = this;
         startForeground(0, null);
+        mIntentFilter = new IntentFilter();
+        mIntentFilter.addAction(OF_PACKETOUT_EVENT);
+        registerReceiver(mPacketOutReceiver, mIntentFilter);
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
         startDispatchThread();
@@ -289,18 +343,30 @@ public class DispatchService extends Service implements Runnable{
 	        mEnvService = null;
 	    }
 	};
-	
+	/** Retrieve event from the eventQueue, and broadcast to people */
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
+		OFEvent msgEvent;
 		while(Thread.currentThread() == dispatchThread ){
-			try {
-				Thread.sleep(1000);				
-				Log.d(TAG, "DispatchService is still running at: " + System.currentTimeMillis());
-				sendReportToControlUI("DispatchService is still running at: " + System.currentTimeMillis());
-			} catch (InterruptedException e) {
-				return;
-			}
+			synchronized(eventQueue) {
+	    		while(eventQueue.isEmpty()) {
+	    			try {
+	    				eventQueue.wait();
+	    			} catch (InterruptedException e) {
+	    			}
+	    		}
+	    		msgEvent = (OFEvent) eventQueue.remove(0);
+	    	}
+			
+			
+			Intent broadcastIntent = new Intent(OFEVENT_UPDATE);
+			broadcastIntent.setPackage(getPackageName());
+			Bundle bundle = new Bundle();
+			bundle.putString("OFEVENT", gson.toJson(msgEvent, OFEvent.class));
+			broadcastIntent.putExtra("MSG_OFCOMM_EVENT", bundle);			
+			this.sendBroadcast(broadcastIntent);									
 		}
-	}		
+	}	
+	
+	
 }

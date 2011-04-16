@@ -27,7 +27,7 @@ import org.openflow.util.HexString;
 import android.util.Log;
 
 public class OFMessageHandler implements Runnable{
-
+	
 	private List<OFMessageEvent> msgQueue = new LinkedList<OFMessageEvent>();
 	  
 	public void processData(OFCommService server, SocketChannel socket, byte[] data, int count) {
@@ -57,7 +57,7 @@ public class OFMessageHandler implements Runnable{
 	    	Log.d("AVSC", "contnet of data = " + msgEvent.bb.toString());
 	    	ofm.readFrom(msgEvent.bb);
 	    	
-	    	if(ofm.getType() == OFType.HELLO){
+	    	/*if(ofm.getType() == OFType.HELLO){
 	    		Log.d("AVSC", "Received OFPT_HELLO");
 	    		msgEvent.server.sendReportToUI("Received OFPT_HELLO");
 	    		OFHello ofh = new OFHello();
@@ -80,8 +80,13 @@ public class OFMessageHandler implements Runnable{
 	    	}else if(ofm.getType() == OFType.PACKET_IN){
 	    		Log.d("AVSC", "Received PACKET_IN");
 	    		msgEvent.server.sendReportToUI("Received PACKET_IN");
+	    		msgEvent.server.sendOFEventToDispatchService("PACKET_IN", msgEvent.data);
+	    		
+	    		
 	    		OFPacketIn ofp_in = new OFPacketIn();
 	    		ofp_in.readFrom(ByteBuffer.wrap(msgEvent.data));
+	    		
+	    		
 	    		
 	            OFMatch match = new OFMatch();
 	            match.loadFromPacket(ofp_in.getPacketData(), ofp_in.getInPort());
@@ -137,6 +142,8 @@ public class OFMessageHandler implements Runnable{
 	            }
 	    		
 	    		msgEvent.server.sendReportToUI(ofp_in.toString());
+	    		
+	    		
 	    	}else if(ofm.getType() == OFType.FEATURES_REPLY){
 	    		Log.d("AVSC", "Received Switch Feature Reply");
 	    		msgEvent.server.sendReportToUI("Received Switch Feature Reply"); 
@@ -146,7 +153,8 @@ public class OFMessageHandler implements Runnable{
 	    		msgEvent.server.switchData.put(new Long(offr.getDatapathId()), offr);
 	    	}else{	    		
 	    		msgEvent.server.sendReportToUI("Received OF Message type = " + ofm.getType().toString());
-	    	}
+	    	}*/
+	    	
 	    }
 	}
 }

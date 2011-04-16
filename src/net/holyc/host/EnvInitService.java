@@ -43,6 +43,7 @@ public class EnvInitService extends Service{
     public static final int MSG_START_ENVINIT = 3;
 	private boolean wifi_included;
 	private boolean mobile_included;
+	private boolean isMultipleInterface;
 	/** The interfaces in the host*/
 	private VirtualInterfacePair vIFs = null;
 	private ThreeGInterface threeGIF = null;
@@ -71,8 +72,11 @@ public class EnvInitService extends Service{
                 	if(msg.arg2 == 0){
                 		mobile_included = false;
                 	}                	
+                	isMultipleInterface = wifi_included & mobile_included;
                 	sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
+                	Log.d(TAG, "Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	doEnvInit();
+                	
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -99,8 +103,12 @@ public class EnvInitService extends Service{
         }
     }
     public void doEnvInit(){
-       	doWiFiInit();
-    	doMobileInit();
+    	if(wifi_included){
+    		doWiFiInit();
+    	}
+    	if(mobile_included){
+    		doMobileInit();
+    	}
     	doVethInit();
     	doOVSInit();
     	doOpenflowdInit();
@@ -154,14 +162,30 @@ public class EnvInitService extends Service{
     	 *  2. set the IP address and mask  */
     	
     	vIFs = new VirtualInterfacePair();    
-    	if( !wifiIF.getIP().startsWith("192.168") && !threeGIF.getIP().startsWith("192.168")){
-    		vIFs.setIP("veth1", "192.168.0.2", "255.255.255.0");
-    	}else if(!wifiIF.getIP().startsWith("10.38") && !threeGIF.getIP().startsWith("10.38")){
-    		vIFs.setIP("veth1", "10.38.0.2", "255.255.255.0");
+    	if(isMultipleInterface){ 
+    		//need to set IP to veth1 only when it's multiple interfaces
+	    	if( !wifiIF.getIP().startsWith("192.168") && !threeGIF.getIP().startsWith("192.168")){
+	    		vIFs.setIP("veth1", "192.168.0.2", "255.255.255.0");
+	    	}else if(!wifiIF.getIP().startsWith("10.38") && !threeGIF.getIP().startsWith("10.38")){
+	    		vIFs.setIP("veth1", "10.38.0.2", "255.255.255.0");
+	    	}else{
+	    		Log.e(TAG, "Couldn't find an IP to initilize virtual interface");
+	    	}
     	}else{
-    		Log.e(TAG, "Couldn't find an IP to initilize virtual interface");
+    		//otherwise, just set veth1' mac/ip address as wifi or 3G
+    		if(wifi_included){
+    			vIFs.getVeth1().setIP(wifiIF.getIP(), wifiIF.getMask());
+    			vIFs.getVeth1().setMac(wifiIF.getMac());    			
+    			wifiIF.removeIP();
+    		}else if(mobile_included){
+    			vIFs.getVeth1().setIP(threeGIF.getIP(), threeGIF.getMask());
+    			vIFs.getVeth1().setMac(threeGIF.getMac());
+    			threeGIF.removeIP();
+    		}else{
+    			Log.e(TAG, "no interface is enabled");
+    		}
     	}
-
+    	
     	/** debug messages*/
     	Log.d(TAG, "veth name is " + vIFs.getNames());
     	Log.d(TAG, "veth IP is " + vIFs.getIPs());
@@ -191,23 +215,37 @@ public class EnvInitService extends Service{
     	}
     	/** debug messages*/
     	sendReportToUI("Setup OVS");
+    	Log.d(TAG, "OVS setuped");
     }         
-    
-    public void doRoutingInit(){
-    	NativeCallWrapper.runCommand("su -c \"ip route del dev "+ wifiIF.getName()+"\"");
-    	NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName()+ "\"");    	
-    }
+        
     public void doOpenflowdInit(){    	
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach\"");
+    	//NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach\"");
     	/**
     	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
     	 */
     	/** debug messages*/
-    	sendReportToUI("Setup Openflowd");
+    	sendReportToUI("Please Setup Openflowd By Hand");
     }
        
-    
+    public void doRoutingInit(){
+    	if(wifi_included){
+    		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ wifiIF.getName()+"\"");
+    	}
+    	if(mobile_included){
+    		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
+    	}
+    	if(isMultipleInterface){
+    		NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName()+ "\"");
+    	}else{ //single interface
+    		if(wifi_included){
+        		NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName()+ "\"");
+        		Log.d(TAG, "Add default gw:" + "su -c \"/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName()+ "\"");
+    		}else if(mobile_included){
+        		NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName()+ "\"");
+    		}
+    	}
+    	Log.d(TAG, "Routing setuped");
+    }
 	@Override
 	public IBinder onBind(Intent arg0) {
 		return mMessenger.getBinder();

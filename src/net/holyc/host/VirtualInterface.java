@@ -18,6 +18,7 @@ import android.net.ConnectivityManager;
 
 public class VirtualInterface extends HostInterface {
 	private boolean enabled = false;
+	private boolean hasIP = false;
 	public VirtualInterface(String name) {		
 		setName(name);
 	}
@@ -48,6 +49,14 @@ public class VirtualInterface extends HostInterface {
 		return enabled;
 	}	
 	
+	@Override
+	public String getIP(){
+		if(hasIP){
+			return super.getIP();
+		}
+		return "";		
+	}
+	
 	public void setIP(String ip, String mask){
 		String[] command = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " " + ip + " netmask " + mask};
 		try {
@@ -55,7 +64,19 @@ public class VirtualInterface extends HostInterface {
 		} catch (Exception e) {			
 			e.printStackTrace();
 		}
+		hasIP = true;
 		setIP(ip);		
-	}	
+	}
 	
+	@Override
+	public void setMac(String mac){
+		String[] command = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " hw ether " + mac};
+		try {
+			Runtime.getRuntime().exec(command).waitFor();
+		} catch (Exception e) {			
+			e.printStackTrace();
+		}
+		super.setMac(mac);		
+	}	
+		
 }

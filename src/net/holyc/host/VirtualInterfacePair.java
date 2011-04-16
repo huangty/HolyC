@@ -13,27 +13,29 @@ import android.util.Log;
 */
 class VirtualInterfacePair{
 	private Context context = null;
-	private VirtualInterface veth0;
-	private VirtualInterface veth1;
-	private String TAG = "VirtualInterfacePair";
+	private VirtualInterface veth0 = null;
+	private VirtualInterface veth1 = null;
+	private String TAG = "HOLYC.VirtualInterfacePair";
 	
 	public VirtualInterfacePair() {
 		init();
 	}
 	
 	public void init(){
-		String result = NativeCallWrapper.getResultByCommand("su -c \"/data/local/bin/busybox ip link | grep veth0\"");
-		if(result == ""){ //the veth0/1 pair hasn't been created 
+		String result = NativeCallWrapper.getResultByCommand("su -c \"/data/local/bin/busybox ip link | grep veth0 \"");
+		StringBuffer sb = new StringBuffer("veth0");
+		if(!result.contains(sb.subSequence(0, sb.length()))){ //the veth0/1 pair hasn't been created
+		//if(veth0 == null){
 			//NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox ip link add type veth\"");		
 			String[] command = {"su", "-c", "/data/local/bin/busybox ip link add type veth"};
 			try {
-				Runtime.getRuntime().exec(command).waitFor();
+				Runtime.getRuntime().exec(command).waitFor();				
 			} catch (Exception e) {			
 				e.printStackTrace();
-			}	
+			}
 		}else{
-			Log.d(TAG, "the veth0/1 pair is already been created");
-		}
+			Log.d(TAG, "the veth0/1 pair is already been created, and the result was = " + result);
+		}		
 		veth0 = new VirtualInterface("veth0");
 		veth0.setInterfaceEnable(true);
 		veth1 = new VirtualInterface("veth1");

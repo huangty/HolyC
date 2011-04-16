@@ -17,23 +17,29 @@ import android.util.Log;
  */
 
 class VirtualSwitch{	
-	String TAG = "VirtualSwitch";
-	HashMap<String, LinkedList<String>> dptable;
+	String TAG = "HOLYC.VirtualSwitch";
+	private static HashMap<String, LinkedList<String>> dptable;
 	VirtualSwitch(){		
 		dptable = new HashMap<String, LinkedList<String>>();
 		loadKernelModule();
 	}
-	public void loadKernelModule(){
-		String result = NativeCallWrapper.getResultByCommand("lsmod | grep openvswitch");
-		if(result == ""){
+	public void loadKernelModule(){		
+		String result = NativeCallWrapper.getResultByCommand("su -c \"lsmod | grep openvswitch\"");
+		
+		StringBuffer sb = new StringBuffer("openvswitch");
+		if(!result.contains(sb.subSequence(0, sb.length()))){
 			NativeCallWrapper.runCommand("su -c \"insmod /data/local/lib/openvswitch_mod.ko\"");
+		}else{
+			Log.d(TAG, "no need to insmod, since lsmod result = " + result);
 		}
 	}
 	public void addDP(String dp){
 		if(!dptable.containsKey(dp)){
 			NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-dp "+ dp +"\"");
+			Log.d(TAG, "OVS add-dp " + dp);
 		}else{ 
 			//no need to add datapatch
+			Log.d(TAG, "no need to add dp0, since it's already there");
 			return;
 		}
 		dptable.put(dp, new LinkedList<String>());		

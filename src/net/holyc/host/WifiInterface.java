@@ -1,6 +1,7 @@
 package net.holyc.host;
 
 
+import net.beaconcontroller.packet.IPv4;
 import net.holyc.jni.NativeCallWrapper;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
@@ -28,12 +29,19 @@ public class WifiInterface extends HostInterface {
 	/**
 	 * Provides a method to get IP, which does not use busybox
 	 */
-	/*@Override
+	@Override
 	public String searchIP() {
 		if (context == null || getInterfaceEnable() == false) return super.searchIP();
 		WifiInfo wifiInf = getWifiInfo();
-		return IPv4.fromIPv4Address(wifiInf.getIpAddress());
-	}*/
+		int ipAddress = wifiInf.getIpAddress();
+		
+		//return IPv4.fromIPv4Address(wifiInf.getIpAddress());
+		return String.format("%d.%d.%d.%d",
+				(ipAddress & 0xff),
+				(ipAddress >> 8 & 0xff),
+				(ipAddress >> 16 & 0xff),
+				(ipAddress >> 24 & 0xff));
+	}
 	
 	/**
 	 * Provides a method to get mac, which does not use busybox
@@ -53,7 +61,8 @@ public class WifiInterface extends HostInterface {
 		String gwIP = NativeCallWrapper.getProp(prop);
 		gateway.setIP(gwIP);
 		if (gwIP != null) {
-			String mac = getMacFromIPByArpRequest(gwIP);
+			//String mac = getMacFromIPByArpRequest(gwIP);
+			String mac = getMacFromIPByPing(gwIP);
 			//Log.d(TAG, "get mac is " + mac);
 			gateway.setMac(mac);
 		}
