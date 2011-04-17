@@ -46,29 +46,32 @@ public class OFHelloEchoHandler extends BroadcastReceiver {
 			Gson gson = new Gson();
 			Bundle bundle = intent.getBundleExtra("MSG_OFCOMM_EVENT");		
 			received_ofe = gson.fromJson(bundle.getString("OFEVENT"), OFEvent.class);
-			Log.d(TAG, "receive from OFEvent broadcast with OFMessage:" + received_ofe.getOFMessage().toString());
+			Log.d(TAG, "receive from OFEvent broadcast with OFMessage:" + received_ofe.getOFMessage().toString() + "with socket channel index = " + received_ofe.getSocketChannelNumber());
 			Intent poutIntent = new Intent(DispatchService.OF_PACKETOUT_EVENT);
 			poutIntent.setPackage(context.getPackageName());
 			Bundle ofout = doProcessOFEvent(received_ofe);
-			poutIntent.putExtra("OF_PACKETOUT", ofout);	
-			context.sendBroadcast(poutIntent);
-					
+			if(ofout != null){
+				poutIntent.putExtra("OF_PACKETOUT", ofout);
+				context.sendBroadcast(poutIntent);
+			}					
 		}
     }
     
     Bundle doProcessOFEvent(OFEvent ofe){
     	Gson gson = new Gson();
     	OFMessage ofm = ofe.getOFMessage();
-		Bundle bundle = new Bundle();
     	if(ofm.getType() == OFType.HELLO){
     		Log.d(TAG, "Received OFPT_HELLO");
     		OFHello ofh = new OFHello();
 			ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
 			ofh.writeTo(bb);
 			OFPacketOutEvent ofpoe = new OFPacketOutEvent(ofe.getSocketChannelNumber(), bb.array());
+			Log.d(TAG, "Generate PacketOutEvent with socket channel index = " + ofpoe.getSocketChannelNumber());
+			Bundle bundle = new Bundle();
 			bundle.putString("OF_PACKETOUT", gson.toJson(ofpoe, OFPacketOutEvent.class));
+	    	return bundle;
     	}
-    	return bundle;
+    	return null;
     }
 };
 

@@ -115,16 +115,21 @@ public class OFCommService extends Service implements Runnable{
                 	startOpenflowD();
                 	break;
                 case DispatchService.MSG_OFPACKETOUT_EVENT:
-                	OFPacketOutEvent ofpoe =  gson.fromJson(msg.getData().getString("OF_PACKETOUT"), OFPacketOutEvent.class);
+                	String json = msg.getData().getString("OF_PACKETOUT");
+                	Log.d(TAG, "serialized json = " + json);               	
+                	OFPacketOutEvent ofpoe =  gson.fromJson(json, OFPacketOutEvent.class);
                 	// TODO: send back to openflowd based on socketChannelNumber
                 	int scn = ofpoe.getSocketChannelNumber();
                 	Log.d(TAG, "send packet out through socket channel #"+scn);
-                	SocketChannel sc = openedSocketChannels.get(scn);
-                	
-                	if(sc != null){
-                		send(sc, ofpoe.getData());
-                	}
-                	Log.d(TAG, "sending out packet = "+ ofpoe.toString());
+                	if(openedSocketChannels.isEmpty()){
+                		Log.e(TAG, "there is no SocketChannel left");
+                	}else{
+                		SocketChannel sc = openedSocketChannels.get(scn);
+                		if(sc != null){
+                    		send(sc, ofpoe.getData());
+                    	}
+                    	Log.d(TAG, "sending out packet = "+ ofpoe.toString());
+                	}                	                	
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -175,13 +180,13 @@ public class OFCommService extends Service implements Runnable{
             }
         }
     }
-    public void sendOFEventToDispatchService(int socket, byte[] OFdata){
+    public void sendOFEventToDispatchService(int sc_index, byte[] OFdata){
     	//Log.d("AVSC", "size of clients = " + mClients.size() );
     	Gson gson = new Gson();
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
             	Message msg = Message.obtain(null, DispatchService.MSG_OFCOMM_EVENT);
-            	OFEvent ofe = new OFEvent(socket, OFdata);            	
+            	OFEvent ofe = new OFEvent(sc_index, OFdata);            	
             	Bundle data = new Bundle();            	
             	data.putString("OFEVENT", gson.toJson(ofe, OFEvent.class));
             	msg.setData(data);
@@ -294,16 +299,16 @@ public class OFCommService extends Service implements Runnable{
 	private void read(SelectionKey key, ByteBuffer readBuffer) throws IOException {
 		SocketChannel sc = (SocketChannel) key.channel();
 		readBuffer.clear();
-		int numRead = -1;
-		
-		
+		int numRead = -1;				
 		try {
 			numRead = sc.read(readBuffer);
 		} catch (IOException e) {
 			key.cancel();
 			sc.close();
 			if(openedSocketChannels.contains(sc)){
+				int scn = openedSocketChannels.indexOf(sc);
 				openedSocketChannels.remove(sc);
+				Log.d(TAG, "socket channel #" + scn + " removed , socketChannel size = " + openedSocketChannels.size() );				
 			}
 			return;
 		}
@@ -311,18 +316,21 @@ public class OFCommService extends Service implements Runnable{
 			key.channel().close();
 			key.cancel();
 			if(openedSocketChannels.contains(sc)){
+				int scn = openedSocketChannels.indexOf(sc);
 				openedSocketChannels.remove(sc);
+				Log.d(TAG, "socket channel #" + scn + " removed , socketChannel size = " + openedSocketChannels.size() );				
 			}
 			return;
+		}else{
+			if(!openedSocketChannels.contains(sc)){
+				openedSocketChannels.add(sc);				
+				Log.d(TAG, "socket channel added, socketChannel size = " + openedSocketChannels.size() );				
+			}
+			int scn = openedSocketChannels.indexOf(sc);
+			//Hand the data off to OFMessage Handler	
+			sendOFEventToDispatchService(scn, readBuffer.array());
+	    	Log.d(TAG, "read OF packet through socket channel #"+scn);
 		}
-		// Hand the data off to OFMessage Handler
-		if(!openedSocketChannels.contains(sc)){
-			openedSocketChannels.add(sc);
-		}
-		int scn = openedSocketChannels.indexOf(sc);
-	
-		sendOFEventToDispatchService(scn, readBuffer.array());
-    	Log.d(TAG, "read OF packet through socket channel #"+scn);
 		//this.ofm_handler.processData(this, sc, readBuffer.array(), numRead);
 	}
 	private void write(SelectionKey key) throws IOException {

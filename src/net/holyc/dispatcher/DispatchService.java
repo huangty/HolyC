@@ -71,9 +71,14 @@ public class DispatchService extends Service implements Runnable{
         public void onReceive(Context context, Intent intent) {
         	Log.d(TAG, "receive packetout broadcast");
         	//just acting as a relay from OFHandler to OFComm
-			Bundle bundle = intent.getBundleExtra("OF_PACKETOUT");		
-			//received_ofe = gson.fromJson(bundle.getString("OF_PACKETOUT"), OFPacketOutEvent.class);
-	    	Message msg = Message.obtain(null, DispatchService.MSG_OFPACKETOUT_EVENT);
+			Bundle bundle = intent.getBundleExtra("OF_PACKETOUT");
+			/** for debugging */
+			String json = bundle.getString("OF_PACKETOUT");
+        	Log.d(TAG, "receive broadcast in json = " + json);			
+			OFPacketOutEvent ofpoe = gson.fromJson(json, OFPacketOutEvent.class);
+			Log.d(TAG, "receive packetout message = " + ofpoe.getData().toString() + "socket number = " + ofpoe.getSocketChannelNumber());
+	    	
+			Message msg = Message.obtain(null, DispatchService.MSG_OFPACKETOUT_EVENT);
 	    	msg.setData(bundle);
 
 			try {
@@ -101,12 +106,12 @@ public class DispatchService extends Service implements Runnable{
                 	sendReportToControlUI(msg.getData().getString("MSG_UIREPORT_UPDATE"));
                 	break;
                 case MSG_OFCOMM_EVENT:
-                	OFEvent de = gson.fromJson(msg.getData().getString("OFEVENT"), OFEvent.class);
+                	OFEvent de = (OFEvent) gson.fromJson(msg.getData().getString("OFEVENT"), OFEvent.class);                	
                 	synchronized(eventQueue){
                 		eventQueue.add(de);
                 		eventQueue.notify();
+                    	Log.d(TAG, "OF event enqueued, queue size = " + eventQueue.size());
                 	}
-                	Log.d(TAG, "OF event enqueued, queue size = " + eventQueue.size());
                 	break;
                 case MSG_OFPACKETOUT_EVENT:
                 	//just acting as a relay from OFHandler to OFComm
@@ -343,7 +348,7 @@ public class DispatchService extends Service implements Runnable{
 	        mEnvService = null;
 	    }
 	};
-	/** Retrieve event from the eventQueue, and broadcast to people */
+	/** Retrieve event from the eventQueue, and broadcast to OFEvent Handlers */
 	@Override
 	public void run() {
 		OFEvent msgEvent;
@@ -356,15 +361,13 @@ public class DispatchService extends Service implements Runnable{
 	    			}
 	    		}
 	    		msgEvent = (OFEvent) eventQueue.remove(0);
+	    		Intent broadcastIntent = new Intent(OFEVENT_UPDATE);
+				broadcastIntent.setPackage(getPackageName());
+				Bundle bundle = new Bundle();
+				bundle.putString("OFEVENT", gson.toJson(msgEvent, OFEvent.class));
+				broadcastIntent.putExtra("MSG_OFCOMM_EVENT", bundle);			
+				this.sendBroadcast(broadcastIntent);	
 	    	}
-			
-			
-			Intent broadcastIntent = new Intent(OFEVENT_UPDATE);
-			broadcastIntent.setPackage(getPackageName());
-			Bundle bundle = new Bundle();
-			bundle.putString("OFEVENT", gson.toJson(msgEvent, OFEvent.class));
-			broadcastIntent.putExtra("MSG_OFCOMM_EVENT", bundle);			
-			this.sendBroadcast(broadcastIntent);									
 		}
 	}	
 	
