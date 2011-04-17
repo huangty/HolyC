@@ -2,6 +2,7 @@ package net.holyc.openflow.handler;
 
 import java.nio.ByteBuffer;
 
+import org.openflow.protocol.OFEchoReply;
 import org.openflow.protocol.OFHello;
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.OFType;
@@ -66,11 +67,21 @@ public class OFHelloEchoHandler extends BroadcastReceiver {
 			ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
 			ofh.writeTo(bb);
 			OFPacketOutEvent ofpoe = new OFPacketOutEvent(ofe.getSocketChannelNumber(), bb.array());
-			Log.d(TAG, "Generate PacketOutEvent with socket channel index = " + ofpoe.getSocketChannelNumber());
+			Log.d(TAG, "Generate PacketOutEvent (OFHello) with socket channel index = " + ofpoe.getSocketChannelNumber());
 			Bundle bundle = new Bundle();
 			bundle.putString("OF_PACKETOUT", gson.toJson(ofpoe, OFPacketOutEvent.class));
 	    	return bundle;
-    	}
+    	}else if(ofm.getType() == OFType.ECHO_REQUEST){
+    		Log.d(TAG, "Received OFPT_ECHO_REQUEST");
+    		OFEchoReply reply = new OFEchoReply();
+			ByteBuffer bb = ByteBuffer.allocate(reply.getLength());
+			reply.writeTo(bb);
+			OFPacketOutEvent ofpoe = new OFPacketOutEvent(ofe.getSocketChannelNumber(), bb.array());
+			Log.d(TAG, "Generate PacketOutEvent (OFECHOReply) with socket channel index = " + ofpoe.getSocketChannelNumber());
+			Bundle bundle = new Bundle();
+			bundle.putString("OF_PACKETOUT", gson.toJson(ofpoe, OFPacketOutEvent.class));
+	    	return bundle;
+    	}			
     	return null;
     }
 };

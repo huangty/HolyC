@@ -181,12 +181,12 @@ public class OFCommService extends Service implements Runnable{
         }
     }
     public void sendOFEventToDispatchService(int sc_index, byte[] OFdata){
-    	//Log.d("AVSC", "size of clients = " + mClients.size() );
     	Gson gson = new Gson();
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
             	Message msg = Message.obtain(null, DispatchService.MSG_OFCOMM_EVENT);
-            	OFEvent ofe = new OFEvent(sc_index, OFdata);            	
+            	OFEvent ofe = new OFEvent(sc_index, OFdata);
+            	sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
             	Bundle data = new Bundle();            	
             	data.putString("OFEVENT", gson.toJson(ofe, OFEvent.class));
             	msg.setData(data);
