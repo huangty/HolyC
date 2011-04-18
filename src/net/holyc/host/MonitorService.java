@@ -2,6 +2,7 @@ package net.holyc.host;
 
 import java.util.ArrayList;
 
+import net.holyc.HolyCMessage;
 import net.holyc.statusUI;
 import net.holyc.host.EnvInitService.IncomingHandler;
 
@@ -26,23 +27,19 @@ public class MonitorService extends Service implements Runnable{
 	String TAG = "HOLYC.Monitor";
 	/** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
-	/** Message Types Between statusUI Activity and This Service */
-	public static final int MSG_REGISTER_CLIENT = 1;
-    public static final int MSG_UNREGISTER_CLIENT = 2;
-    public static final int MSG_START_MONITOR = 3;
-        
+       
     /** Handler of incoming messages from clients (Activities). */
     class IncomingHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_REGISTER_CLIENT:
+	        case HolyCMessage.MONITOR_REGISTER.type:
                     mClients.add(msg.replyTo);
                     break;
-                case MSG_UNREGISTER_CLIENT:
+                case HolyCMessage.MONITOR_UNREGISTER.type:
                     mClients.remove(msg.replyTo);
                     break;                                   
-                case MSG_START_MONITOR:            		
+                case HolyCMessage.MONITOR_START.type:
                 	sendReportToUI("Initiating the Monitor Service");
                 	startMonitorThread();
                 	break;

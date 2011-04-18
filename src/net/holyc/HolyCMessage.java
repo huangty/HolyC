@@ -102,5 +102,30 @@ public class HolyCMessage
 	public static final int type = MAX_MSG_TYPE+10;
     }
 
+    /**
+     * @see MonitorService
+     */
+    public class MONITOR_REGISTER
+    {
+	public static final int type = MAX_MSG_TYPE+11;
+    }
+
+    /**
+     * @see MonitorService
+     */
+    public class MONITOR_UNREGISTER
+    {
+	public static final int type = MAX_MSG_TYPE+12;
+    }
+
+    /**
+     * @see MonitorService
+     */
+    public class MONITOR_START
+    {
+	public static final int type = MAX_MSG_TYPE+13;
+    }
+    
+
 
 }
