@@ -125,6 +125,15 @@ public class HolyCMessage
     {
 	public static final int type = MAX_MSG_TYPE+13;
     }
+
+    /**
+     * @see statusUI
+     */
+    public class STATUSUI_REPORT_UPDATE
+    {
+	public static final int type = MAX_MSG_TYPE+14;
+	public static final String str_key = "MSG_REPORT_UPDATE";
+    }
     
 
 

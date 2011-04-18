@@ -36,7 +36,7 @@ public class statusUI extends Activity {
 	private boolean wifi_included;
 	private boolean mobile_included;
 	private final static int REPORT_RECEIVED = 1;
-	public static final int MSG_REPORT_UPDATE = 4;
+
 	private String TAG="HOLYC";
 	/**
 	 * Handler of incoming messages from service.
@@ -48,8 +48,9 @@ public class statusUI extends Activity {
 	            case OFCommService.MSG_SET_VALUE:
 	            	mBuffer.append("Received from service: "+ msg.arg1+"\n");
 	                break;	
-	            case MSG_REPORT_UPDATE:
-	            	mBuffer.append(msg.getData().getString("MSG_REPORT_UPDATE")+"\n");
+		case HolyCMessage.STATUSUI_REPORT_UPDATE.type:
+	            	mBuffer.append(msg.getData().
+				       getString(HolyCMessage.STATUSUI_REPORT_UPDATE.str_key)+"\n");
 	            	break;
 	            case REPORT_RECEIVED:
 					mBuffer.append(msg.getData().getString("REPORT")+"\n");

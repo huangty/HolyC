@@ -57,9 +57,10 @@ public class MonitorService extends Service implements Runnable{
     public void sendReportToUI(String str){
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
-            	Message msg = Message.obtain(null, statusUI.MSG_REPORT_UPDATE);
+            	Message msg = Message.obtain(null, HolyCMessage.STATUSUI_REPORT_UPDATE.type);
             	Bundle data = new Bundle();
-            	data.putString("MSG_REPORT_UPDATE", str+"\n -------------------------------");
+            	data.putString(HolyCMessage.STATUSUI_REPORT_UPDATE.str_key, 
+			       str+"\n -------------------------------");
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {
