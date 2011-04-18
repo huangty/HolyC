@@ -13,7 +13,7 @@ import net.holyc.R;
 import net.holyc.controlUI;
 import net.holyc.dispatcher.DispatchService;
 import net.holyc.dispatcher.OFEvent;
-import net.holyc.dispatcher.OFPacketOutEvent;
+import net.holyc.dispatcher.OFReplyEvent;
 import net.holyc.host.EnvInitService;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -66,20 +66,20 @@ public class OFHelloEchoHandler extends BroadcastReceiver {
     		OFHello ofh = new OFHello();
 			ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
 			ofh.writeTo(bb);
-			OFPacketOutEvent ofpoe = new OFPacketOutEvent(ofe.getSocketChannelNumber(), bb.array());
+			OFReplyEvent ofpoe = new OFReplyEvent(ofe.getSocketChannelNumber(), bb.array());
 			Log.d(TAG, "Generate PacketOutEvent (OFHello) with socket channel index = " + ofpoe.getSocketChannelNumber());
 			Bundle bundle = new Bundle();
-			bundle.putString("OF_PACKETOUT", gson.toJson(ofpoe, OFPacketOutEvent.class));
+			bundle.putString("OF_PACKETOUT", gson.toJson(ofpoe, OFReplyEvent.class));
 	    	return bundle;
     	}else if(ofm.getType() == OFType.ECHO_REQUEST){
     		Log.d(TAG, "Received OFPT_ECHO_REQUEST");
     		OFEchoReply reply = new OFEchoReply();
 			ByteBuffer bb = ByteBuffer.allocate(reply.getLength());
 			reply.writeTo(bb);
-			OFPacketOutEvent ofpoe = new OFPacketOutEvent(ofe.getSocketChannelNumber(), bb.array());
+			OFReplyEvent ofpoe = new OFReplyEvent(ofe.getSocketChannelNumber(), bb.array());
 			Log.d(TAG, "Generate PacketOutEvent (OFECHOReply) with socket channel index = " + ofpoe.getSocketChannelNumber());
 			Bundle bundle = new Bundle();
-			bundle.putString("OF_PACKETOUT", gson.toJson(ofpoe, OFPacketOutEvent.class));
+			bundle.putString("OF_PACKETOUT", gson.toJson(ofpoe, OFReplyEvent.class));
 	    	return bundle;
     	}			
     	return null;

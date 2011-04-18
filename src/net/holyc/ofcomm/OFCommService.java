@@ -20,7 +20,7 @@ import net.holyc.statusUI;
 import net.holyc.R;
 import net.holyc.dispatcher.DispatchService;
 import net.holyc.dispatcher.OFEvent;
-import net.holyc.dispatcher.OFPacketOutEvent;
+import net.holyc.dispatcher.OFReplyEvent;
 
 import org.openflow.protocol.OFFeaturesReply;
 import org.openflow.util.HexString;
@@ -117,7 +117,7 @@ public class OFCommService extends Service implements Runnable{
                 case DispatchService.MSG_OFPACKETOUT_EVENT:
                 	String json = msg.getData().getString("OF_PACKETOUT");
                 	Log.d(TAG, "serialized json = " + json);               	
-                	OFPacketOutEvent ofpoe =  gson.fromJson(json, OFPacketOutEvent.class);
+                	OFReplyEvent ofpoe =  gson.fromJson(json, OFReplyEvent.class);
                 	// TODO: send back to openflowd based on socketChannelNumber
                 	int scn = ofpoe.getSocketChannelNumber();
                 	Log.d(TAG, "send packet out through socket channel #"+scn);

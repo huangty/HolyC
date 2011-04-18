@@ -75,7 +75,7 @@ public class DispatchService extends Service implements Runnable{
 			/** for debugging */
 			String json = bundle.getString("OF_PACKETOUT");
         	Log.d(TAG, "receive broadcast in json = " + json);			
-			OFPacketOutEvent ofpoe = gson.fromJson(json, OFPacketOutEvent.class);
+			OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
 			Log.d(TAG, "receive packetout message = " + ofpoe.getData().toString() + "socket number = " + ofpoe.getSocketChannelNumber());
 	    	
 			Message msg = Message.obtain(null, DispatchService.MSG_OFPACKETOUT_EVENT);
