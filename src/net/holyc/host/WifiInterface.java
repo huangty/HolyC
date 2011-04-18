@@ -63,7 +63,7 @@ public class WifiInterface extends HostInterface {
 		if (gwIP != null) {
 			//String mac = getMacFromIPByArpRequest(gwIP);
 			String mac = getMacFromIPByPing(gwIP);
-			//Log.d(TAG, "get mac is " + mac);
+			Log.d(TAG, "gateway mac is " + mac);
 			gateway.setMac(mac);
 		}
 		return gateway;

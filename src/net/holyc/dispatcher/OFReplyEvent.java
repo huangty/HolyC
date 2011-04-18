@@ -3,7 +3,7 @@ package net.holyc.dispatcher;
 
 public class OFReplyEvent{
 	int scn; //socketChannelNumber
-	byte[] data;	
+	byte[] data;		
 	public OFReplyEvent(int sc, byte[] _data){
 		this.scn = sc;
 		this.data = _data;

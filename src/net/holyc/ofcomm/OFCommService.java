@@ -23,6 +23,8 @@ import net.holyc.dispatcher.OFEvent;
 import net.holyc.dispatcher.OFReplyEvent;
 
 import org.openflow.protocol.OFFeaturesReply;
+import org.openflow.protocol.OFHello;
+import org.openflow.protocol.OFMessage;
 import org.openflow.util.HexString;
 
 import com.google.gson.Gson;
@@ -114,13 +116,13 @@ public class OFCommService extends Service implements Runnable{
                 	//openflowd = new OpenflowDaemon(bind_port);
                 	startOpenflowD();
                 	break;
-                case DispatchService.MSG_OFPACKETOUT_EVENT:
-                	String json = msg.getData().getString("OF_PACKETOUT");
+                case DispatchService.MSG_OFREPLY_EVENT:
+                	String json = msg.getData().getString("OF_REPLY_EVENT");
                 	Log.d(TAG, "serialized json = " + json);               	
                 	OFReplyEvent ofpoe =  gson.fromJson(json, OFReplyEvent.class);
                 	// TODO: send back to openflowd based on socketChannelNumber
                 	int scn = ofpoe.getSocketChannelNumber();
-                	Log.d(TAG, "send packet out through socket channel #"+scn);
+                	Log.d(TAG, "Send OFReply through socket channel #"+scn);
                 	if(openedSocketChannels.isEmpty()){
                 		Log.e(TAG, "there is no SocketChannel left");
                 	}else{
@@ -128,7 +130,13 @@ public class OFCommService extends Service implements Runnable{
                 		if(sc != null){
                     		send(sc, ofpoe.getData());
                     	}
-                    	Log.d(TAG, "sending out packet = "+ ofpoe.toString());
+                		/** for debug */
+                		OFMessage ofm = new OFMessage();
+                		ByteBuffer bb = ByteBuffer.allocate(ofpoe.getData().length);
+                		bb.put(ofpoe.getData());
+                		bb.flip();
+                		ofm.readFrom(bb);
+                    	Log.d(TAG, "Send OFReply packet = "+ ofm.toString());
                 	}                	                	
                 	break;
                 default:
@@ -284,6 +292,11 @@ public class OFCommService extends Service implements Runnable{
     					sc.register(selector, SelectionKey.OP_READ);
     					sendReportToUI("Accpet New Connection");
     					Log.d(TAG, "accept new connection");
+    					/** Immediately send a OFHello back */
+    					OFHello ofh = new OFHello();
+    					ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
+    					ofh.writeTo(bb);
+    					send(sc, bb.array());
     				}else if(key.isReadable()){
     					//handle message from switch/remote host
     					read(key, readBuffer);   					    					
@@ -313,6 +326,7 @@ public class OFCommService extends Service implements Runnable{
 			return;
 		}
 		if (numRead == -1) {
+			//If the read is unsuccessful
 			key.channel().close();
 			key.cancel();
 			if(openedSocketChannels.contains(sc)){
@@ -322,6 +336,7 @@ public class OFCommService extends Service implements Runnable{
 			}
 			return;
 		}else{
+			//If the read is successful
 			if(!openedSocketChannels.contains(sc)){
 				openedSocketChannels.add(sc);				
 				Log.d(TAG, "socket channel added, socketChannel size = " + openedSocketChannels.size() );				

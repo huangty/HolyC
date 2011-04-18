@@ -45,7 +45,7 @@ public class DispatchService extends Service implements Runnable{
     private volatile Thread dispatchThread = null;
     private ArrayList<OFEvent> eventQueue = new ArrayList<OFEvent>();
     public static final String OFEVENT_UPDATE = "holyc.intent.OFEVENT";
-    public static final String OF_PACKETOUT_EVENT = "holyc.intent.OFPACKETOUT";
+    public static final String OF_REPLY_EVENT = "holyc.intent.OFREPLYEVENT";
     /** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
 	/** Message Types Between statusUI Activity and This Service */
@@ -55,7 +55,7 @@ public class DispatchService extends Service implements Runnable{
     public static final int MSG_UIREPORT_UPDATE = 4;
     public static final int MSG_NEW_EVENT = 5;
     public static final int MSG_OFCOMM_EVENT = 6;
-    public static final int MSG_OFPACKETOUT_EVENT = 7;
+    public static final int MSG_OFREPLY_EVENT = 7;
 
 	/** Messenger for communicating with service. */
 	Messenger mOFService = null;
@@ -66,19 +66,19 @@ public class DispatchService extends Service implements Runnable{
 	Gson gson = new Gson();
 	IntentFilter mIntentFilter;
     /* Service binding */
-    BroadcastReceiver mPacketOutReceiver = new BroadcastReceiver() {
+    BroadcastReceiver mOFReplyReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-        	Log.d(TAG, "receive packetout broadcast");
+        	Log.d(TAG, "receive OFReply broadcast");
         	//just acting as a relay from OFHandler to OFComm
-			Bundle bundle = intent.getBundleExtra("OF_PACKETOUT");
+			Bundle bundle = intent.getBundleExtra("OF_REPLY_EVENT");
 			/** for debugging */
-			String json = bundle.getString("OF_PACKETOUT");
+			String json = bundle.getString("OF_REPLY_EVENT");
         	Log.d(TAG, "receive broadcast in json = " + json);			
 			OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
-			Log.d(TAG, "receive packetout message = " + ofpoe.getData().toString() + "socket number = " + ofpoe.getSocketChannelNumber());
+			Log.d(TAG, "receive OFEvent message = " + ofpoe.getData().toString() + "socket number = " + ofpoe.getSocketChannelNumber());
 	    	
-			Message msg = Message.obtain(null, DispatchService.MSG_OFPACKETOUT_EVENT);
+			Message msg = Message.obtain(null, DispatchService.MSG_OFREPLY_EVENT);
 	    	msg.setData(bundle);
 
 			try {
@@ -112,16 +112,7 @@ public class DispatchService extends Service implements Runnable{
                 		eventQueue.notify();
                     	Log.d(TAG, "OF event enqueued, queue size = " + eventQueue.size());
                 	}
-                	break;
-                case MSG_OFPACKETOUT_EVENT:
-                	//just acting as a relay from OFHandler to OFComm
-					/*try {
-						mOFService.send(msg);
-					} catch (RemoteException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}*/
-                	break;
+                	break;                
                 default:
                     super.handleMessage(msg);
             }
@@ -164,8 +155,8 @@ public class DispatchService extends Service implements Runnable{
         sInstance = this;
         startForeground(0, null);
         mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(OF_PACKETOUT_EVENT);
-        registerReceiver(mPacketOutReceiver, mIntentFilter);
+        mIntentFilter.addAction(OF_REPLY_EVENT);
+        registerReceiver(mOFReplyReceiver, mIntentFilter);
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
         startDispatchThread();
@@ -188,6 +179,7 @@ public class DispatchService extends Service implements Runnable{
         mNM.cancel(R.string.dispatcher_started);
         stopDispatchThread();
         doUnBindServices();
+        unregisterReceiver(mOFReplyReceiver);
         // Tell the user we stopped.
         Toast.makeText(this, "DispatchService Distroyed", Toast.LENGTH_SHORT).show();
     }

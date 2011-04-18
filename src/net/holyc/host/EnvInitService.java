@@ -219,13 +219,13 @@ public class EnvInitService extends Service{
     }         
         
     public void doOpenflowdInit(){    	
-    	NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach\"");
+    	//NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach\"");
     	/**
     	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
     	 */
     	/** debug messages*/
-    	//sendReportToUI("Please Setup Openflowd By Hand");
-    	sendReportToUI("Openflowd is running in detached mode");
+    	sendReportToUI("Please Setup Openflowd By Hand, go to adb shell; /data/local/bin/ovs-openflowd dp0 tcp:127.0.0.1 --out-of-band");
+    	//sendReportToUI("Openflowd is running in detached mode");
     }
        
     public void doRoutingInit(){
