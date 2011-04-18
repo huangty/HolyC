@@ -2,9 +2,9 @@ package net.holyc.dispatcher;
 
 import java.util.ArrayList;
 
-import org.openflow.protocol.OFMessage;
-
 import com.google.gson.Gson;
+
+import org.openflow.protocol.OFMessage;
 
 import net.holyc.R;
 import net.holyc.controlUI;
@@ -12,6 +12,7 @@ import net.holyc.statusUI;
 import net.holyc.host.EnvInitService;
 import net.holyc.ofcomm.OFCommService;
 import net.holyc.ofcomm.OFMessageEvent;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -48,8 +49,8 @@ public class DispatchService extends Service implements Runnable{
     public static final String OF_REPLY_EVENT = "holyc.intent.OFREPLYEVENT";
     /** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
-	/** Message Types Between statusUI Activity and This Service */
-	public static final int MSG_REGISTER_CLIENT = 1;
+    /** Message Types Between statusUI Activity and This Service */
+    public static final int MSG_REGISTER_CLIENT = 1;
     public static final int MSG_UNREGISTER_CLIENT = 2;
     public static final int MSG_DISPATCH_REPORT = 3;
     public static final int MSG_UIREPORT_UPDATE = 4;
@@ -57,64 +58,64 @@ public class DispatchService extends Service implements Runnable{
     public static final int MSG_OFCOMM_EVENT = 6;
     public static final int MSG_OFREPLY_EVENT = 7;
 
-	/** Messenger for communicating with service. */
-	Messenger mOFService = null;
-	Messenger mEnvService = null;
-	/** Flag indicating whether we have called bind on the service. */
-	boolean mIsOFBound;
-	boolean mIsEnvBound;
-	Gson gson = new Gson();
-	IntentFilter mIntentFilter;
+    /** Messenger for communicating with service. */
+    Messenger mOFService = null;
+    Messenger mEnvService = null;
+    /** Flag indicating whether we have called bind on the service. */
+    boolean mIsOFBound;
+    boolean mIsEnvBound;
+    Gson gson = new Gson();
+    IntentFilter mIntentFilter;
     /* Service binding */
     BroadcastReceiver mOFReplyReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
+	    @Override
+		public void onReceive(Context context, Intent intent) {
         	Log.d(TAG, "receive OFReply broadcast");
         	//just acting as a relay from OFHandler to OFComm
-			Bundle bundle = intent.getBundleExtra("OF_REPLY_EVENT");
-			/** for debugging */
-			String json = bundle.getString("OF_REPLY_EVENT");
+		Bundle bundle = intent.getBundleExtra("OF_REPLY_EVENT");
+		/** for debugging */
+		String json = bundle.getString("OF_REPLY_EVENT");
         	Log.d(TAG, "receive broadcast in json = " + json);			
-			OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
-			Log.d(TAG, "receive OFEvent message = " + ofpoe.getData().toString() + "socket number = " + ofpoe.getSocketChannelNumber());
+		OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
+		Log.d(TAG, "receive OFEvent message = " + ofpoe.getData().toString() + "socket number = " + ofpoe.getSocketChannelNumber());
 	    	
-			Message msg = Message.obtain(null, DispatchService.MSG_OFREPLY_EVENT);
+		Message msg = Message.obtain(null, DispatchService.MSG_OFREPLY_EVENT);
 	    	msg.setData(bundle);
-
-			try {
-				mOFService.send(msg);
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-        }
-    };
-
-
+		
+		try {
+		    mOFService.send(msg);
+		} catch (RemoteException e) {
+		    // TODO Auto-generated catch block
+		    e.printStackTrace();
+		}
+	    }
+	};
+    
+    
     /** Handler of incoming messages from (Activities). */
     class IncomingHandler extends Handler {
         @Override
-        public void handleMessage(Message msg) {
+	    public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_REGISTER_CLIENT:
-                    mClients.add(msg.replyTo);
+	    case MSG_REGISTER_CLIENT:
+		mClients.add(msg.replyTo);
                     break;
-                case MSG_UNREGISTER_CLIENT:
-                    mClients.remove(msg.replyTo);
-                    break;
-                case MSG_UIREPORT_UPDATE:
-                	sendReportToControlUI(msg.getData().getString("MSG_UIREPORT_UPDATE"));
-                	break;
-                case MSG_OFCOMM_EVENT:
-                	OFEvent de = (OFEvent) gson.fromJson(msg.getData().getString("OFEVENT"), OFEvent.class);                	
-                	synchronized(eventQueue){
-                		eventQueue.add(de);
-                		eventQueue.notify();
-                    	Log.d(TAG, "OF event enqueued, queue size = " + eventQueue.size());
-                	}
-                	break;                
-                default:
-                    super.handleMessage(msg);
+	    case MSG_UNREGISTER_CLIENT:
+		mClients.remove(msg.replyTo);
+		break;
+	    case MSG_UIREPORT_UPDATE:
+		sendReportToControlUI(msg.getData().getString("MSG_UIREPORT_UPDATE"));
+		break;
+	    case MSG_OFCOMM_EVENT:
+		OFEvent de = (OFEvent) gson.fromJson(msg.getData().getString("OFEVENT"), OFEvent.class);                	
+		synchronized(eventQueue){
+		    eventQueue.add(de);
+		    eventQueue.notify();
+		    Log.d(TAG, "OF event enqueued, queue size = " + eventQueue.size());
+		}
+		break;                
+	    default:
+		super.handleMessage(msg);
             }
         }
     }        
@@ -142,14 +143,14 @@ public class DispatchService extends Service implements Runnable{
     	return mClients.size();
     }
     
-	@Override
+    @Override
 	public IBinder onBind(Intent arg0) {		
-		return mMessenger.getBinder();
-	}
-	
+	return mMessenger.getBinder();
+    }
+    
     
     @Override
-    public void onCreate() {
+	public void onCreate() {
     	isRunning = true;
         mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         sInstance = this;
@@ -162,17 +163,17 @@ public class DispatchService extends Service implements Runnable{
         startDispatchThread();
         doBindServices();
     }
-
+    
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+	public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "Received start id " + startId + ": " + intent);
         // We want this service to continue running until it is explicitly
         // stopped, so return sticky.
         return START_STICKY;
     }
-
+    
     @Override
-    public void onDestroy() {
+	public void onDestroy() {
     	super.onDestroy();
     	isRunning = false;
         // Cancel the persistent notification.
@@ -183,25 +184,25 @@ public class DispatchService extends Service implements Runnable{
         // Tell the user we stopped.
         Toast.makeText(this, "DispatchService Distroyed", Toast.LENGTH_SHORT).show();
     }
-
+    
     public void startSelf() {
         startService(new Intent(this, DispatchService.class));
     }
 
     public synchronized void startDispatchThread(){
     	if(dispatchThread == null){
-    		dispatchThread = new Thread(this);
-    		dispatchThread.start();
+	    dispatchThread = new Thread(this);
+	    dispatchThread.start();
     	}
-	}
+    }
     
     public synchronized void stopDispatchThread(){
-    	  if(dispatchThread != null){
+	if(dispatchThread != null){
     	    Thread moribund = dispatchThread;
     	    dispatchThread = null;
     	    moribund.interrupt();
-    	  }
-   	}
+	}
+    }
 
     /**
      * Show a notification while this service is running.
@@ -209,17 +210,17 @@ public class DispatchService extends Service implements Runnable{
     private void showNotification() {
         Log.d(TAG, "show notifications ");
         CharSequence text = getText(R.string.dispatcher_started);
-
+	
         // Set the icon, scrolling text and timestamp for notification
         Notification notification = new Notification(R.drawable.icon, text, System.currentTimeMillis());
 
         // The PendingIntent to launch our activity if the user selects this notification
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, new Intent(this, controlUI.class), 0);
-
+	
         // Set the info for the views that show in the notification panel.
         notification.setLatestEventInfo(this, getText(R.string.dispatcher_started),
-                       text, contentIntent);
-
+					text, contentIntent);
+	
         // Send the notification.
         // We use a string id because it is a unique number.  We use it later to cancel.
         mNM.notify(R.string.dispatcher_started, notification);
@@ -235,48 +236,48 @@ public class DispatchService extends Service implements Runnable{
     	doUnbindEnvService();
     }
     /** Bind with OFCommService **/
-	void doBindOFService() {		
-		Intent intent = new Intent(this, OFCommService.class);
-		Bundle bundle = new Bundle();
+    void doBindOFService() {		
+	Intent intent = new Intent(this, OFCommService.class);
+	Bundle bundle = new Bundle();
 		bundle.putInt("BIND_PORT", bind_port);
 		intent.putExtras(bundle);
-	    bindService(intent, mOFConnection, Context.BIND_AUTO_CREATE);
-	    mIsOFBound = true;
-	    
-	}
-	void doUnbindOFService() {
-	    if (mIsOFBound) {
-	        // Unregister ourselves from the service, since we unbind it.
-	        if (mOFService != null) {
+		bindService(intent, mOFConnection, Context.BIND_AUTO_CREATE);
+		mIsOFBound = true;
+		
+    }
+    void doUnbindOFService() {
+	if (mIsOFBound) {
+	    // Unregister ourselves from the service, since we unbind it.
+	    if (mOFService != null) {
 	            try {
 	                Message msg = Message.obtain(null,
-	                		OFCommService.MSG_UNREGISTER_CLIENT);
+						     OFCommService.MSG_UNREGISTER_CLIENT);
 	                msg.replyTo = mMessenger;
 	                mOFService.send(msg);
 	            } catch (RemoteException e) {
 	            }
-	        }
-	        // Detach our existing connection.
-	        unbindService(mOFConnection);
-	        mIsOFBound = false;
 	    }
+	    // Detach our existing connection.
+	    unbindService(mOFConnection);
+	    mIsOFBound = false;
 	}
-	private ServiceConnection mOFConnection = new ServiceConnection() {
+    }
+    private ServiceConnection mOFConnection = new ServiceConnection() {
 	    public void onServiceConnected(ComponentName className,
 	            IBinder service) {
 	        mOFService = new Messenger(service);
 	        Log.d(TAG, "OFComm Service Attached");
-
+		
 	        try {
-	        	// send the mMessenger to the Service and register itself
+		    // send the mMessenger to the Service and register itself
 	            Message msg = Message.obtain(null,
-	            		OFCommService.MSG_REGISTER_CLIENT);
+						 OFCommService.MSG_REGISTER_CLIENT);
 	            msg.replyTo = mMessenger;
 	            mOFService.send(msg);
 	            
 	            // send the bind port number to the service
 	            msg = Message.obtain(null,
-	            		OFCommService.MSG_START_OPENFLOWD, bind_port, 0);	            
+					 OFCommService.MSG_START_OPENFLOWD, bind_port, 0);	            
 	            mOFService.send(msg);	            
 	        } catch (RemoteException e) {
 	        }
@@ -286,18 +287,18 @@ public class DispatchService extends Service implements Runnable{
 	    }
 	};
     /** Bind with EnvInitService **/
-	void doBindEnvService(){
-		Log.d(TAG, "Bind EnvInit Service");
-		Intent intent = new Intent(this, EnvInitService.class);
+    void doBindEnvService(){
+	Log.d(TAG, "Bind EnvInit Service");
+	Intent intent = new Intent(this, EnvInitService.class);
 		Bundle bundle = new Bundle();
 		bundle.putBoolean("WIFI_INCLUDED", wifi_included);
 		bundle.putBoolean("3G_INCLUDED", mobile_included);
 		intent.putExtras(bundle);
-	    bindService(intent, mEnvConnection, Context.BIND_AUTO_CREATE);
-	    mIsEnvBound = true;	    
-	}
+		bindService(intent, mEnvConnection, Context.BIND_AUTO_CREATE);
+		mIsEnvBound = true;	    
+    }
 	void doUnbindEnvService(){
-		if (mIsEnvBound) {
+	    if (mIsEnvBound) {
 	        // Unregister ourselves from the service, since we unbind it.
 	        if (mEnvService != null) {
 	            try {
@@ -313,14 +314,14 @@ public class DispatchService extends Service implements Runnable{
 	        mIsEnvBound = false;
 	    }
 	}
-	private ServiceConnection mEnvConnection = new ServiceConnection() {
+    private ServiceConnection mEnvConnection = new ServiceConnection() {
 	    public void onServiceConnected(ComponentName className,
 	            IBinder service) {
 	        mEnvService = new Messenger(service);
 	        Log.d(TAG, "EnvInit Service Attached");
-
+		
 	        try {
-	        	// send the mMessenger to the Service and register itself
+		    // send the mMessenger to the Service and register itself
 	            Message msg = Message.obtain(null, EnvInitService.MSG_REGISTER_CLIENT);
 	            msg.replyTo = mMessenger;
 	            mEnvService.send(msg);
@@ -334,34 +335,33 @@ public class DispatchService extends Service implements Runnable{
 	            mEnvService.send(msg);	            
 	        } catch (RemoteException e) {
 	        }
-
+		
 	    }
 	    public void onServiceDisconnected(ComponentName className) {
 	        mEnvService = null;
 	    }
 	};
-	/** Retrieve event from the eventQueue, and broadcast to OFEvent Handlers */
-	@Override
+    
+    /** Retrieve event from the eventQueue, and broadcast to OFEvent Handlers */
+    @Override
 	public void run() {
-		OFEvent msgEvent;
-		while(Thread.currentThread() == dispatchThread ){
-			synchronized(eventQueue) {
-	    		while(eventQueue.isEmpty()) {
-	    			try {
-	    				eventQueue.wait();
-	    			} catch (InterruptedException e) {
-	    			}
+	OFEvent msgEvent;
+	while(Thread.currentThread() == dispatchThread ){
+	    synchronized(eventQueue) {
+		while(eventQueue.isEmpty()) {
+		    try {
+			eventQueue.wait();
+		    } catch (InterruptedException e) {
+		    }
 	    		}
-	    		msgEvent = (OFEvent) eventQueue.remove(0);
-	    		Intent broadcastIntent = new Intent(OFEVENT_UPDATE);
-				broadcastIntent.setPackage(getPackageName());
-				Bundle bundle = new Bundle();
-				bundle.putString("OFEVENT", gson.toJson(msgEvent, OFEvent.class));
-				broadcastIntent.putExtra("MSG_OFCOMM_EVENT", bundle);			
-				this.sendBroadcast(broadcastIntent);	
-	    	}
-		}
-	}	
-	
-	
+		msgEvent = (OFEvent) eventQueue.remove(0);
+		Intent broadcastIntent = new Intent(OFEVENT_UPDATE);
+		broadcastIntent.setPackage(getPackageName());
+		Bundle bundle = new Bundle();
+		bundle.putString("OFEVENT", gson.toJson(msgEvent, OFEvent.class));
+		broadcastIntent.putExtra("MSG_OFCOMM_EVENT", bundle);			
+		this.sendBroadcast(broadcastIntent);	
+	    }
+	}
+    }	    
 }
