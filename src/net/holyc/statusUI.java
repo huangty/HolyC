@@ -1,5 +1,6 @@
 package net.holyc;
 
+import net.holyc.HolyCMessage;
 import net.holyc.host.EnvInitService;
 import net.holyc.jni.NativeCallWrapper;
 import net.holyc.ofcomm.OFCommService;
@@ -115,7 +116,7 @@ public class statusUI extends Activity {
 
 	        try {
 	        	// send the mMessenger to the Service and register itself
-	            Message msg = Message.obtain(null, EnvInitService.MSG_REGISTER_CLIENT);
+	            Message msg = Message.obtain(null, HolyCMessage.ENV_INIT_REGISTER.type);
 	            msg.replyTo = mMessenger;
 	            mEnvService.send(msg);
 	            
@@ -124,7 +125,7 @@ public class statusUI extends Activity {
 	            int arg2 = 1;
 	            if(wifi_included == false) arg1 = 0;
 	            if(mobile_included == false) arg2 = 0;
-	            msg = Message.obtain(null, EnvInitService.MSG_START_ENVINIT, arg1, arg2);	            
+	            msg = Message.obtain(null, HolyCMessage.ENV_INIT_START.type, arg1, arg2);
 	            mEnvService.send(msg);	            
 	        } catch (RemoteException e) {
 	        }
@@ -192,7 +193,7 @@ public class statusUI extends Activity {
 	        if (mEnvService != null) {
 	            try {
 	                Message msg = Message.obtain(null,
-	                		EnvInitService.MSG_UNREGISTER_CLIENT);
+	                		HolyCMessage.ENV_INIT_UNREGISTER.type);
 	                msg.replyTo = mMessenger;
 	                mEnvService.send(msg);
 	            } catch (RemoteException e) {

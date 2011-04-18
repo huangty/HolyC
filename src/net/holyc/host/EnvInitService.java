@@ -38,11 +38,7 @@ public class EnvInitService extends Service{
 	
 	/** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
-	/** Message Types Between statusUI Activity and This Service */
-	public static final int MSG_REGISTER_CLIENT = 1;
-    public static final int MSG_UNREGISTER_CLIENT = 2;
-    public static final int MSG_START_ENVINIT = 3;
-	private boolean wifi_included;
+        private boolean wifi_included;
 	private boolean mobile_included;
 	private boolean isMultipleInterface;
 	/** The interfaces in the host*/
@@ -58,13 +54,13 @@ public class EnvInitService extends Service{
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_REGISTER_CLIENT:
+                case HolyCMessage.ENV_INIT_REGISTER.type:
                     mClients.add(msg.replyTo);
                     break;
-                case MSG_UNREGISTER_CLIENT:
+                case HolyCMessage.ENV_INIT_UNREGISTER.type:
                     mClients.remove(msg.replyTo);
                     break;                                   
-                case MSG_START_ENVINIT:
+	        case HolyCMessage.ENV_INIT_START.type:
             		wifi_included = true;
             		mobile_included = true;
                 	if(msg.arg1 == 0){
@@ -95,7 +91,7 @@ public class EnvInitService extends Service{
             try {
             	Message msg = Message.obtain(null, HolyCMessage.UIREPORT_UPDATE.type);
             	Bundle data = new Bundle();
-            	data.putString("MSG_UIREPORT_UPDATE", str+"\n -------------------------------");
+            	data.putString(HolyCMessage.UIREPORT_UPDATE.str_key, str+"\n -------------------------------");
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {

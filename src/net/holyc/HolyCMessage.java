@@ -17,44 +17,90 @@ public class HolyCMessage
      */
     public static final int MAX_MSG_TYPE = 16383;
 
+    /**
+     * @see DispatcheService
+     */
     public class REGISTER_CLIENT
     {
 	public static final int type = MAX_MSG_TYPE+1;
     }
 
+    /**
+     * @see DispatcheService
+     */
     public class UNREGISTER_CLIENT
     {
 	public static final int type = MAX_MSG_TYPE+2;
     }
 
+    /**
+     * @see DispatcheService
+     */
     public class DISPATCH_REPORT
     {
 	public static final int type = MAX_MSG_TYPE+3;
 	public static final String str_key = "MSG_DISPATCH_REPORT";
     }
 
+    /**
+     * @see DispatcheService
+     */
     public class UIREPORT_UPDATE
     {
 	public static final int type = MAX_MSG_TYPE+4;
 	public static final String str_key = "MSG_UIREPORT_UPDATE";
     }
 
+    /**
+     * @see DispatcheService
+     */
     public class NEW_EVENT
     {
 	public static final int type = MAX_MSG_TYPE+5;
     }
 
+    /**
+     * @see DispatcheService
+     */
     public class OFCOMM_EVENT
     {
 	public static final int type = MAX_MSG_TYPE+6;
 	public static final String str_key = "OFEVENT";
     }
 
+    /**
+     * @see DispatcheService
+     */
     public class OFREPLY_EVENT
     {
 	public static final int type = MAX_MSG_TYPE+7;
 	public static final String bundle_key = "OF_REPLY_EVENT";
 	public static final String str_key = "OF_REPLY_EVENT";
     }
+
+    /**
+     * @see EnvInitService
+     */
+    public class ENV_INIT_REGISTER
+    {
+	public static final int type = MAX_MSG_TYPE+8;
+    }
+
+    /**
+     * @see EnvInitService
+     */
+    public class ENV_INIT_UNREGISTER
+    {
+	public static final int type = MAX_MSG_TYPE+9;
+    }
+
+    /**
+     * @see EnvInitService
+     */
+    public class ENV_INIT_START
+    {
+	public static final int type = MAX_MSG_TYPE+10;
+    }
+
 
 }
