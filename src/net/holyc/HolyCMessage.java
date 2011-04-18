@@ -134,6 +134,38 @@ public class HolyCMessage
 	public static final int type = MAX_MSG_TYPE+14;
 	public static final String str_key = "MSG_REPORT_UPDATE";
     }
+
+    /**
+     * @see OFCommService
+     */
+    public class OFCOMM_REGISTER
+    {
+	public static final int type = MAX_MSG_TYPE+15;
+    }
+
+    /**
+     * @see OFCommService
+     */
+    public class OFCOMM_UNREGISTER
+    {
+	public static final int type = MAX_MSG_TYPE+16;
+    }
+
+    /**
+     * @see OFCommService
+     */
+    public class OFCOMM_SET_VALUE
+    {
+	public static final int type = MAX_MSG_TYPE+17;
+    }
+
+    /**
+     * @see OFCommService
+     */
+    public class OFCOMM_START_OPENFLOWD
+    {
+	public static final int type = MAX_MSG_TYPE+18;
+    }
     
 
 

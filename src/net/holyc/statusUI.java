@@ -45,7 +45,7 @@ public class statusUI extends Activity {
 	    @Override
 	    public void handleMessage(Message msg) {
 	        switch (msg.what) {
-	            case OFCommService.MSG_SET_VALUE:
+	            case HolyCMessage.OFCOMM_SET_VALUE.type:
 	            	mBuffer.append("Received from service: "+ msg.arg1+"\n");
 	                break;	
 		case HolyCMessage.STATUSUI_REPORT_UPDATE.type:
@@ -89,13 +89,13 @@ public class statusUI extends Activity {
 	        try {
 	        	// send the mMessenger to the Service and register itself
 	            Message msg = Message.obtain(null,
-	            		OFCommService.MSG_REGISTER_CLIENT);
+						 HolyCMessage.OFCOMM_REGISTER.type);
 	            msg.replyTo = mMessenger;
 	            mOFService.send(msg);
 	            
 	            // send the bind port number to the service
 	            msg = Message.obtain(null,
-	            		OFCommService.MSG_START_OPENFLOWD, bind_port, 0);	            
+					 HolyCMessage.OFCOMM_START_OPENFLOWD.type, bind_port, 0);  
 	            mOFService.send(msg);	            
 	        } catch (RemoteException e) {
 	        }
@@ -164,7 +164,7 @@ public class statusUI extends Activity {
 	        if (mOFService != null) {
 	            try {
 	                Message msg = Message.obtain(null,
-	                		OFCommService.MSG_UNREGISTER_CLIENT);
+						     HolyCMessage.OFCOMM_UNREGISTER.type);
 	                msg.replyTo = mMessenger;
 	                mOFService.send(msg);
 	            } catch (RemoteException e) {

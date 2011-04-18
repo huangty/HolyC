@@ -75,14 +75,6 @@ public class OFCommService extends Service implements Runnable{
     /** Holds last value set by a client. */
     int mValue = 0;
 
-    public static final int MSG_REGISTER_CLIENT = 1;
-
-    public static final int MSG_UNREGISTER_CLIENT = 2;
-
-    public static final int MSG_SET_VALUE = 3;      
-    
-    public static final int MSG_START_OPENFLOWD = 4;
-
     final int BUFFER_SIZE = 8192;
     
     Gson gson = new Gson();
@@ -93,24 +85,25 @@ public class OFCommService extends Service implements Runnable{
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_REGISTER_CLIENT:
+                case HolyCMessage.OFCOMM_REGISTER.type:
                     mClients.add(msg.replyTo);
                     break;
-                case MSG_UNREGISTER_CLIENT:
+	        case HolyCMessage.OFCOMM_UNREGISTER.type:
                     mClients.remove(msg.replyTo);
                     break;                    
-                case MSG_SET_VALUE:
+                case HolyCMessage.OFCOMM_SET_VALUE.type:
                     mValue = msg.arg1;
                     for (int i=mClients.size()-1; i>=0; i--) {
                         try {
                             mClients.get(i).send(Message.obtain(null,
-                                    MSG_SET_VALUE, mValue, 0));
+								HolyCMessage.OFCOMM_SET_VALUE.type, 
+								mValue, 0));
                         } catch (RemoteException e) {
                             mClients.remove(i);
                         }
                     }
                     break;
-                case MSG_START_OPENFLOWD:
+                case HolyCMessage.OFCOMM_START_OPENFLOWD.type:
                 	bind_port = msg.arg1;
                 	sendReportToUI("Bind on port: " + bind_port);
                 	Log.d(TAG, "Send msg on bind: " + bind_port);

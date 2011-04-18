@@ -251,7 +251,7 @@ public class DispatchService extends Service implements Runnable{
 	    if (mOFService != null) {
 	            try {
 	                Message msg = Message.obtain(null,
-						     OFCommService.MSG_UNREGISTER_CLIENT);
+						     HolyCMessage.OFCOMM_UNREGISTER.type);
 	                msg.replyTo = mMessenger;
 	                mOFService.send(msg);
 	            } catch (RemoteException e) {
@@ -271,13 +271,13 @@ public class DispatchService extends Service implements Runnable{
 	        try {
 		    // send the mMessenger to the Service and register itself
 	            Message msg = Message.obtain(null,
-						 OFCommService.MSG_REGISTER_CLIENT);
+						 HolyCMessage.OFCOMM_REGISTER.type);
 	            msg.replyTo = mMessenger;
 	            mOFService.send(msg);
 	            
 	            // send the bind port number to the service
 	            msg = Message.obtain(null,
-					 OFCommService.MSG_START_OPENFLOWD, bind_port, 0);	            
+					 HolyCMessage.OFCOMM_START_OPENFLOWD.type, bind_port, 0);  
 	            mOFService.send(msg);	            
 	        } catch (RemoteException e) {
 	        }
