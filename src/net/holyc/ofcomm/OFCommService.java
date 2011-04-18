@@ -111,7 +111,7 @@ public class OFCommService extends Service implements Runnable{
                 	startOpenflowD();
                 	break;
                 case HolyCMessage.OFREPLY_EVENT.type:
-                	String json = msg.getData().getString("OF_REPLY_EVENT");
+                	String json = msg.getData().getString(HolyCMessage.OFREPLY_EVENT.str_key);
                 	Log.d(TAG, "serialized json = " + json);               	
                 	OFReplyEvent ofpoe =  gson.fromJson(json, OFReplyEvent.class);
                 	// TODO: send back to openflowd based on socketChannelNumber
@@ -174,7 +174,8 @@ public class OFCommService extends Service implements Runnable{
             try {
             	Message msg = Message.obtain(null, HolyCMessage.UIREPORT_UPDATE.type);
             	Bundle data = new Bundle();
-            	data.putString("MSG_UIREPORT_UPDATE", str+"\n -------------------------------");
+            	data.putString(HolyCMessage.UIREPORT_UPDATE.str_key, 
+			       str+"\n -------------------------------");
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {
@@ -190,7 +191,8 @@ public class OFCommService extends Service implements Runnable{
             	OFEvent ofe = new OFEvent(sc_index, OFdata);
             	sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
             	Bundle data = new Bundle();            	
-            	data.putString("OFEVENT", gson.toJson(ofe, OFEvent.class));
+            	data.putString(HolyCMessage.OFCOMM_EVENT.str_key, 
+			       gson.toJson(ofe, OFEvent.class));
             	msg.setData(data);
                 mClients.get(i).send(msg);    	
             } catch (RemoteException e) {

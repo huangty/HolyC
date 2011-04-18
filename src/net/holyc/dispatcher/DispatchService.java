@@ -66,7 +66,7 @@ public class DispatchService extends Service implements Runnable{
 		public void onReceive(Context context, Intent intent) {
         	Log.d(TAG, "receive OFReply broadcast");
         	//just acting as a relay from OFHandler to OFComm
-		Bundle bundle = intent.getBundleExtra(HolyCMessage.OFREPLY_EVENT.bundle_key);
+		Bundle bundle = intent.getBundleExtra("OF_REPLY_EVENT");
 		/** for debugging */
 		String json = bundle.getString(HolyCMessage.OFREPLY_EVENT.str_key);
         	Log.d(TAG, "receive broadcast in json = " + json);			

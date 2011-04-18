@@ -74,7 +74,6 @@ public class HolyCMessage
     public class OFREPLY_EVENT
     {
 	public static final int type = MAX_MSG_TYPE+7;
-	public static final String bundle_key = "OF_REPLY_EVENT";
 	public static final String str_key = "OF_REPLY_EVENT";
     }
 
