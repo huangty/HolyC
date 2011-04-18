@@ -2,6 +2,7 @@ package net.holyc.host;
 
 import java.util.ArrayList;
 
+import net.holyc.HolyCMessage;
 import net.holyc.dispatcher.DispatchService;
 import net.holyc.jni.NativeCallWrapper;
 import android.app.Service;
@@ -92,7 +93,7 @@ public class EnvInitService extends Service{
     public void sendReportToUI(String str){
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
-            	Message msg = Message.obtain(null, DispatchService.MSG_UIREPORT_UPDATE);
+            	Message msg = Message.obtain(null, HolyCMessage.UIREPORT_UPDATE.type);
             	Bundle data = new Bundle();
             	data.putString("MSG_UIREPORT_UPDATE", str+"\n -------------------------------");
             	msg.setData(data);

@@ -21,6 +21,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+
+import net.holyc.HolyCMessage;
 import net.holyc.dispatcher.DispatchService;
 
 public class controlUI extends Activity{
@@ -157,7 +159,7 @@ public class controlUI extends Activity{
 	        if (mDispatchService != null) {
 	            try {
 	                Message msg = Message.obtain(null,
-	                		DispatchService.MSG_UNREGISTER_CLIENT);
+	                		HolyCMessage.UNREGISTER_CLIENT.type);
 	                msg.replyTo = mMessenger;
 	                mDispatchService.send(msg);
 	            } catch (RemoteException e) {}
@@ -186,8 +188,8 @@ public class controlUI extends Activity{
 	    @Override
 	    public void handleMessage(Message msg) {
 	        switch (msg.what) {
-	            case DispatchService.MSG_DISPATCH_REPORT:
-					mBuffer.append(msg.getData().getString("MSG_DISPATCH_REPORT")+"\n");
+	            case HolyCMessage.DISPATCH_REPORT.type:
+					mBuffer.append(msg.getData().getString(HolyCMessage.DISPATCH_REPORT.str_key)+"\n");
 	                break;
 	            default:
 	                super.handleMessage(msg);
@@ -204,7 +206,7 @@ public class controlUI extends Activity{
 	        Log.d(TAG, "Dispatch Service Attached");
 	        try {
 	        	//Send the mMessenger to the service and Register itself to the service
-	            Message msg = Message.obtain(null, DispatchService.MSG_REGISTER_CLIENT);
+	            Message msg = Message.obtain(null, HolyCMessage.REGISTER_CLIENT.type);
 	            msg.replyTo = mMessenger;
 	            mDispatchService.send(msg);
 	        } catch (RemoteException e) {}

@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 
 import org.openflow.protocol.OFMessage;
 
+import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.controlUI;
 import net.holyc.statusUI;
@@ -47,16 +48,9 @@ public class DispatchService extends Service implements Runnable{
     private ArrayList<OFEvent> eventQueue = new ArrayList<OFEvent>();
     public static final String OFEVENT_UPDATE = "holyc.intent.OFEVENT";
     public static final String OF_REPLY_EVENT = "holyc.intent.OFREPLYEVENT";
+
     /** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
-    /** Message Types Between statusUI Activity and This Service */
-    public static final int MSG_REGISTER_CLIENT = 1;
-    public static final int MSG_UNREGISTER_CLIENT = 2;
-    public static final int MSG_DISPATCH_REPORT = 3;
-    public static final int MSG_UIREPORT_UPDATE = 4;
-    public static final int MSG_NEW_EVENT = 5;
-    public static final int MSG_OFCOMM_EVENT = 6;
-    public static final int MSG_OFREPLY_EVENT = 7;
 
     /** Messenger for communicating with service. */
     Messenger mOFService = null;
@@ -72,14 +66,15 @@ public class DispatchService extends Service implements Runnable{
 		public void onReceive(Context context, Intent intent) {
         	Log.d(TAG, "receive OFReply broadcast");
         	//just acting as a relay from OFHandler to OFComm
-		Bundle bundle = intent.getBundleExtra("OF_REPLY_EVENT");
+		Bundle bundle = intent.getBundleExtra(HolyCMessage.OFREPLY_EVENT.bundle_key);
 		/** for debugging */
-		String json = bundle.getString("OF_REPLY_EVENT");
+		String json = bundle.getString(HolyCMessage.OFREPLY_EVENT.str_key);
         	Log.d(TAG, "receive broadcast in json = " + json);			
 		OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
-		Log.d(TAG, "receive OFEvent message = " + ofpoe.getData().toString() + "socket number = " + ofpoe.getSocketChannelNumber());
+		Log.d(TAG, "receive OFEvent message = " + ofpoe.getData().toString() + 
+		      "socket number = " + ofpoe.getSocketChannelNumber());
 	    	
-		Message msg = Message.obtain(null, DispatchService.MSG_OFREPLY_EVENT);
+		Message msg = Message.obtain(null, HolyCMessage.OFREPLY_EVENT.type);
 	    	msg.setData(bundle);
 		
 		try {
@@ -97,17 +92,19 @@ public class DispatchService extends Service implements Runnable{
         @Override
 	    public void handleMessage(Message msg) {
             switch (msg.what) {
-	    case MSG_REGISTER_CLIENT:
+	    case HolyCMessage.REGISTER_CLIENT.type:
 		mClients.add(msg.replyTo);
                     break;
-	    case MSG_UNREGISTER_CLIENT:
+	    case HolyCMessage.UNREGISTER_CLIENT.type:
 		mClients.remove(msg.replyTo);
 		break;
-	    case MSG_UIREPORT_UPDATE:
-		sendReportToControlUI(msg.getData().getString("MSG_UIREPORT_UPDATE"));
+	    case HolyCMessage.UIREPORT_UPDATE.type:
+		sendReportToControlUI(msg.getData().getString(HolyCMessage.UIREPORT_UPDATE.str_key));
 		break;
-	    case MSG_OFCOMM_EVENT:
-		OFEvent de = (OFEvent) gson.fromJson(msg.getData().getString("OFEVENT"), OFEvent.class);                	
+	    case HolyCMessage.OFCOMM_EVENT.type:
+		OFEvent de = (OFEvent) 
+		    gson.fromJson(msg.getData().getString(HolyCMessage.OFCOMM_EVENT.str_key), 
+				  OFEvent.class);                	
 		synchronized(eventQueue){
 		    eventQueue.add(de);
 		    eventQueue.notify();
@@ -128,9 +125,9 @@ public class DispatchService extends Service implements Runnable{
     public void sendReportToControlUI(String str){
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
-            	Message msg = Message.obtain(null, MSG_DISPATCH_REPORT);
+            	Message msg = Message.obtain(null, HolyCMessage.DISPATCH_REPORT.type);
             	Bundle data = new Bundle();
-            	data.putString("MSG_DISPATCH_REPORT", str);
+            	data.putString(HolyCMessage.DISPATCH_REPORT.str_key, str);
             	msg.setData(data);
                 mClients.get(i).send(msg);
             } catch (RemoteException e) {
@@ -212,10 +209,13 @@ public class DispatchService extends Service implements Runnable{
         CharSequence text = getText(R.string.dispatcher_started);
 	
         // Set the icon, scrolling text and timestamp for notification
-        Notification notification = new Notification(R.drawable.icon, text, System.currentTimeMillis());
+        Notification notification = new Notification(R.drawable.icon, text, 
+						     System.currentTimeMillis());
 
         // The PendingIntent to launch our activity if the user selects this notification
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, new Intent(this, controlUI.class), 0);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, 
+								new Intent(this, controlUI.class), 
+								0);
 	
         // Set the info for the views that show in the notification panel.
         notification.setLatestEventInfo(this, getText(R.string.dispatcher_started),

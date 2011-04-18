@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.holyc.HolyCMessage;
 import net.holyc.statusUI;
 import net.holyc.R;
 import net.holyc.dispatcher.DispatchService;
@@ -116,7 +117,7 @@ public class OFCommService extends Service implements Runnable{
                 	//openflowd = new OpenflowDaemon(bind_port);
                 	startOpenflowD();
                 	break;
-                case DispatchService.MSG_OFREPLY_EVENT:
+                case HolyCMessage.OFREPLY_EVENT.type:
                 	String json = msg.getData().getString("OF_REPLY_EVENT");
                 	Log.d(TAG, "serialized json = " + json);               	
                 	OFReplyEvent ofpoe =  gson.fromJson(json, OFReplyEvent.class);
@@ -178,7 +179,7 @@ public class OFCommService extends Service implements Runnable{
     	//Log.d("AVSC", "size of clients = " + mClients.size() );
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
-            	Message msg = Message.obtain(null, DispatchService.MSG_UIREPORT_UPDATE);
+            	Message msg = Message.obtain(null, HolyCMessage.UIREPORT_UPDATE.type);
             	Bundle data = new Bundle();
             	data.putString("MSG_UIREPORT_UPDATE", str+"\n -------------------------------");
             	msg.setData(data);
@@ -192,7 +193,7 @@ public class OFCommService extends Service implements Runnable{
     	Gson gson = new Gson();
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
-            	Message msg = Message.obtain(null, DispatchService.MSG_OFCOMM_EVENT);
+            	Message msg = Message.obtain(null, HolyCMessage.OFCOMM_EVENT.type);
             	OFEvent ofe = new OFEvent(sc_index, OFdata);
             	sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
             	Bundle data = new Bundle();            	
