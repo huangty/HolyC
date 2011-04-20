@@ -58,7 +58,7 @@
 		</receiver>
 		<receiver android:name=".openflow.handler.OFHelloEchoHandler">   
 			<intent-filter>   
-				<action android:name="holyc.intent.OFEVENT"/>   
+				<action android:name="holyc.intent.broadcast.OFEVENT"/>   
 			</intent-filter>   
 		</receiver>   
     </application>

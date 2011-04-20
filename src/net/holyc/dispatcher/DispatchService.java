@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 
 import org.openflow.protocol.OFMessage;
 
+import net.holyc.HolyCIntent;
 import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.controlUI;
@@ -46,8 +47,8 @@ public class DispatchService extends Service implements Runnable{
     public static DispatchService getInstance() { return sInstance; }
     private volatile Thread dispatchThread = null;
     private ArrayList<OFEvent> eventQueue = new ArrayList<OFEvent>();
-    public static final String OFEVENT_UPDATE = "holyc.intent.OFEVENT";
-    public static final String OF_REPLY_EVENT = "holyc.intent.OFREPLYEVENT";
+    //public static final String OFEVENT_UPDATE = "holyc.intent.OFEVENT";
+    //public static final String OF_REPLY_EVENT = "holyc.intent.OFREPLYEVENT";
 
     /** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
@@ -153,7 +154,7 @@ public class DispatchService extends Service implements Runnable{
         sInstance = this;
         startForeground(0, null);
         mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(OF_REPLY_EVENT);
+        mIntentFilter.addAction(HolyCIntent.BroadcastOFReply.action);
         registerReceiver(mOFReplyReceiver, mIntentFilter);
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
@@ -355,7 +356,7 @@ public class DispatchService extends Service implements Runnable{
 		    }
 	    		}
 		msgEvent = (OFEvent) eventQueue.remove(0);
-		Intent broadcastIntent = new Intent(OFEVENT_UPDATE);
+		Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
 		broadcastIntent.setPackage(getPackageName());
 		Bundle bundle = new Bundle();
 		bundle.putString("OFEVENT", gson.toJson(msgEvent, OFEvent.class));

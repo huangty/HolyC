@@ -9,6 +9,7 @@ import org.openflow.protocol.OFType;
 
 import com.google.gson.Gson;
 
+import net.holyc.HolyCIntent;
 import net.holyc.R;
 import net.holyc.controlUI;
 import net.holyc.dispatcher.DispatchService;
@@ -38,17 +39,16 @@ import android.widget.Toast;
 
 public class OFHelloEchoHandler extends BroadcastReceiver {
 	private String TAG = "HOLYC.OFHelloEchoHandler";
-	private boolean mDispatchIsBound;
-	Messenger mDispatchService = null;
 	OFEvent received_ofe = null;
+	Gson gson = new Gson();
+
     @Override    
     public void onReceive(Context context, Intent intent) {
-		if(intent.getAction().equals(DispatchService.OFEVENT_UPDATE)){
-			Gson gson = new Gson();
+		if(intent.getAction().equals(HolyCIntent.BroadcastOFEvent.action)){
 			Bundle bundle = intent.getBundleExtra("MSG_OFCOMM_EVENT");		
 			received_ofe = gson.fromJson(bundle.getString("OFEVENT"), OFEvent.class);
 			Log.d(TAG, "receive from OFEvent broadcast with OFMessage:" + received_ofe.getOFMessage().toString() + "with socket channel index = " + received_ofe.getSocketChannelNumber());
-			Intent poutIntent = new Intent(DispatchService.OF_REPLY_EVENT);
+			Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 			poutIntent.setPackage(context.getPackageName());
 			Bundle ofout = doProcessOFEvent(received_ofe);
 			if(ofout != null){
@@ -59,7 +59,6 @@ public class OFHelloEchoHandler extends BroadcastReceiver {
     }
     
     Bundle doProcessOFEvent(OFEvent ofe){
-    	Gson gson = new Gson();
     	OFMessage ofm = ofe.getOFMessage();
     	if(ofm.getType() == OFType.HELLO){
     		Log.d(TAG, "Received OFPT_HELLO");
