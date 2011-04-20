@@ -124,13 +124,10 @@ public class OFCommService extends Service implements Runnable{
                 		if(sc != null){
                     		send(sc, ofpoe.getData());
                     	}
+                		
                 		/** for debug */
-                		OFMessage ofm = new OFMessage();
-                		ByteBuffer bb = ByteBuffer.allocate(ofpoe.getData().length);
-                		bb.put(ofpoe.getData());
-                		bb.flip();
-                		ofm.readFrom(bb);
-                    	Log.d(TAG, "Send OFReply packet = "+ ofm.toString());
+                		sendReportToUI("Send OFReply packet = " + ofpoe.getOFMessage().toString());
+                    	Log.d(TAG, "Send OFReply packet = "+ ofpoe.getOFMessage().toString());
                 	}                	                	
                 	break;
                 default:
