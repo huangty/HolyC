@@ -67,10 +67,10 @@ public class DispatchService extends Service implements Runnable{
 		public void onReceive(Context context, Intent intent) {
         	Log.d(TAG, "receive OFReply broadcast");
         	//just acting as a relay from OFHandler to OFComm
-		Bundle bundle = intent.getBundleExtra("OF_REPLY_EVENT");
+		Bundle bundle = intent.getBundleExtra(HolyCIntent.BroadcastOFReply.bundle_key);
 		/** for debugging */
-		String json = bundle.getString(HolyCMessage.OFREPLY_EVENT.str_key);
-        	Log.d(TAG, "receive broadcast in json = " + json);			
+		String json = bundle.getString(HolyCIntent.BroadcastOFReply.bundle_str_key);
+        	Log.d(TAG, "receive broadcast in json = " + json);	
 		OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
 		Log.d(TAG, "receive OFEvent message = " + ofpoe.getData().toString() + 
 		      "socket number = " + ofpoe.getSocketChannelNumber());
@@ -359,8 +359,9 @@ public class DispatchService extends Service implements Runnable{
 		Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
 		broadcastIntent.setPackage(getPackageName());
 		Bundle bundle = new Bundle();
-		bundle.putString("OFEVENT", gson.toJson(msgEvent, OFEvent.class));
-		broadcastIntent.putExtra("MSG_OFCOMM_EVENT", bundle);			
+		bundle.putString(HolyCIntent.BroadcastOFEvent.bundle_str_key,
+				 gson.toJson(msgEvent, OFEvent.class));
+		broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.bundle_key, bundle);			
 		this.sendBroadcast(broadcastIntent);	
 	    }
 	}
