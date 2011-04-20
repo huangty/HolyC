@@ -31,7 +31,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 
-public class DispatchService extends Service implements Runnable{
+public class DispatchService extends Service{
     private NotificationManager mNM;
     private String TAG = "HolyC.DispatcherService";
     private int bind_port = 6633;
@@ -41,8 +41,6 @@ public class DispatchService extends Service implements Runnable{
     private static DispatchService sInstance = null;
     public static boolean isRunning = false;    
     public static DispatchService getInstance() { return sInstance; }
-    private volatile Thread dispatchThread = null;
-    private ArrayList<OFEvent> eventQueue = new ArrayList<OFEvent>();
 
     /** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
@@ -88,27 +86,24 @@ public class DispatchService extends Service implements Runnable{
         @Override
 	    public void handleMessage(Message msg) {
             switch (msg.what) {
-	    case HolyCMessage.REGISTER_CLIENT.type:
-		mClients.add(msg.replyTo);
-                    break;
-	    case HolyCMessage.UNREGISTER_CLIENT.type:
-		mClients.remove(msg.replyTo);
-		break;
-	    case HolyCMessage.UIREPORT_UPDATE.type:
-		sendReportToControlUI(msg.getData().getString(HolyCMessage.UIREPORT_UPDATE.str_key));
-		break;
-	    case HolyCMessage.OFCOMM_EVENT.type:
-		OFEvent de = (OFEvent) 
-		    gson.fromJson(msg.getData().getString(HolyCMessage.OFCOMM_EVENT.str_key), 
-				  OFEvent.class);                	
-		synchronized(eventQueue){
-		    eventQueue.add(de);
-		    eventQueue.notify();
-		    Log.d(TAG, "OF event enqueued, queue size = " + eventQueue.size());
-		}
-		break;                
-	    default:
-		super.handleMessage(msg);
+			    case HolyCMessage.REGISTER_CLIENT.type:
+					mClients.add(msg.replyTo);
+			                    break;
+			    case HolyCMessage.UNREGISTER_CLIENT.type:
+					mClients.remove(msg.replyTo);
+					break;
+			    case HolyCMessage.UIREPORT_UPDATE.type:
+					sendReportToControlUI(msg.getData().getString(HolyCMessage.UIREPORT_UPDATE.str_key));
+					break;
+			    case HolyCMessage.OFCOMM_EVENT.type:
+					Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
+					broadcastIntent.setPackage(getPackageName());
+					String ofe_json =  msg.getData().getString(HolyCMessage.OFCOMM_EVENT.str_key);
+					broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.str_key, ofe_json);			
+					sendBroadcast(broadcastIntent);	
+					break;                
+			    default:
+			    	super.handleMessage(msg);
             }
         }
     }        
@@ -153,7 +148,6 @@ public class DispatchService extends Service implements Runnable{
         registerReceiver(mOFReplyReceiver, mIntentFilter);
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
-        startDispatchThread();
         doBindServices();
     }
     
@@ -171,7 +165,6 @@ public class DispatchService extends Service implements Runnable{
     	isRunning = false;
         // Cancel the persistent notification.
         mNM.cancel(R.string.dispatcher_started);
-        stopDispatchThread();
         doUnBindServices();
         unregisterReceiver(mOFReplyReceiver);
         // Tell the user we stopped.
@@ -182,20 +175,6 @@ public class DispatchService extends Service implements Runnable{
         startService(new Intent(this, DispatchService.class));
     }
 
-    public synchronized void startDispatchThread(){
-    	if(dispatchThread == null){
-	    dispatchThread = new Thread(this);
-	    dispatchThread.start();
-    	}
-    }
-    
-    public synchronized void stopDispatchThread(){
-	if(dispatchThread != null){
-    	    Thread moribund = dispatchThread;
-    	    dispatchThread = null;
-    	    moribund.interrupt();
-	}
-    }
 
     /**
      * Show a notification while this service is running.
@@ -337,37 +316,5 @@ public class DispatchService extends Service implements Runnable{
 	        mEnvService = null;
 	    }
 	};
-    
-    /** Retrieve event from the eventQueue, and broadcast to OFEvent Handlers */
-    @Override
-	public void run() {
-		OFEvent msgEvent;
-		while(Thread.currentThread() == dispatchThread ){
-			long before = System.currentTimeMillis();
-		    synchronized(eventQueue) {
-				while(eventQueue.isEmpty()) {
-				    try {
-					eventQueue.wait();
-				    } catch (InterruptedException e) {
-				    }
-			    }
-				msgEvent = (OFEvent) eventQueue.remove(0);
-				Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
-				broadcastIntent.setPackage(getPackageName());
-				String ofe_json = gson.toJson(msgEvent, OFEvent.class);
-				broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.str_key, ofe_json);			
-				this.sendBroadcast(broadcastIntent);	
-		    }
-		    long after = System.currentTimeMillis();
-		    long worktime = after - before;
-		    if(worktime < 100 ){
-		    	try {
-					Thread.sleep(100-worktime);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-		    }
-		}
-    }	    
+    	    
 }
