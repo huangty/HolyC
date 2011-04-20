@@ -47,8 +47,6 @@ public class DispatchService extends Service implements Runnable{
     public static DispatchService getInstance() { return sInstance; }
     private volatile Thread dispatchThread = null;
     private ArrayList<OFEvent> eventQueue = new ArrayList<OFEvent>();
-    //public static final String OFEVENT_UPDATE = "holyc.intent.OFEVENT";
-    //public static final String OF_REPLY_EVENT = "holyc.intent.OFREPLYEVENT";
 
     /** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
