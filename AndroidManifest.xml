@@ -1,66 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="net.holyc"
-      android:versionCode="1"
-      android:versionName="1.0">
-    <uses-sdk android:minSdkVersion="8" />    
-    
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>     
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>	
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.INTERNET"/>	    
-	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+	  package="net.holyc"
+	  android:versionCode="1"
+	  android:versionName="1.0">
+  <uses-sdk android:minSdkVersion="8" />    
+  
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+  <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>     
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>	
+  <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+  <uses-permission android:name="android.permission.INTERNET"/>	    
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
-    <application android:icon="@drawable/icon" android:label="@string/app_name">
-    	<activity android:name=".controlUI"
-                  android:label="@string/control_UI"
-                  android:configChanges="keyboardHidden|orientation"
-                  android:screenOrientation="portrait"
-                  >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity android:name=".entryUI"
-                  android:label="@string/entry_UI"
-                  android:configChanges="keyboardHidden|orientation"
-                  android:screenOrientation="portrait"
-                  >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>        
-        <activity android:name=".statusUI"
-        		  android:label="@string/report_title"
-                  android:configChanges="keyboardHidden|orientation"
-                  android:screenOrientation="portrait"
-                  android:launchMode="singleTask"
-        		  >
-        	<intent-filter>
-                <!-- <action android:name="android.intent.action.MAIN" /> -->
-                <!-- <category android:name="android.intent.category.LAUNCHER" />-->
-            </intent-filter>
-        </activity>
-		<service android:name=".ofcomm.OFCommService"
-        		 android:process=":ofcomm" />
-        <service android:name=".host.EnvInitService"
-        		 android:process=":envInit" />
-        <service android:name=".dispatcher.DispatchService" 
-        		 android:process=":dispatch" />        
-        <receiver android:name=".dispatcher.StartupIntentReceiver">   
-			<intent-filter>   
-				<action android:name="android.intent.action.BOOT_COMPLETED"/>   
-				<!-- <category android:name="android.intent.category.HOME" /> -->   
-			</intent-filter>   
-		</receiver>
-		<receiver android:name=".openflow.handler.OFHelloEchoHandler">   
-			<intent-filter>   
-				<action android:name="holyc.intent.broadcast.OFEVENT"/>   
-			</intent-filter>   
-		</receiver>   
-    </application>
-    
+  <application android:icon="@drawable/icon" android:label="@string/app_name">
+    <activity android:name=".controlUI"
+              android:label="@string/control_UI"
+              android:configChanges="keyboardHidden|orientation"
+              android:screenOrientation="portrait"
+              >
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+    <activity android:name=".entryUI"
+              android:label="@string/entry_UI"
+              android:configChanges="keyboardHidden|orientation"
+              android:screenOrientation="portrait"
+              >
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>        
+    <activity android:name=".statusUI"
+              android:label="@string/report_title"
+              android:configChanges="keyboardHidden|orientation"
+              android:screenOrientation="portrait"
+              android:launchMode="singleTask"
+              >
+      <intent-filter>
+        <!-- <action android:name="android.intent.action.MAIN" /> -->
+        <!-- <category android:name="android.intent.category.LAUNCHER" />-->
+      </intent-filter>
+    </activity>
+    <service android:name=".ofcomm.OFCommService"
+             android:process=":ofcomm" />
+    <service android:name=".host.EnvInitService"
+             android:process=":envInit" />
+    <service android:name=".dispatcher.DispatchService" 
+             android:process=":dispatch" />        
+    <receiver android:name=".dispatcher.StartupIntentReceiver">   
+      <intent-filter>   
+	<action android:name="android.intent.action.BOOT_COMPLETED"/>   
+	<!-- <category android:name="android.intent.category.HOME" /> -->   
+      </intent-filter>   
+    </receiver>
+    <receiver android:name=".dispatcher.OFDispatch">
+      <intent-filter>   
+	<action android:name="holyc.intent.broadcast.OFEVENT"/>
+      </intent-filter>   
+    </receiver>   
+    <receiver android:name=".openflow.handler.OFHelloEchoHandler">   
+      <intent-filter>   
+	<action android:name="holyc.intent.broadcast.OFEVENT"/>   
+      </intent-filter>   
+    </receiver>   
+  </application>
+  
 </manifest>

@@ -26,8 +26,7 @@ public class HolyCIntent{
      */
     public class OFPacketIn_Intent{
 	public static final String action = "holyc.intent.broadcast.PACKETIN";
-	public static final String str_key = "OFPKTIN";
-	
+	public static final String str_key = "OFPKTIN";	
     }
 
     /** Intent to send arbitrary OpenFlow message
