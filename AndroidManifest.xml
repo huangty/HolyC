@@ -56,11 +56,11 @@
 	<!-- <category android:name="android.intent.category.HOME" /> -->   
       </intent-filter>   
     </receiver>
-    <receiver android:name=".dispatcher.OFDispatch">
+    <!--<receiver android:name=".dispatcher.OFDispatch">
       <intent-filter>   
 	<action android:name="holyc.intent.broadcast.OFEVENT"/>
       </intent-filter>   
-    </receiver>   
+    </receiver>   -->
     <receiver android:name=".openflow.handler.OFHelloEchoHandler">   
       <intent-filter>   
 	<action android:name="holyc.intent.broadcast.OFEVENT"/>   
