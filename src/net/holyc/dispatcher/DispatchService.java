@@ -67,16 +67,17 @@ public class DispatchService extends Service implements Runnable{
 		public void onReceive(Context context, Intent intent) {
         	Log.d(TAG, "receive OFReply broadcast");
         	//just acting as a relay from OFHandler to OFComm
-		Bundle bundle = intent.getBundleExtra(HolyCIntent.BroadcastOFReply.bundle_key);
-		/** for debugging */
-		String json = bundle.getString(HolyCIntent.BroadcastOFReply.bundle_str_key);
-        	Log.d(TAG, "receive broadcast in json = " + json);	
-		OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
-		Log.d(TAG, "receive OFEvent message = " + ofpoe.getData().toString() + 
-		      "socket number = " + ofpoe.getSocketChannelNumber());
-	    	
+		String json = intent.getStringExtra(HolyCIntent.BroadcastOFReply.str_key);
 		Message msg = Message.obtain(null, HolyCMessage.OFREPLY_EVENT.type);
-	    	msg.setData(bundle);
+		Bundle bundle = new Bundle();
+		bundle.putString(HolyCMessage.OFREPLY_EVENT.str_key, json);
+    	msg.setData(bundle);
+    	
+    	/** for debug */
+		OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
+        Log.d(TAG, "receive broadcast in json = " + json);	
+		Log.d(TAG, "receive OFEvent message = " + ofpoe.getOFMessage().toString() + 
+		      "socket number = " + ofpoe.getSocketChannelNumber());
 		
 		try {
 		    mOFService.send(msg);
@@ -346,24 +347,22 @@ public class DispatchService extends Service implements Runnable{
     /** Retrieve event from the eventQueue, and broadcast to OFEvent Handlers */
     @Override
 	public void run() {
-	OFEvent msgEvent;
-	while(Thread.currentThread() == dispatchThread ){
-	    synchronized(eventQueue) {
-		while(eventQueue.isEmpty()) {
-		    try {
-			eventQueue.wait();
-		    } catch (InterruptedException e) {
+		OFEvent msgEvent;
+		while(Thread.currentThread() == dispatchThread ){
+		    synchronized(eventQueue) {
+				while(eventQueue.isEmpty()) {
+				    try {
+					eventQueue.wait();
+				    } catch (InterruptedException e) {
+				    }
+			    }
+				msgEvent = (OFEvent) eventQueue.remove(0);
+				Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
+				broadcastIntent.setPackage(getPackageName());
+				String ofe_json = gson.toJson(msgEvent, OFEvent.class);
+				broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.str_key, ofe_json);			
+				this.sendBroadcast(broadcastIntent);	
 		    }
-	    		}
-		msgEvent = (OFEvent) eventQueue.remove(0);
-		Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
-		broadcastIntent.setPackage(getPackageName());
-		Bundle bundle = new Bundle();
-		bundle.putString(HolyCIntent.BroadcastOFEvent.bundle_str_key,
-				 gson.toJson(msgEvent, OFEvent.class));
-		broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.bundle_key, bundle);			
-		this.sendBroadcast(broadcastIntent);	
-	    }
-	}
+		}
     }	    
 }

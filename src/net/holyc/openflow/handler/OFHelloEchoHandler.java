@@ -45,21 +45,20 @@ public class OFHelloEchoHandler extends BroadcastReceiver {
     @Override    
     public void onReceive(Context context, Intent intent) {
 	if(intent.getAction().equals(HolyCIntent.BroadcastOFEvent.action)){
-	    Bundle bundle = intent.getBundleExtra(HolyCIntent.BroadcastOFEvent.bundle_key);
-			received_ofe = gson.fromJson(bundle.getString(HolyCIntent.BroadcastOFEvent.bundle_str_key), 
-OFEvent.class);
+	    	String ofe_json = intent.getStringExtra(HolyCIntent.BroadcastOFEvent.str_key);
+			received_ofe = gson.fromJson(ofe_json, OFEvent.class);
 			Log.d(TAG, "receive from OFEvent broadcast with OFMessage:" + received_ofe.getOFMessage().toString() + "with socket channel index = " + received_ofe.getSocketChannelNumber());
 			Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 			poutIntent.setPackage(context.getPackageName());
-			Bundle ofout = doProcessOFEvent(received_ofe);
+			String ofout = doProcessOFEvent(received_ofe);
 			if(ofout != null){
-				poutIntent.putExtra(HolyCIntent.BroadcastOFReply.bundle_key, ofout);
+				poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key, ofout);
 				context.sendBroadcast(poutIntent);
 			}					
 		}
     }
     
-    Bundle doProcessOFEvent(OFEvent ofe){
+    String doProcessOFEvent(OFEvent ofe){
     	OFMessage ofm = ofe.getOFMessage();
     	if(ofm.getType() == OFType.HELLO){
     		Log.d(TAG, "Received OFPT_HELLO");
@@ -68,10 +67,8 @@ OFEvent.class);
 			ofh.writeTo(bb);
 			OFReplyEvent ofpoe = new OFReplyEvent(ofe.getSocketChannelNumber(), bb.array());
 			Log.d(TAG, "Generate OFReply Event (OFHello) with socket channel index = " + ofpoe.getSocketChannelNumber());
-			Bundle bundle = new Bundle();
-			bundle.putString(HolyCIntent.BroadcastOFReply.bundle_str_key, 
-					 gson.toJson(ofpoe, OFReplyEvent.class));
-	    	return bundle;
+			String ofout = gson.toJson(ofpoe, OFReplyEvent.class);
+	    	return ofout;
     	}else if(ofm.getType() == OFType.ECHO_REQUEST){
     		Log.d(TAG, "Received OFPT_ECHO_REQUEST");
     		OFEchoReply reply = new OFEchoReply();
@@ -79,10 +76,8 @@ OFEvent.class);
 			reply.writeTo(bb);
 			OFReplyEvent ofpoe = new OFReplyEvent(ofe.getSocketChannelNumber(), bb.array());
 			Log.d(TAG, "Generate PacketOutEvent (OFECHOReply) with socket channel index = " + ofpoe.getSocketChannelNumber());
-			Bundle bundle = new Bundle();
-			bundle.putString(HolyCIntent.BroadcastOFReply.bundle_str_key, 
-					 gson.toJson(ofpoe, OFReplyEvent.class));
-	    	return bundle;
+			String ofout = gson.toJson(ofpoe, OFReplyEvent.class);
+	    	return ofout;
     	}			
     	return null;
     }
