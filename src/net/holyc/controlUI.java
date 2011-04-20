@@ -97,10 +97,8 @@ public class controlUI extends Activity{
         	}
         }
     	if( isRunning == false ){
-    		isRunning = false;
     		mBuffer.append("Dispatch Service is NOT runnig ... \n");
     	}else{
-    		isRunning = true;
     		mBuffer.append("Dispatch Service is running ... \n");
     	}    	
     	doRedraw();

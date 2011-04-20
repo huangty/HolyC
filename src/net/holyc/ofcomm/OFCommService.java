@@ -17,23 +17,16 @@ import java.util.Map;
 import java.util.Set;
 
 import net.holyc.HolyCMessage;
-import net.holyc.statusUI;
 import net.holyc.R;
-import net.holyc.dispatcher.DispatchService;
 import net.holyc.dispatcher.OFEvent;
 import net.holyc.dispatcher.OFReplyEvent;
 
 import org.openflow.protocol.OFFeaturesReply;
 import org.openflow.protocol.OFHello;
-import org.openflow.protocol.OFMessage;
-import org.openflow.util.HexString;
 
 import com.google.gson.Gson;
 
-
-import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
@@ -107,7 +100,6 @@ public class OFCommService extends Service implements Runnable{
                 	bind_port = msg.arg1;
                 	sendReportToUI("Bind on port: " + bind_port);
                 	Log.d(TAG, "Send msg on bind: " + bind_port);
-                	//openflowd = new OpenflowDaemon(bind_port);
                 	startOpenflowD();
                 	break;
                 case HolyCMessage.OFREPLY_EVENT.type:

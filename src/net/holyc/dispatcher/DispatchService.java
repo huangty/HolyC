@@ -4,16 +4,12 @@ import java.util.ArrayList;
 
 import com.google.gson.Gson;
 
-import org.openflow.protocol.OFMessage;
-
 import net.holyc.HolyCIntent;
 import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.controlUI;
-import net.holyc.statusUI;
 import net.holyc.host.EnvInitService;
 import net.holyc.ofcomm.OFCommService;
-import net.holyc.ofcomm.OFMessageEvent;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -349,6 +345,7 @@ public class DispatchService extends Service implements Runnable{
 	public void run() {
 		OFEvent msgEvent;
 		while(Thread.currentThread() == dispatchThread ){
+			long before = System.currentTimeMillis();
 		    synchronized(eventQueue) {
 				while(eventQueue.isEmpty()) {
 				    try {
@@ -362,6 +359,16 @@ public class DispatchService extends Service implements Runnable{
 				String ofe_json = gson.toJson(msgEvent, OFEvent.class);
 				broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.str_key, ofe_json);			
 				this.sendBroadcast(broadcastIntent);	
+		    }
+		    long after = System.currentTimeMillis();
+		    long worktime = after - before;
+		    if(worktime < 100 ){
+		    	try {
+					Thread.sleep(100-worktime);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 		    }
 		}
     }	    
