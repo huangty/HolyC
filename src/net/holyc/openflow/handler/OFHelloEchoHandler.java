@@ -10,26 +10,12 @@ import org.openflow.protocol.OFType;
 import com.google.gson.Gson;
 
 import net.holyc.HolyCIntent;
-import net.holyc.R;
-import net.holyc.controlUI;
-import net.holyc.dispatcher.DispatchService;
 import net.holyc.dispatcher.OFEvent;
 import net.holyc.dispatcher.OFReplyEvent;
-import net.holyc.host.EnvInitService;
-import android.app.Service;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.util.Log;
-import android.widget.Toast;
 
 /**
 * The class to handle OFHello Messages 
