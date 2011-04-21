@@ -273,6 +273,7 @@ public class OFCommService extends Service implements Runnable{
     			    	Log.d(TAG,"got a new connection");
     					ServerSocketChannel scc = (ServerSocketChannel) key.channel();
     					SocketChannel sc = scc.accept();
+					sc.socket().setTcpNoDelay(true);
     					sc.configureBlocking(false);
     					sc.register(selector, SelectionKey.OP_READ);
     					sendReportToUI("Accpet New Connection");
