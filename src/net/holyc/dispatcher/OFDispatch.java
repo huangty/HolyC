@@ -47,7 +47,10 @@ public class OFDispatch
 	    switch (ofe.getOFMessage().getType())
 	    {
 	    case HELLO:
-		Log.d(TAG, "Hello received");
+		r.action = HolyCIntent.OFHello_Intent.action;
+		r.key = HolyCIntent.OFHello_Intent.str_key;
+		OFHelloEvent ohe = new OFHelloEvent(ofe);
+		r.string = gson.toJson(ohe, OFHelloEvent.class);
 		break;
 
 	    case PACKET_IN:
@@ -56,15 +59,16 @@ public class OFDispatch
 		r.key = HolyCIntent.OFPacketIn_Intent.str_key;
 		OFPacketInEvent opie = new OFPacketInEvent(ofe);
 		r.string = gson.toJson(opie, OFPacketInEvent.class);
-		Log.d(TAG, "Receive and broadcasting packet in");
 		break;
 	    }
 
+	    //Send out generated Intent
 	    if (r != null)
 	    {
 		Intent outIntent = new Intent(r.action);
 		outIntent.setPackage(context.getPackageName());
 		outIntent.putExtra(r.key, r.string);
+		Log.d(TAG, "Receive and broadcasting "+r.action);
 		context.sendBroadcast(outIntent);
 	    }
 

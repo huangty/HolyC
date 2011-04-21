@@ -20,6 +20,15 @@ public class HolyCIntent{
 	
     }
 
+    /** Intent to deliver OpenFlow hello event
+     *
+     * @see OFHelloEvent
+     */
+    public class OFHello_Intent{
+	public static final String action = "holyc.intent.broadcast.HELLO";
+	public static final String str_key = "OFHELLO";	
+    }
+
     /** Intent to deliver OpenFlow packet in event
      *
      * @see OFPacketInEvent
