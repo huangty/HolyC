@@ -71,6 +71,15 @@ public class OFDispatch
 		r.string = gson.toJson(opie, OFPacketInEvent.class);
 		break;
 
+	    case FLOW_REMOVED:
+		r = new Result();
+		r.action = HolyCIntent.OFFlowRemoved_Intent.action;
+		r.key = HolyCIntent.OFFlowRemoved_Intent.str_key;
+		OFFlowRemovedEvent ofre = new OFFlowRemovedEvent(ofe);
+		r.string = gson.toJson(ofre, OFFlowRemovedEvent.class);
+		break;
+
+
 	    case ERROR:
 		OFErrorEvent ore = new OFErrorEvent(ofe);
 		OFError oe = ore.getOFError();

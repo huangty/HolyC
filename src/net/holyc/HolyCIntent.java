@@ -47,6 +47,15 @@ public class HolyCIntent{
 	public static final String str_key = "OFPKTIN";	
     }
 
+    /** Intent to deliver OpenFlow flow removed event
+     *
+     * @see OFFlowRemovedEvent
+     */
+    public class OFFlowRemoved_Intent{
+	public static final String action = "holyc.intent.broadcast.FLOWREMOVED";
+	public static final String str_key = "OFFLOWRM";	
+    }
+
     /** Intent to send/reply to arbitrary OpenFlow message
      */
     public class BroadcastOFReply{
