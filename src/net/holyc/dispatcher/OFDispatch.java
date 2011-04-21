@@ -97,7 +97,6 @@ public class OFDispatch
 		Log.d(TAG, "Receive and broadcasting "+r.action);
 		context.sendBroadcast(outIntent);
 	    }
-
 	}
     }
 }

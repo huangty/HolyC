@@ -46,7 +46,7 @@ public class OFHelloEchoHandler extends BroadcastReceiver {
     
     String doProcessOFEvent(OFEvent ofe){
     	OFMessage ofm = ofe.getOFMessage();
-    	if(ofm.getType() == OFType.HELLO){
+    	/*if(ofm.getType() == OFType.HELLO){
     		Log.d(TAG, "Received OFPT_HELLO");
     		OFHello ofh = new OFHello();
 			ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
@@ -55,7 +55,8 @@ public class OFHelloEchoHandler extends BroadcastReceiver {
 			Log.d(TAG, "Generate OFReply Event (OFHello) with socket channel index = " + ofpoe.getSocketChannelNumber());
 			String ofout = gson.toJson(ofpoe, OFReplyEvent.class);
 	    	return ofout;
-    	}else if(ofm.getType() == OFType.ECHO_REQUEST){
+		}else*/
+	if(ofm.getType() == OFType.ECHO_REQUEST){
     		Log.d(TAG, "Received OFPT_ECHO_REQUEST");
     		OFEchoReply reply = new OFEchoReply();
 			ByteBuffer bb = ByteBuffer.allocate(reply.getLength());
