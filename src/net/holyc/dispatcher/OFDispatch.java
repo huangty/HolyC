@@ -46,46 +46,48 @@ public class OFDispatch
 	    String ofe_json = intent.getStringExtra(HolyCIntent.BroadcastOFEvent.str_key);
 	    OFEvent ofe = gson.fromJson(ofe_json, OFEvent.class);
 	    
-	    Result r = new Result();
+	    Result r = null;
 	    switch (ofe.getOFMessage().getType())
 	    {
 	    case HELLO:
-		r.action = HolyCIntent.OFHello_Intent.action;
-		r.key = HolyCIntent.OFHello_Intent.str_key;
-		OFHelloEvent ohe = new OFHelloEvent(ofe);
-		r.string = gson.toJson(ohe, OFHelloEvent.class);
-		break;
+	    	r = new Result();
+			r.action = HolyCIntent.OFHello_Intent.action;
+			r.key = HolyCIntent.OFHello_Intent.str_key;
+			OFHelloEvent ohe = new OFHelloEvent(ofe);
+			r.string = gson.toJson(ohe, OFHelloEvent.class);
+			break;
 
 	    case ECHO_REQUEST:
-		r.action = HolyCIntent.OFEchoRequest_Intent.action;
-		r.key = HolyCIntent.OFEchoRequest_Intent.str_key;
-		OFEchoRequestEvent oere = new OFEchoRequestEvent(ofe);
-		r.string = gson.toJson(oere, OFEchoRequestEvent.class);
-		break;
+	    	r = new Result();
+			r.action = HolyCIntent.OFEchoRequest_Intent.action;
+			r.key = HolyCIntent.OFEchoRequest_Intent.str_key;
+			OFEchoRequestEvent oere = new OFEchoRequestEvent(ofe);
+			r.string = gson.toJson(oere, OFEchoRequestEvent.class);
+			break;
 
 	    case PACKET_IN:
-		r = new Result();
-		r.action = HolyCIntent.OFPacketIn_Intent.action;
-		r.key = HolyCIntent.OFPacketIn_Intent.str_key;
-		OFPacketInEvent opie = new OFPacketInEvent(ofe);
-		r.string = gson.toJson(opie, OFPacketInEvent.class);
-		break;
+			r = new Result();
+			r.action = HolyCIntent.OFPacketIn_Intent.action;
+			r.key = HolyCIntent.OFPacketIn_Intent.str_key;
+			OFPacketInEvent opie = new OFPacketInEvent(ofe);
+			r.string = gson.toJson(opie, OFPacketInEvent.class);
+			break;
 
 	    case FLOW_REMOVED:
-		r = new Result();
-		r.action = HolyCIntent.OFFlowRemoved_Intent.action;
-		r.key = HolyCIntent.OFFlowRemoved_Intent.str_key;
-		OFFlowRemovedEvent ofre = new OFFlowRemovedEvent(ofe);
-		r.string = gson.toJson(ofre, OFFlowRemovedEvent.class);
-		break;
+			r = new Result();
+			r.action = HolyCIntent.OFFlowRemoved_Intent.action;
+			r.key = HolyCIntent.OFFlowRemoved_Intent.str_key;
+			OFFlowRemovedEvent ofre = new OFFlowRemovedEvent(ofe);
+			r.string = gson.toJson(ofre, OFFlowRemovedEvent.class);
+			break;
 
 
 	    case ERROR:
-		OFErrorEvent ore = new OFErrorEvent(ofe);
-		OFError oe = ore.getOFError();
-		Log.d(TAG, "Error!!! Error code "+oe.getErrorCode()+
-		      "and type "+oe.getErrorType());
-		break;
+			OFErrorEvent ore = new OFErrorEvent(ofe);
+			OFError oe = ore.getOFError();
+			Log.d(TAG, "Error!!! Error code "+oe.getErrorCode()+
+			      "and type "+oe.getErrorType());
+			break;
 	    }
 
 	    //Send out generated Intent
