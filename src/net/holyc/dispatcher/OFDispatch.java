@@ -46,7 +46,7 @@ public class OFDispatch
 	    String ofe_json = intent.getStringExtra(HolyCIntent.BroadcastOFEvent.str_key);
 	    OFEvent ofe = gson.fromJson(ofe_json, OFEvent.class);
 	    
-	    Result r = null;
+	    Result r = new Result();
 	    switch (ofe.getOFMessage().getType())
 	    {
 	    case HELLO:
