@@ -3,6 +3,7 @@ package net.holyc.dispatcher;
 import com.google.gson.Gson;
 
 import org.openflow.protocol.OFType;
+import org.openflow.protocol.OFError;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,6 +14,8 @@ import net.holyc.HolyCIntent;
 import net.holyc.dispatcher.OFEvent;
 
 /** Class to dispatch OpenFlow message.
+ * 
+ * And for now print the errors!
  * 
  * @author ykk
  * @date Apr 2011
@@ -66,6 +69,13 @@ public class OFDispatch
 		r.key = HolyCIntent.OFPacketIn_Intent.str_key;
 		OFPacketInEvent opie = new OFPacketInEvent(ofe);
 		r.string = gson.toJson(opie, OFPacketInEvent.class);
+		break;
+
+	    case ERROR:
+		OFErrorEvent ore = new OFErrorEvent(ofe);
+		OFError oe = ore.getOFError();
+		Log.d(TAG, "Error!!! Error code "+oe.getErrorCode()+
+		      "and type "+oe.getErrorType());
 		break;
 	    }
 
