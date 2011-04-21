@@ -53,6 +53,13 @@ public class OFDispatch
 		r.string = gson.toJson(ohe, OFHelloEvent.class);
 		break;
 
+	    case ECHO_REQUEST:
+		r.action = HolyCIntent.OFEchoRequest_Intent.action;
+		r.key = HolyCIntent.OFEchoRequest_Intent.str_key;
+		OFEchoRequestEvent oere = new OFEchoRequestEvent(ofe);
+		r.string = gson.toJson(oere, OFEchoRequestEvent.class);
+		break;
+
 	    case PACKET_IN:
 		r = new Result();
 		r.action = HolyCIntent.OFPacketIn_Intent.action;

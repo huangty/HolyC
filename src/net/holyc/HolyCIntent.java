@@ -29,6 +29,15 @@ public class HolyCIntent{
 	public static final String str_key = "OFHELLO";	
     }
 
+    /** Intent to deliver OpenFlow echo request event
+     *
+     * @see OFEchoRequestEvent
+     */
+    public class OFEchoRequest_Intent{
+	public static final String action = "holyc.intent.broadcast.ECHOREQ";
+	public static final String str_key = "OFECHOREQUEST";	
+    }
+
     /** Intent to deliver OpenFlow packet in event
      *
      * @see OFPacketInEvent
@@ -38,7 +47,7 @@ public class HolyCIntent{
 	public static final String str_key = "OFPKTIN";	
     }
 
-    /** Intent to send arbitrary OpenFlow message
+    /** Intent to send/reply to arbitrary OpenFlow message
      */
     public class BroadcastOFReply{
 	public static final String action = "holyc.intent.broadcast.OFREPLYEVENT";
