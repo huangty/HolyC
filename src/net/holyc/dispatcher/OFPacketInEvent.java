@@ -15,9 +15,10 @@ import net.holyc.dispatcher.OFEvent;
 public class OFPacketInEvent
     extends OFEvent
 {
-	/** Reference to OpenFlow message
-	*/
-	protected OFPacketIn ofm;	
+    /** Reference to OpenFlow message
+     */
+    protected OFPacketIn ofm;
+
     /** Constructor
      *
      * @param ofevent OpenFlow message event to clone
