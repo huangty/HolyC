@@ -64,5 +64,10 @@
 	<action android:name="holyc.intent.broadcast.ECHOREQ"/>   
       </intent-filter>   
     </receiver>   
+    <receiver android:name=".openflow.handler.FlowSwitch">   
+      <intent-filter>   
+	<action android:name="holyc.intent.broadcast.PACKETIN"/>   
+      </intent-filter>   
+    </receiver>   
   </application>
 </manifest>
