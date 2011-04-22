@@ -2,6 +2,7 @@ package net.holyc.dispatcher;
 
 import com.google.gson.Gson;
 
+import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.OFType;
 import org.openflow.protocol.OFError;
 
@@ -48,6 +49,14 @@ public class OFDispatch extends BroadcastReceiver {
 			OFEvent ofe = gson.fromJson(ofe_json, OFEvent.class);
 
 			Result r = null;
+			OFMessage ofm = ofe.getOFMessage();
+			if(ofm == null){
+				Log.e(TAG, "GET AN EMPTY OFMessage! ofevent in json = " + ofe_json);
+				return;
+			}else if(ofm.getType() == null ){
+				Log.e(TAG, "GET AN OFMessage with EMPTY OFTYPE! OFMessage = " + ofm.toString());
+				return;
+			}
 			switch (ofe.getOFMessage().getType()) {
 			case HELLO:
 				r = new Result();
