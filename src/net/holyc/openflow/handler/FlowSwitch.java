@@ -69,7 +69,7 @@ public class FlowSwitch
 		oao.setPort(out.shortValue());
 		OFFlowMod offm = new OFFlowMod();
 		actions.add(oao);
-	    	offm.setActions(actions);
+	    offm.setActions(actions);
 		offm.setMatch(ofm);
 		offm.setBufferId(opie.getBufferId());
 		offm.setCommand(OFFlowMod.OFPFC_ADD);
@@ -91,9 +91,11 @@ public class FlowSwitch
 		opo.setInPort(opie.getInPort());
 		opo.setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
 		opo.setBufferId(opie.getBufferId());
+		int length = OFPacketOut.MINIMUM_LENGTH + opo.getActionsLengthU();
 		if (opie.getBufferId()==-1)
 		    opo.setPacketData(opie.getPacketData());
-
+			length += opie.getPacketData().length;		
+		opo.setLengthU(length);
 		bb = ByteBuffer.allocate(opo.getLength());
 		opo.writeTo(bb);
 	    }
