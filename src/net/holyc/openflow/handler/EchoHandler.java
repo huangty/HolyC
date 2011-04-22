@@ -23,7 +23,7 @@ import android.util.Log;
  * @author ykk
  */
 
-public class OFEchoHandler extends BroadcastReceiver {
+public class EchoHandler extends BroadcastReceiver {
     private String TAG = "HOLYC.OFEchoHandler";
     Gson gson = new Gson();
 
