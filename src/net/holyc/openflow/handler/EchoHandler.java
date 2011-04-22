@@ -44,6 +44,7 @@ public class EchoHandler extends BroadcastReceiver {
     	OFMessage ofm = ofe.getOFMessage();
 	Log.d(TAG, "Received OFPT_ECHO_REQUEST");
 	OFEchoReply reply = new OFEchoReply();
+	reply.setXid(ofm.getXid());
 	ByteBuffer bb = ByteBuffer.allocate(reply.getLength());
 	reply.writeTo(bb);
 	OFReplyEvent ofpoe = new OFReplyEvent(ofe.getSocketChannelNumber(), bb.array());
