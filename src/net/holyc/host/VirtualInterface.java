@@ -70,9 +70,15 @@ public class VirtualInterface extends HostInterface {
 	
 	@Override
 	public void setMac(String mac){
-		String[] command = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " hw ether " + mac};
+		String[] if_down_cmd = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " down "};
+		String[] set_mac_cmd = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " hw ether " + mac};
+		String[] if_up_cmd = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " up "};		
 		try {
-			Runtime.getRuntime().exec(command).waitFor();
+			
+			Runtime.getRuntime().exec(if_down_cmd).waitFor();
+			Runtime.getRuntime().exec(set_mac_cmd).waitFor();
+			Runtime.getRuntime().exec(if_up_cmd).waitFor();
+			
 		} catch (Exception e) {			
 			e.printStackTrace();
 		}
