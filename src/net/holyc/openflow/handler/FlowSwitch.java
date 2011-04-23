@@ -91,6 +91,7 @@ public class FlowSwitch
 
 		bb = ByteBuffer.allocate(offm.getLength());
 		offm.writeTo(bb);
+		Log.d(TAG, "Send out a flow mod");
 	    }
 	    else
 	    {

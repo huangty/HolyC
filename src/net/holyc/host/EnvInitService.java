@@ -103,9 +103,7 @@ public class EnvInitService extends Service{
     	if(wifi_included){
     		doWiFiInit();
     	}
-    	if(mobile_included){
-    		doMobileInit();
-    	}
+   		doMobileInit();    	
     	doVethInit();
     	doOVSInit();
     	doOpenflowdInit();
