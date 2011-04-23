@@ -11,6 +11,7 @@ import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteCursor;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.Message;
@@ -22,6 +23,7 @@ import net.holyc.HolyCIntent;
 import net.holyc.dispatcher.OFFlowRemovedEvent;
 
 import edu.stanford.lal.Database;
+import edu.stanford.lal.LalMessage;
 
 /** Lal
  * 
@@ -45,6 +47,8 @@ public class Lal
      */
     public static final String TABLE_NAME = "LAL_FLOW_TABLE";
 
+    /** Broadcast receiver
+     */
     private final BroadcastReceiver bReceiver = new BroadcastReceiver() 
     {
 	@Override 
@@ -73,9 +77,18 @@ public class Lal
 	{
             switch (msg.what) 
 	    {
-		/**case QUERY_TYPE:
-		   Log.d(TAG, "Query :"+((String) msg.obj));
-		   break;*/
+	    case LalMessage.LalQuery.what:
+		LalMessage.LalQuery query = (LalMessage.LalQuery) msg.obj;
+		SQLiteCursor c = (SQLiteCursor) db.db.query(query.distinct,
+							    TABLE_NAME,
+							    query.columns,
+							    query.selection,
+							    query.selectionArgs,
+							    query.groupBy,
+							    query.having,
+							    query.orderBy,
+							    query.limit);
+		break;
 	    default:
 		super.handleMessage(msg);
             }
