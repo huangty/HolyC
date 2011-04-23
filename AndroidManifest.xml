@@ -70,5 +70,12 @@
 	<action android:name="holyc.intent.broadcast.PACKETIN"/>   
       </intent-filter>   
     </receiver>   
+
+    <!--Lal-->
+    <receiver android:name=".lal.Lal">   
+      <intent-filter>   
+	<action android:name="holyc.intent.broadcast.FLOWREMOVED"/>   
+      </intent-filter>   
+    </receiver>   
   </application>
 </manifest>

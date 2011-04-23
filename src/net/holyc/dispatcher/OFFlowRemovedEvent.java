@@ -15,6 +15,10 @@ import net.holyc.dispatcher.OFEvent;
 public class OFFlowRemovedEvent
     extends OFEvent
 {
+    /** OpenFlow flow removed
+     */
+    OFFlowRemoved ofm;
+
     /** Constructor
      *
      * @param ofevent OpenFlow message event to clone
