@@ -49,6 +49,13 @@
              android:process=":envInit" />
     <service android:name=".dispatcher.DispatchService" 
              android:process=":dispatch" />        
+
+    <service android:name=".lal.Lal">
+      <intent-filter>
+	<action android:name="holyc.intent.broadcast.FLOWREMOVED"/>   
+      </intent-filter>
+    </service>
+
     <receiver android:name=".dispatcher.StartupIntentReceiver">   
       <intent-filter>   
 	<action android:name="android.intent.action.BOOT_COMPLETED"/>   
@@ -71,11 +78,5 @@
       </intent-filter>   
     </receiver>   
 
-    <!--Lal-->
-    <receiver android:name=".lal.Lal">   
-      <intent-filter>   
-	<action android:name="holyc.intent.broadcast.FLOWREMOVED"/>   
-      </intent-filter>   
-    </receiver>   
   </application>
 </manifest>
