@@ -226,12 +226,10 @@ public class EnvInitService extends Service{
     }
        
     public void doRoutingInit(){
-    	if(wifi_included){
-    		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ wifiIF.getName()+"\"");
-    	}
-    	if(mobile_included){
-    		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
-    	}
+    	/** remove other default route */
+		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ wifiIF.getName()+"\"");
+		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
+
     	if(isMultipleInterface){
     		NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName()+ "\"");
     	}else{ //single interface
