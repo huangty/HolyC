@@ -62,6 +62,8 @@ public class Lal
 							OFFlowRemovedEvent.class);
 		ContentValues cv = new ContentValues();
 		cv.put("App", "Something"); //Need to put real application name
+		cv.put("Time_Received", 
+		       ((double) System.currentTimeMillis())/(1000.0));
 		OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
 		db.insert(TABLE_NAME, cv);
 	    }

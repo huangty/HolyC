@@ -33,6 +33,7 @@ public class Database
     {
 	SQLiteTable tab = new SQLiteTable(TABLE_NAME);
 	tab.addColumn("App", SQLiteTable.DataType.TEXT);
+	tab.addColumn("Time_Received", SQLiteTable.DataType.REAL);
 	OpenFlow.addOFFlowRemoved2Table(tab);
 	addTable(tab);
     }
