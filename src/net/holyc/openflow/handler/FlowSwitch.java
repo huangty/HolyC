@@ -42,7 +42,7 @@ public class FlowSwitch
     Gson gson = new Gson();
     /** MAC address and port association
      */
-    HashMap<String, Short> hostPort = new HashMap<String, Short>();
+    public static HashMap<String, Short> hostPort = new HashMap<String, Short>();
     
     @Override    
 	public void onReceive(Context context, Intent intent) 
@@ -57,7 +57,7 @@ public class FlowSwitch
 	    OFMatch ofm = new OFMatch();
 	    ofm.loadFromPacket(opie.getPacketData(),
 			       opie.getInPort());
-	    hostPort.put(HexString.toHexString(ofm.getDataLayerSource()), ofm.getInputPort());
+	    hostPort.put(HexString.toHexString(ofm.getDataLayerSource()), new Short(ofm.getInputPort()));
 
 	    //Find outport if any
 	    Short out;
@@ -91,7 +91,6 @@ public class FlowSwitch
 
 		bb = ByteBuffer.allocate(offm.getLength());
 		offm.writeTo(bb);
-		Log.d(TAG, "Send out a flow mod");
 	    }
 	    else
 	    {

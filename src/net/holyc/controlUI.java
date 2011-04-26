@@ -2,10 +2,13 @@ package net.holyc;
 
 import java.util.List;
 
+import net.holyc.dispatcher.DispatchService;
+import net.holyc.host.Utility;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
@@ -21,9 +24,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-
-import net.holyc.HolyCMessage;
-import net.holyc.dispatcher.DispatchService;
 
 public class controlUI extends Activity{
 	private String TAG = "HolyC.controUI";
@@ -121,9 +121,10 @@ public class controlUI extends Activity{
     			doStartDispatchService();
     		}else{
     			doStopDispatchService();
-    		}    		
+    		}	
     	}
     };
+    
     private ComponentName doStartDispatchService(){
     	ComponentName c = startService(new Intent(this, DispatchService.class));
     	button_starter.setChecked(true);
