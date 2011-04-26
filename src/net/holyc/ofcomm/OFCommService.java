@@ -197,7 +197,8 @@ public class OFCommService extends Service{
             ServerSocket tmp = null;
             try {
                 tmp = new ServerSocket(bind_port);
-                tmp.setReuseAddress(true);                
+                tmp.setReuseAddress(true);                                
+               
             } catch (IOException e) {
                 System.err.println("Could not open server socket");
                 e.printStackTrace(System.err);
@@ -214,6 +215,7 @@ public class OFCommService extends Service{
                     // successful connection or an exception
                     Log.d(TAG, "waiting for openflow client ...");
                     socket = mmServerSocket.accept();
+                    socket.setTcpNoDelay(true);
                     Log.d(TAG, "Client connected!");
                     
                 } catch (SocketException e) {
