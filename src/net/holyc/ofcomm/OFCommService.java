@@ -147,6 +147,7 @@ public class OFCommService extends Service{
             	OFEvent ofe = new OFEvent(remotePort.intValue(), ofdata);
             	//sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
             	Log.d(TAG, "Recevie OFMessage: " + ofe.getOFMessage().toString());
+            	Log.d(TAG, "OFMessage length = " + ofe.getOFMessage().getLength() + "  ofdata length = " + ofdata.length);
             	Bundle data = new Bundle();            	
             	data.putString(HolyCMessage.OFCOMM_EVENT.str_key, 
 			       gson.toJson(ofe, OFEvent.class));
@@ -284,12 +285,42 @@ public class OFCommService extends Service{
                 return;
 
             // Receive until client closes connection, indicated by -1
+            byte[] leftOverData = new byte[0];
+            //Log.d(TAG, "leftOverData size = " + leftOverData.length);
             try{
 	            while (( bytes = mmInStream.read(buffer)) != -1) {
-	            	byte[] OFdata = new byte[bytes];
-	            	System.arraycopy(buffer, 0, OFdata, 0, bytes);
-	            	// TODO: based on header to retrieve correct packet length 
-	            	sendOFEventToDispatchService(mRemotePort, OFdata);
+	            	byte[] ofdata = new byte[bytes+leftOverData.length];
+	            	//copy leftOverData to the beginning of OFdata if there is any
+	            	if(leftOverData.length >0){
+	            		System.arraycopy(leftOverData, 0, ofdata, 0, leftOverData.length);
+		            	System.arraycopy(buffer, 0, ofdata, leftOverData.length, bytes);
+		            	leftOverData = new byte[0];
+	            	}else{
+	            		System.arraycopy(buffer, 0, ofdata, 0, bytes);
+	            	}
+	            	while(ofdata.length > 0){
+	            		//for each message, get the packet length, which is the 3rd and 4th bytes in the OF Header
+	            		ByteBuffer bb = ByteBuffer.allocate(2);
+	            		bb.put(ofdata[2]);
+	            		bb.put(ofdata[3]);
+	            		bb.flip();
+	            		short length = bb.getShort();
+	            		if(ofdata.length >= length){
+	            			byte[] ofmessage = new byte[length];
+	            			System.arraycopy(ofdata, 0, ofmessage, 0, length);
+	            			//send data up to Dispatch Service
+	            			sendOFEventToDispatchService(mRemotePort, ofmessage);
+	            			int leftOverLen = (ofdata.length - length);
+	            			byte[] temp = new byte[leftOverLen];
+	            			System.arraycopy(ofdata, 0, temp, 0, leftOverLen);	            			
+	            			ofdata = temp;
+	            		}else{
+	            			leftOverData = new byte[ofdata.length];
+	            			System.arraycopy(ofdata, 0, leftOverData, 0, ofdata.length);
+	            			ofdata = new byte[0];
+	            			Log.d(TAG, "there are left over, with size = " + leftOverData.length);
+	            		}
+	            	}
 	            }
             }catch (Exception e) {
                 Log.e(TAG, "Error reading connection header", e);
