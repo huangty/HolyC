@@ -2,6 +2,9 @@ package edu.stanford.lal;
 
 import android.content.Context;
 import android.util.Log;
+
+import edu.stanford.lal.Lal;
+
 import org.sqlite.helper.*;
 
 /** Database class for TIA's SQLite database
@@ -20,9 +23,6 @@ public class Database
      */
     private static final String TAG = "LalDatabase";
 
-    /** Name of table
-     */
-    public static final String TABLE_NAME = "Lal_Flow_Removed";
 
     public Database(Context context)
     {
@@ -31,7 +31,7 @@ public class Database
 
     public void createTables()
     {
-	SQLiteTable tab = new SQLiteTable(TABLE_NAME);
+	SQLiteTable tab = new SQLiteTable(Lal.TABLE_NAME);
 	tab.addColumn("App", SQLiteTable.DataType.TEXT);
 	tab.addColumn("Time_Received", SQLiteTable.DataType.REAL);
 	OpenFlow.addOFFlowRemoved2Table(tab);
