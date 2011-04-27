@@ -103,7 +103,6 @@ public class OFDispatch extends BroadcastReceiver {
 				Intent outIntent = new Intent(r.action);
 				outIntent.setPackage(context.getPackageName());
 				outIntent.putExtra(r.key, r.string);
-				Log.d(TAG, "Receive and broadcasting " + r.action);
 				context.sendBroadcast(outIntent);
 			}
 		}

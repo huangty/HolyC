@@ -61,8 +61,7 @@ public class DispatchService extends Service {
 	BroadcastReceiver mOFReplyReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			Log.d(TAG, "receive OFReply broadcast");
-			// just acting as a relay from OFHandler to OFComm
+		    	// just acting as a relay from OFHandler to OFComm
 			String json = intent
 					.getStringExtra(HolyCIntent.BroadcastOFReply.str_key);
 			Message msg = Message.obtain(null, HolyCMessage.OFREPLY_EVENT.type);
@@ -71,12 +70,6 @@ public class DispatchService extends Service {
 			msg.setData(bundle);
 
 			/** for debug */
-			OFReplyEvent ofpoe = gson.fromJson(json, OFReplyEvent.class);
-			Log.d(TAG, "receive broadcast in json = " + json);
-			Log.d(TAG, "receive OFEvent message = "
-					+ ofpoe.getOFMessage().toString() + "socket number = "
-					+ ofpoe.getSocketChannelNumber());
-
 			try {
 				mOFService.send(msg);
 			} catch (RemoteException e) {
