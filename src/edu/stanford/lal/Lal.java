@@ -1,4 +1,4 @@
-package net.holyc.lal;
+package edu.stanford.lal;
 
 import com.google.gson.Gson;
 
@@ -11,6 +11,7 @@ import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.sqlite.SQLiteCursor;
 import android.os.Binder;
 import android.os.IBinder;
@@ -49,13 +50,15 @@ public class Lal
 
     /** Broadcast receiver
      */
-    private final BroadcastReceiver bReceiver = new BroadcastReceiver() 
+    BroadcastReceiver bReceiver = new BroadcastReceiver() 
     {
 	@Override 
 	    public void onReceive(Context context, Intent intent) 
 	{
+	    Log.d(TAG, "Received intent");
 	    if (intent.getAction().equals(HolyCIntent.OFFlowRemoved_Intent.action))
 	    {
+		Log.d(TAG, "Received Flow removed");
 		String ofre_json = intent
 		    .getStringExtra(HolyCIntent.OFFlowRemoved_Intent.str_key);
 		OFFlowRemovedEvent ofre = gson.fromJson(ofre_json, 
@@ -113,6 +116,11 @@ public class Lal
 	super.onCreate();
 	Log.d(TAG, "Starting Lal...");
 
+	IntentFilter mIntentFilter = new IntentFilter();
+	mIntentFilter.addAction(HolyCIntent.OFFlowRemoved_Intent.action);
+	registerReceiver(bReceiver, mIntentFilter);
+
+
 	db = new Database(getApplicationContext());
 
 	/////////////////////////////
@@ -138,6 +146,9 @@ public class Lal
 	public void onDestroy()
     {
 	db.close();
+
+	unregisterReceiver(bReceiver);
+
 	super.onDestroy();
 	Log.d(TAG, "Stopping Lal...");
     }
