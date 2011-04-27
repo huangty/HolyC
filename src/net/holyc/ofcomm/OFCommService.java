@@ -312,7 +312,7 @@ public class OFCommService extends Service{
 	            			sendOFEventToDispatchService(mRemotePort, ofmessage);
 	            			int leftOverLen = (ofdata.length - length);
 	            			byte[] temp = new byte[leftOverLen];
-	            			System.arraycopy(ofdata, 0, temp, 0, leftOverLen);	            			
+	            			System.arraycopy(ofdata, length, temp, 0, leftOverLen);	            			
 	            			ofdata = temp;
 	            		}else{
 	            			leftOverData = new byte[ofdata.length];
@@ -321,6 +321,7 @@ public class OFCommService extends Service{
 	            			Log.d(TAG, "there are left over, with size = " + leftOverData.length);
 	            		}
 	            	}
+	            	Log.d(TAG, "Finish retrieve data from buffer, read one more time");
 	            }
             }catch (Exception e) {
                 Log.e(TAG, "Error reading connection header", e);
