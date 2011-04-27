@@ -15,6 +15,10 @@ import net.holyc.dispatcher.OFEvent;
 public class OFErrorEvent
     extends OFEvent
 {
+    /** Reference to OpenFlow message
+     */
+    protected OFError ofm;
+
     /** Constructor
      *
      * @param ofevent OpenFlow message event to clone
