@@ -69,7 +69,7 @@
 	<action android:name="holyc.intent.broadcast.ECHOREQ"/>   
       </intent-filter>   
     </receiver>   
-    <receiver android:name=".openflow.handler.FlowSwitch">   
+    <receiver android:name="edu.stanford.lal.LalFlowSwitch">   
       <intent-filter>   
 	<action android:name="holyc.intent.broadcast.PACKETIN"/>   
       </intent-filter>   
