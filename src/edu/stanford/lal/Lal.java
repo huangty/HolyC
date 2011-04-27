@@ -44,6 +44,9 @@ public class Lal
     /** Reference to database
      */
     public Database db = null;
+    /** Table for application name
+     */
+    public static final String APP_TABLE_NAME = "LAL_APP_TABLE";
     /** Table name
      */
     public static final String TABLE_NAME = "LAL_FLOW_TABLE";
@@ -57,7 +60,6 @@ public class Lal
 	{
 	    if (intent.getAction().equals(HolyCIntent.OFFlowRemoved_Intent.action))
 	    {
-		Log.d(TAG, "Received Flow removed");
 		String ofre_json = intent
 		    .getStringExtra(HolyCIntent.OFFlowRemoved_Intent.str_key);
 		OFFlowRemovedEvent ofre = gson.fromJson(ofre_json, 

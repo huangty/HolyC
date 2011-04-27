@@ -20,6 +20,7 @@ import org.openflow.util.U16;
 import net.holyc.HolyCIntent;
 import net.holyc.dispatcher.OFPacketInEvent;
 import net.holyc.dispatcher.OFReplyEvent;
+import net.holyc.host.Utility;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -43,7 +44,7 @@ public class FlowSwitch
     /** MAC address and port association
      */
     public static HashMap<String, Short> hostPort = new HashMap<String, Short>();
-    
+   
     @Override    
 	public void onReceive(Context context, Intent intent) 
     {
@@ -57,7 +58,8 @@ public class FlowSwitch
 	    OFMatch ofm = new OFMatch();
 	    ofm.loadFromPacket(opie.getPacketData(),
 			       opie.getInPort());
-	    hostPort.put(HexString.toHexString(ofm.getDataLayerSource()), new Short(ofm.getInputPort()));
+	    hostPort.put(HexString.toHexString(ofm.getDataLayerSource()), 
+			 new Short(ofm.getInputPort()));
 
 	    //Find outport if any
 	    Short out;
@@ -65,57 +67,72 @@ public class FlowSwitch
 		out = new Short(OFPort.OFPP_FLOOD.getValue());
 	    else
 		out = hostPort.get(HexString.toHexString(ofm.getDataLayerDestination()));
-	    OFActionOutput oao = new OFActionOutput();	    
-	    oao.setMaxLength((short) 0);     
-	    List<OFAction> actions = new ArrayList<OFAction>();
-	    ByteBuffer bb;
+
+	    //Send response
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
-	    if (out != null)
-	    {
-		//Form flow_mod
-		oao.setPort(out.shortValue());
-		OFFlowMod offm = new OFFlowMod();
-		actions.add(oao);
-		offm.setActions(actions);
-		offm.setMatch(ofm);
-                offm.setOutPort((short) OFPort.OFPP_NONE.getValue());                              
-		offm.setBufferId(opie.getBufferId());
-		offm.setCommand(OFFlowMod.OFPFC_ADD);
-		offm.setIdleTimeout((short) 5);
-		offm.setHardTimeout((short) 0);
-		offm.setPriority((short) 32768);
-		offm.setFlags((short) 1); //Send flow removed
-		offm.setCookie(0);                                                                 
-		offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
-
-		bb = ByteBuffer.allocate(offm.getLength());
-		offm.writeTo(bb);
-	    }
-	    else
-	    {
-		//Flood packet
-		oao.setPort(OFPort.OFPP_FLOOD.getValue()); //Flood port
-		OFPacketOut opo = new OFPacketOut();
-		actions.add(oao);
-	    	opo.setActions(actions);
-		opo.setInPort(opie.getInPort());
-		opo.setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
-		opo.setBufferId(opie.getBufferId());
-		int length = OFPacketOut.MINIMUM_LENGTH + opo.getActionsLengthU();
-		if (opie.getBufferId()==-1)
-		    opo.setPacketData(opie.getPacketData());
-			length += opie.getPacketData().length;		
-		opo.setLengthU(length);
-		bb = ByteBuffer.allocate(opo.getLength());
-		opo.writeTo(bb);
-	    }
+	    ByteBuffer bb = getResponse(out, opie, ofm);
 	    OFReplyEvent ofpoe = new OFReplyEvent(opi.getSocketChannelNumber(),
 						  bb.array());
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key,
 				gson.toJson(ofpoe, OFReplyEvent.class));
 	    context.sendBroadcast(poutIntent);
-	    
 	}
     }    
+
+
+    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm)
+    {
+	OFActionOutput oao = new OFActionOutput();	    
+	oao.setMaxLength((short) 0);     
+	List<OFAction> actions = new ArrayList<OFAction>();
+	ByteBuffer bb;
+	
+	if (out != null)
+	{		
+	    //Form flow_mod
+	    oao.setPort(out.shortValue());
+	    OFFlowMod offm = new OFFlowMod();
+	    actions.add(oao);
+	    offm.setActions(actions);
+	    offm.setMatch(ofm);
+	    offm.setOutPort((short) OFPort.OFPP_NONE.getValue());                              
+	    offm.setBufferId(opie.getBufferId());
+	    offm.setCommand(OFFlowMod.OFPFC_ADD);
+	    offm.setIdleTimeout((short) 5);
+	    offm.setHardTimeout((short) 0);
+	    offm.setPriority((short) 32768);
+	    offm.setFlags((short) 1); //Send flow removed
+	    offm.setCookie(getCookie(ofm));
+	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+	    
+	    bb = ByteBuffer.allocate(offm.getLength());
+	    offm.writeTo(bb);
+	}
+	else
+	{
+	    //Flood packet
+	    oao.setPort(OFPort.OFPP_FLOOD.getValue()); //Flood port
+	    OFPacketOut opo = new OFPacketOut();
+	    actions.add(oao);
+	    opo.setActions(actions);
+	    opo.setInPort(opie.getInPort());
+	    opo.setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
+	    opo.setBufferId(opie.getBufferId());
+	    int length = OFPacketOut.MINIMUM_LENGTH + opo.getActionsLengthU();
+	    if (opie.getBufferId()==-1)
+		opo.setPacketData(opie.getPacketData());
+	    length += opie.getPacketData().length;		
+	    opo.setLengthU(length);
+	    bb = ByteBuffer.allocate(opo.getLength());
+	    opo.writeTo(bb);
+	}
+
+	return bb;
+    }
+
+    public int getCookie(OFMatch ofm)
+    {
+	return 0;
+    }
 }
