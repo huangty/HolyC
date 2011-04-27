@@ -87,8 +87,8 @@ public class OpenFlow
     {
 	cv.put(OFMATCH_NAMES[0], U32.f(ofm.getWildcards()));
 	cv.put(OFMATCH_NAMES[1], U16.f(ofm.getInputPort()));
-	cv.put(OFMATCH_NAMES[2], BArray2Value(ofm.getDataLayerSource()));
-	cv.put(OFMATCH_NAMES[3], BArray2Value(ofm.getDataLayerDestination()));
+	cv.put(OFMATCH_NAMES[2], HexString.toHexString(ofm.getDataLayerSource()));
+	cv.put(OFMATCH_NAMES[3], HexString.toHexString(ofm.getDataLayerDestination()));
 	cv.put(OFMATCH_NAMES[4], U16.f(ofm.getDataLayerVirtualLan()));
 	cv.put(OFMATCH_NAMES[5], U8.f(ofm.getDataLayerVirtualLanPriorityCodePoint()));
 	cv.put(OFMATCH_NAMES[6], U16.f(ofm.getDataLayerType()));
@@ -100,19 +100,6 @@ public class OpenFlow
 	cv.put(OFMATCH_NAMES[12], U16.f(ofm.getTransportDestination()));
     }
 
-    /** Byte array to value
-     *
-     * @param ba byte array
-     */
-    public static long BArray2Value(byte[] ba)
-    {
-	long val = 0;
-	for (int i = 0; i < ba.length; i++)
-	    val += ba[ba.length-i-1]*(8^i);
-
-	return val;
-    }
-
     /** Add ofp_match fields to database
      *
      * @param tab table to put ofp_match into
@@ -120,7 +107,11 @@ public class OpenFlow
     public static void addOFMatch2Table(SQLiteTable tab)
     {
 	for (int i = 0; i < OFMATCH_NAMES.length; i++)
-	    tab.addColumn(OFMATCH_NAMES[i], SQLiteTable.DataType.INTEGER);
+	    if (OFMATCH_NAMES[i] == "DL_Source" || 
+		OFMATCH_NAMES[i] == "DL_Destination")
+		tab.addColumn(OFMATCH_NAMES[i], SQLiteTable.DataType.TEXT);
+	    else
+		tab.addColumn(OFMATCH_NAMES[i], SQLiteTable.DataType.INTEGER);
     }
 
     /** Add ofp_flow_removed fields to database
