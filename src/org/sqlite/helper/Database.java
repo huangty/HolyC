@@ -53,7 +53,14 @@ class DBOpenHelper extends SQLiteOpenHelper
     @Override
 	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
     {
-	;
+	Iterator<SQLiteTable> i = tables.iterator();
+	while (i.hasNext())
+	{
+	    String t = i.next().dropStat();
+	    db.execSQL(t);
+	    Log.d(TAG, t);	    
+	}
+	onCreate(db);
     }
    
     @Override
@@ -121,7 +128,6 @@ public abstract class Database
 	    //Create database
 	    createTables();
 	    db = doh.getWritableDatabase();
-
 	}
 	else
 	{

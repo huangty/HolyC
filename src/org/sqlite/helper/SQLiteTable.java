@@ -75,6 +75,15 @@ public class SQLiteTable
 	return stat;
     }
 
+    /** Generate drop statement
+     *
+     * @return statement to drop table
+     */
+    public String dropStat()
+    {
+	return "DROP TABLE IF EXISTS "+name+";";
+    }
+
     /** Add column
      */
     public void addColumn(String name, DataType type)
