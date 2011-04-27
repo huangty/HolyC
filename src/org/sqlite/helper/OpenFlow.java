@@ -1,7 +1,9 @@
 package org.sqlite.helper;
 
 import android.content.ContentValues;
+
 import org.openflow.protocol.*;
+import org.openflow.util.*;
 
 /** Helper class for OpenFlow related columns
  *
@@ -62,16 +64,16 @@ public class OpenFlow
 	addOFMatch2CV(cv, ofm);
 
 	cv.put(OFFLOWREMOVED_NAMES[0], ofr.getCookie());
-	cv.put(OFFLOWREMOVED_NAMES[1], ofr.getPriority());
+	cv.put(OFFLOWREMOVED_NAMES[1], U16.f(ofr.getPriority()));
 	OFFlowRemoved.OFFlowRemovedReason ofrr = ofr.getReason();
 	if (ofrr == null)
 	    cv.put(OFFLOWREMOVED_NAMES[2], -1);
 	else
 	    cv.put(OFFLOWREMOVED_NAMES[2], ofrr.ordinal());
-	cv.put(OFFLOWREMOVED_NAMES[3], (double) (ofr.getDurationSeconds()+ 
-						 (ofr.getDurationNanoseconds()/
+	cv.put(OFFLOWREMOVED_NAMES[3], (double) (U32.f(ofr.getDurationSeconds())+ 
+						 (U32.f(ofr.getDurationNanoseconds())/
 						  1e9)));
-	cv.put(OFFLOWREMOVED_NAMES[4], ofr.getIdleTimeout());
+	cv.put(OFFLOWREMOVED_NAMES[4], U16.f(ofr.getIdleTimeout()));
 	cv.put(OFFLOWREMOVED_NAMES[5], ofr.getPacketCount());
 	cv.put(OFFLOWREMOVED_NAMES[6], ofr.getByteCount());
     }
@@ -83,32 +85,19 @@ public class OpenFlow
      */
     public static void addOFMatch2CV(ContentValues cv, OFMatch ofm)
     {
-	cv.put(OFMATCH_NAMES[0], ofm.getWildcards());
-	cv.put(OFMATCH_NAMES[1], ofm.getInputPort());
-	cv.put(OFMATCH_NAMES[2], BArray2Value(ofm.getDataLayerSource()));
-	cv.put(OFMATCH_NAMES[3], BArray2Value(ofm.getDataLayerDestination()));
-	cv.put(OFMATCH_NAMES[4], ofm.getDataLayerVirtualLan());
-	cv.put(OFMATCH_NAMES[5], ofm.getDataLayerVirtualLanPriorityCodePoint());
-	cv.put(OFMATCH_NAMES[6], ofm.getDataLayerType());
-	cv.put(OFMATCH_NAMES[7], ofm.getNetworkSource());
-	cv.put(OFMATCH_NAMES[8], ofm.getNetworkDestination());
-	cv.put(OFMATCH_NAMES[9], ofm.getNetworkProtocol());
-	cv.put(OFMATCH_NAMES[10], ofm.getNetworkTypeOfService());
-	cv.put(OFMATCH_NAMES[11], ofm.getTransportSource());
-	cv.put(OFMATCH_NAMES[12], ofm.getTransportDestination());
-    }
-
-    /** Byte array to value
-     *
-     * @param ba byte array
-     */
-    public static long BArray2Value(byte[] ba)
-    {
-	long val = 0;
-	for (int i = 0; i < ba.length; i++)
-	    val += ba[ba.length-i-1]*(8^i);
-
-	return val;
+	cv.put(OFMATCH_NAMES[0], U32.f(ofm.getWildcards()));
+	cv.put(OFMATCH_NAMES[1], U16.f(ofm.getInputPort()));
+	cv.put(OFMATCH_NAMES[2], HexString.toHexString(ofm.getDataLayerSource()));
+	cv.put(OFMATCH_NAMES[3], HexString.toHexString(ofm.getDataLayerDestination()));
+	cv.put(OFMATCH_NAMES[4], U16.f(ofm.getDataLayerVirtualLan()));
+	cv.put(OFMATCH_NAMES[5], U8.f(ofm.getDataLayerVirtualLanPriorityCodePoint()));
+	cv.put(OFMATCH_NAMES[6], U16.f(ofm.getDataLayerType()));
+	cv.put(OFMATCH_NAMES[7], U32.f(ofm.getNetworkSource()));
+	cv.put(OFMATCH_NAMES[8], U32.f(ofm.getNetworkDestination()));
+	cv.put(OFMATCH_NAMES[9], U8.f(ofm.getNetworkProtocol()));
+	cv.put(OFMATCH_NAMES[10], U8.f(ofm.getNetworkTypeOfService()));
+	cv.put(OFMATCH_NAMES[11], U16.f(ofm.getTransportSource()));
+	cv.put(OFMATCH_NAMES[12], U16.f(ofm.getTransportDestination()));
     }
 
     /** Add ofp_match fields to database
@@ -118,7 +107,11 @@ public class OpenFlow
     public static void addOFMatch2Table(SQLiteTable tab)
     {
 	for (int i = 0; i < OFMATCH_NAMES.length; i++)
-	    tab.addColumn(OFMATCH_NAMES[i], SQLiteTable.DataType.INTEGER);
+	    if (OFMATCH_NAMES[i] == "DL_Source" || 
+		OFMATCH_NAMES[i] == "DL_Destination")
+		tab.addColumn(OFMATCH_NAMES[i], SQLiteTable.DataType.TEXT);
+	    else
+		tab.addColumn(OFMATCH_NAMES[i], SQLiteTable.DataType.INTEGER);
     }
 
     /** Add ofp_flow_removed fields to database

@@ -55,7 +55,6 @@ public class Lal
 	@Override 
 	    public void onReceive(Context context, Intent intent) 
 	{
-	    Log.d(TAG, "Received intent");
 	    if (intent.getAction().equals(HolyCIntent.OFFlowRemoved_Intent.action))
 	    {
 		Log.d(TAG, "Received Flow removed");
@@ -119,7 +118,6 @@ public class Lal
 	IntentFilter mIntentFilter = new IntentFilter();
 	mIntentFilter.addAction(HolyCIntent.OFFlowRemoved_Intent.action);
 	registerReceiver(bReceiver, mIntentFilter);
-
 
 	db = new Database(getApplicationContext());
 
