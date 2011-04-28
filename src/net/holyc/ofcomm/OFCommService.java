@@ -104,6 +104,7 @@ public class OFCommService extends Service{
     @Override
     public void onCreate() {
         mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        startForeground(0, null);
     }
 
     @Override
