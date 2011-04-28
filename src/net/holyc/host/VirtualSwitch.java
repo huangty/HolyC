@@ -1,6 +1,7 @@
 package net.holyc.host;
 
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -46,7 +47,14 @@ class VirtualSwitch{
 	}
 	public void addIF(String dp, String intf){
 		if(dptable.containsKey(dp)){
-			NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-dpctl add-if "+ dp + " " + intf +"\"");
+			String[] command = {"su", "-c", "/data/local/bin/ovs-dpctl add-if " + dp + " " + intf};
+			try {
+				Runtime.getRuntime().exec(command).waitFor();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			dptable.get(dp).add(intf);
 		}else{
 			Log.e(TAG, "datapatch not exists");
