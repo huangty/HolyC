@@ -26,6 +26,9 @@ import net.holyc.dispatcher.OFFlowRemovedEvent;
 import edu.stanford.lal.Database;
 import edu.stanford.lal.LalMessage;
 
+import java.util.HashMap;
+
+
 /** Lal
  * 
  * @author ykk
@@ -44,9 +47,6 @@ public class Lal
     /** Reference to database
      */
     public Database db = null;
-    /** Table for application name
-     */
-    public static final String APP_TABLE_NAME = "LAL_APP_TABLE";
     /** Table name
      */
     public static final String TABLE_NAME = "LAL_FLOW_TABLE";
@@ -70,6 +70,11 @@ public class Lal
 		       ((double) System.currentTimeMillis())/(1000.0));
 		OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
 		db.insert(TABLE_NAME, cv);
+	    }
+	    else if (intent.getAction().equals(HolyCIntent.LalAppFound.action))
+	    {
+		String app_name = intent.getStringExtra(HolyCIntent.LalAppFound.str_key);
+		Log.d(TAG, "New app "+app_name);
 	    }
 	}
     };
@@ -120,6 +125,10 @@ public class Lal
 	IntentFilter mIntentFilter = new IntentFilter();
 	mIntentFilter.addAction(HolyCIntent.OFFlowRemoved_Intent.action);
 	registerReceiver(bReceiver, mIntentFilter);
+
+	IntentFilter lIntentFilter = new IntentFilter();
+	lIntentFilter.addAction(HolyCIntent.LalAppFound.action);
+	registerReceiver(bReceiver, lIntentFilter);
 
 	db = new Database(getApplicationContext());
 

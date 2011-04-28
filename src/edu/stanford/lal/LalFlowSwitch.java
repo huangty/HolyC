@@ -1,9 +1,16 @@
 package edu.stanford.lal;
 
 import net.holyc.openflow.handler.FlowSwitch;
+import net.holyc.HolyCIntent;
+
 import org.openflow.protocol.OFMatch;
 import org.openflow.util.U8 ;
+
+import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
+
+import java.util.HashMap;
 
 /** Customized L2 learning switch
  *
@@ -18,10 +25,12 @@ public class LalFlowSwitch
     /** Local port number
      */
     public static short LOCAL_PORT = 1;
+    /** Hashmap for app name
+     */
+    public static HashMap<String, Object> appNames = new HashMap<String, Object>();
     
-    public int getCookie(OFMatch ofm)
+    public int getCookie(OFMatch ofm, Context context)
     {  
-	//Utility.getPKGNameFromAddr(
 	String remoteIP = "";
 	int remotePort = 0;
 	int localPort = 0;
@@ -47,6 +56,17 @@ public class LalFlowSwitch
 	Log.d(TAG, "Packet in with remote ip "+remoteIP+
 	      " and port "+remotePort+" and local port "+localPort);
 	
+	//Broadcast new application name
+	if (appNames.get(appname) == null)
+	{
+	    Log.d(TAG, "New application "+appname);
+	    appNames.put(appname, appname);
+	    Intent i = new Intent(HolyCIntent.LalAppFound.action);
+	    i.setPackage(context.getPackageName());
+	    i.putExtra(HolyCIntent.LalAppFound.str_key, appname);
+	    context.sendBroadcast(i);
+	}
+
 	return appname.hashCode();
     }
 

@@ -71,7 +71,7 @@ public class FlowSwitch
 	    //Send response
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
-	    ByteBuffer bb = getResponse(out, opie, ofm);
+	    ByteBuffer bb = getResponse(out, opie, ofm, context);
 	    OFReplyEvent ofpoe = new OFReplyEvent(opi.getSocketChannelNumber(),
 						  bb.array());
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key,
@@ -81,7 +81,7 @@ public class FlowSwitch
     }    
 
 
-    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm)
+    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, Context context)
     {
 	OFActionOutput oao = new OFActionOutput();	    
 	oao.setMaxLength((short) 0);     
@@ -103,7 +103,7 @@ public class FlowSwitch
 	    offm.setHardTimeout((short) 0);
 	    offm.setPriority((short) 32768);
 	    offm.setFlags((short) 1); //Send flow removed
-	    offm.setCookie(getCookie(ofm));
+	    offm.setCookie(getCookie(ofm, context));
 	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
 	    
 	    bb = ByteBuffer.allocate(offm.getLength());
@@ -131,7 +131,7 @@ public class FlowSwitch
 	return bb;
     }
 
-    public int getCookie(OFMatch ofm)
+    public int getCookie(OFMatch ofm, Context context)
     {
 	return 0;
     }

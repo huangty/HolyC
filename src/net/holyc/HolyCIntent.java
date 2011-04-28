@@ -62,4 +62,11 @@ public class HolyCIntent{
 	public static final String action = "holyc.intent.broadcast.OFREPLYEVENT";
 	public static final String str_key = "OF_REPLY_EVENT";
     }
+
+    /** Intent Lal use to expose new applications
+     */
+    public class LalAppFound{
+	public static final String action = "holyc.intent.broadcast.LALAPPFOUND";
+	public static final String str_key = "LAL_APP_NAME";	
+    }
 }
