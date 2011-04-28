@@ -70,9 +70,15 @@ public class OpenFlow
 	    cv.put(OFFLOWREMOVED_NAMES[2], -1);
 	else
 	    cv.put(OFFLOWREMOVED_NAMES[2], ofrr.ordinal());
-	cv.put(OFFLOWREMOVED_NAMES[3], (double) (U32.f(ofr.getDurationSeconds())+ 
-						 (U32.f(ofr.getDurationNanoseconds())/
-						  1e9)));
+	if (ofrr == OFFlowRemoved.OFFlowRemovedReason.OFPRR_IDLE_TIMEOUT)
+	    cv.put(OFFLOWREMOVED_NAMES[3], (double) (U32.f(ofr.getDurationSeconds())-
+						     U16.f(ofr.getIdleTimeout())+ 
+						     (U32.f(ofr.getDurationNanoseconds())/
+						      1e9)));
+	else
+	    cv.put(OFFLOWREMOVED_NAMES[3], (double) (U32.f(ofr.getDurationSeconds())+ 
+						     (U32.f(ofr.getDurationNanoseconds())/
+						      1e9)));
 	cv.put(OFFLOWREMOVED_NAMES[4], U16.f(ofr.getIdleTimeout()));
 	cv.put(OFFLOWREMOVED_NAMES[5], ofr.getPacketCount());
 	cv.put(OFFLOWREMOVED_NAMES[6], ofr.getByteCount());
