@@ -78,6 +78,7 @@ public class OFCommService extends Service{
                 	//Log.d(TAG, "serialized json = " + json);               	
                 	OFReplyEvent ofpoe =  gson.fromJson(json, OFReplyEvent.class);
                 	int scn = ofpoe.getSocketChannelNumber();                	
+                	//Log.d(TAG, "Send OFReply through socket channel with Remote Port "+scn);
                 	if(!socketMap.containsKey(new Integer(scn))){
                 		Log.e(TAG, "there is no SocketChannel left");
                 	}else{
@@ -144,6 +145,8 @@ public class OFCommService extends Service{
             	Message msg = Message.obtain(null, HolyCMessage.OFCOMM_EVENT.type);
             	OFEvent ofe = new OFEvent(remotePort.intValue(), ofdata);
             	//sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
+            	//Log.d(TAG, "Recevie OFMessage: " + ofe.getOFMessage().toString());
+            	//Log.d(TAG, "OFMessage length = " + ofe.getOFMessage().getLength() + "  ofdata length = " + ofdata.length);
             	Bundle data = new Bundle();            	
             	data.putString(HolyCMessage.OFCOMM_EVENT.str_key, 
 			       gson.toJson(ofe, OFEvent.class));

@@ -100,10 +100,15 @@ public class EnvInitService extends Service{
         }
     }
     public void doEnvInit(){
+    	threeGIF = new ThreeGInterface(this);
+    	wifiIF = new WifiInterface(this);
+
     	if(wifi_included){
     		doWiFiInit();
     	}
-   		doMobileInit();    	
+    	if(mobile_included){
+    		doMobileInit();
+    	}
     	doVethInit();
     	doOVSInit();
     	doOpenflowdInit();
@@ -114,7 +119,6 @@ public class EnvInitService extends Service{
     }
     
     public void doWiFiInit(){
-    	wifiIF = new WifiInterface(this);
     	wifiIF.setInterfaceEnable(wifi_included);
     	wifiGW = wifiIF.getGateway();
     	
@@ -132,7 +136,6 @@ public class EnvInitService extends Service{
     }
     
     public void doMobileInit(){
-    	threeGIF = new ThreeGInterface(this);
     	/** Need to compile with cyanogenmod to make this work*/
     	//threeGIF.setInterfaceEnable(mobile_included);
     	threeGGW = threeGIF.getGateway();
