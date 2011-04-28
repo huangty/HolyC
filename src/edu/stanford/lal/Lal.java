@@ -50,6 +50,9 @@ public class Lal
     /** Table name
      */
     public static final String TABLE_NAME = "LAL_FLOW_TABLE";
+    /** Hashmap for app name
+     */
+    public static HashMap<String, String> appNames = new HashMap<String, String>();
 
     /** Broadcast receiver
      */
@@ -64,8 +67,16 @@ public class Lal
 		    .getStringExtra(HolyCIntent.OFFlowRemoved_Intent.str_key);
 		OFFlowRemovedEvent ofre = gson.fromJson(ofre_json, 
 							OFFlowRemovedEvent.class);
+
+		//Get App Name
+		String app_name = appNames.get((new Long(ofre.getOFFlowRemoved().getCookie())).
+					       toString());
+		if (app_name == null)
+		    app_name = "Unknown";
+
+		//Insert data into database
 		ContentValues cv = new ContentValues();
-		cv.put("App", "Something"); //Need to put real application name
+		cv.put("App", app_name);
 		cv.put("Time_Received", 
 		       ((double) System.currentTimeMillis())/(1000.0));
 		OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
@@ -74,7 +85,9 @@ public class Lal
 	    else if (intent.getAction().equals(HolyCIntent.LalAppFound.action))
 	    {
 		String app_name = intent.getStringExtra(HolyCIntent.LalAppFound.str_key);
-		Log.d(TAG, "New app "+app_name);
+		Long h = new Long(app_name.hashCode());
+		appNames.put(h.toString(), app_name);
+		Log.d(TAG, "New application: "+app_name+" with hash "+h.toString());
 	    }
 	}
     };

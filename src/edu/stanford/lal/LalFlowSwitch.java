@@ -59,7 +59,6 @@ public class LalFlowSwitch
 	//Broadcast new application name
 	if (appNames.get(appname) == null)
 	{
-	    Log.d(TAG, "New application "+appname);
 	    appNames.put(appname, appname);
 	    Intent i = new Intent(HolyCIntent.LalAppFound.action);
 	    i.setPackage(context.getPackageName());
