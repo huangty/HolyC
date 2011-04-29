@@ -65,9 +65,15 @@ public class Utility {
                     }
          }
          if (returnResult == true) {
+<<<<<<< HEAD
          	resultLines = readLinesFromFile(outputfile);
          	if (new File(outputfile).delete() == false) {
          		Log.d(TAG, "can not delete " + outputfile);
+=======
+         	resultLines = readLinesFromFile("/data/local/tmp/result");
+         	if(resultLines.size() == 0){
+         		Log.d(TAG, command + " has no result ");
+>>>>>>> 3fe8f2be7865551066e5695bf5a11b3b6c530005
          	}
          }
          return resultLines;

@@ -3,8 +3,6 @@ package net.holyc.host;
 import java.util.ArrayList;
 
 import net.holyc.HolyCMessage;
-import net.holyc.dispatcher.DispatchService;
-import net.holyc.jni.NativeCallWrapper;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
@@ -32,7 +30,7 @@ import android.util.Log;
  */
 
 
-public class EnvInitService extends Service{
+public class EnvInitService extends Service implements Runnable{
 
 	String TAG = "HOLYC.EnvInit";	
 	
@@ -41,7 +39,7 @@ public class EnvInitService extends Service{
     private boolean wifi_included;
 	private boolean mobile_included;
 	private boolean isMultipleInterface;
-	//private Thread monitorThread = null;
+	private Thread monitorThread = null;
 	/** The interfaces in the host*/
 	private VirtualInterfacePair vIFs = null;
 	private ThreeGInterface threeGIF = null;
@@ -114,7 +112,7 @@ public class EnvInitService extends Service{
     	doOVSInit();
     	doOpenflowdInit();
     	doRoutingInit();
-    	//startMonitorThread();
+    	startMonitorThread();
     	/**
     	 * TODO: Notify the statusUI that environment initiation is finished, time to start the Monitor service
     	 */
@@ -218,8 +216,8 @@ public class EnvInitService extends Service{
     	Log.d(TAG, "OVS setuped");
     }         
         
-    public void doOpenflowdInit(){    	
-    	//NativeCallWrapper.runCommand("su -c \"/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach\"");
+    public void doOpenflowdInit(){    	    	
+    	//Utility.runRootCommand("/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach", false);
     	/**
     	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
     	 */
@@ -229,18 +227,18 @@ public class EnvInitService extends Service{
     }
        
     public void doRoutingInit(){
-    	/** remove other default route */
-		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ wifiIF.getName()+"\"");
-		NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
+    	/** remove other default route */		
+		Utility.runRootCommand("ip route del dev "+ wifiIF.getName(), false);
+		Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
 
     	if(isMultipleInterface){
-    		NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName()+ "\"");
+    		Utility.runRootCommand("/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName(), false);
     	}else{ //single interface
     		if(wifi_included){
-        		NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName()+ "\"");
-        		Log.d(TAG, "Add default gw:" + "su -c \"/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName()+ "\"");
+        		Utility.runRootCommand("/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
+        		Log.d(TAG, "Add default gw:" + "route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName());
     		}else if(mobile_included){
-        		NativeCallWrapper.runCommand("su -c \"/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName()+ "\"");
+        		Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
     		}
     	}
     	Log.d(TAG, "Routing setuped");
@@ -252,9 +250,9 @@ public class EnvInitService extends Service{
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		//stopMonitorThread();
+		stopMonitorThread();
 	}
-	/*public void startMonitorThread(){
+	public void startMonitorThread(){
 		monitorThread = new Thread(this);  
 		monitorThread.start();
 	}
@@ -271,11 +269,11 @@ public class EnvInitService extends Service{
 			while(true){
 				Thread.sleep(120000);				
 				if(threeGIF!=null){
-					Log.d(TAG, "delete 3G route");
-					NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
+					Log.d(TAG, "delete 3G route");					
+					Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
 				}
 			}
 		} catch (InterruptedException e) {
 		}
-	}*/
+	}
 }

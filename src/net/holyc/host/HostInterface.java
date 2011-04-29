@@ -1,7 +1,7 @@
 package net.holyc.host;
 
-import net.holyc.jni.NativeCallWrapper;
-
+import java.util.ArrayList;
+import java.util.Iterator;
 import android.util.Log;
 
 /**
@@ -85,8 +85,8 @@ public abstract class HostInterface {
 	 */
 	public abstract String searchName();
 	
-	public void removeIP(){
-		NativeCallWrapper.runCommand("su -c \"busybox ifconfig " + getName() + " 0.0.0.0\"");
+	public void removeIP(){		
+   		Utility.runRootCommand("busybox ifconfig " + getName() + " 0.0.0.0" , false);
 	}
 	/**
 	 * the super class provides a set of methods to 
@@ -96,21 +96,21 @@ public abstract class HostInterface {
 	 */
 	public String searchIP() {
 		if (name == null) return null;
-		String command = "su -c \" /data/local/bin/busybox ifconfig " + name + " | grep inet\"";
+		String command = "/data/local/bin/busybox ifconfig " + name + " | grep inet";
 		String token = "addr:";
 		return this.getValueByBusyBox(command, token);
 	}
 	
 	public String searchMask() {
 		if (name == null) return null;
-		String command = "su -c \" /data/local/bin/busybox ifconfig " + name + " | grep Mask\"";
+		String command = " /data/local/bin/busybox ifconfig " + name + " | grep Mask";
 		String token = "Mask:";
 		return this.getValueByBusyBox(command, token);
 	}
 	
 	public String searchMac() {
 		if (name == null) return null;
-		String command = "su -c \" /data/local/bin/busybox ifconfig " + name + " | grep HWaddr\"";
+		String command = " /data/local/bin/busybox ifconfig " + name + " | grep HWaddr";
 		String token = "HWaddr ";
 		return this.getValueByBusyBox(command, token);
 	}
@@ -121,16 +121,22 @@ public abstract class HostInterface {
 	
 	
 	public String getMacFromIPByPing(String IP) {
-		String mac = null;
-		NativeCallWrapper.runCommand("su -c \"busybox ping " + IP + " -c 1 -w 1\"");
-		String resLine = NativeCallWrapper.getResultByCommand("su -c \"arp -a -n | grep " + IP + "\"");
-		String[] items = resLine.split("\t| +");
-		for (int i = 0; i < items.length; i++) {
-			//Log.d(TAG, "items[" + i + "]: " + items[i]);
-			if (items[i].contains(":") == true) {
-				mac = items[i];
-				break;
-			}
+		String mac = null;		
+		Utility.runRootCommand("busybox ping " + IP + " -c 1 -w 1", false);
+		ArrayList<String> result = Utility.runRootCommand("arp -a -n | grep " + IP, true);
+		if(result.size() > 0){
+			Iterator<String> rit = result.iterator();
+			//the result only has one line		
+			String resLine = rit.next();
+			
+			String[] items = resLine.split("\t| +");
+			for (int i = 0; i < items.length; i++) {
+				//Log.d(TAG, "items[" + i + "]: " + items[i]);
+				if (items[i].contains(":") == true) {
+					mac = items[i];
+					break;
+				}
+			}		
 		}
 		return mac;
 	}
@@ -148,19 +154,25 @@ public abstract class HostInterface {
 	}*/
 	
 	private String getValueByBusyBox(String command, String token) {
-		String value = null;
-		String resLine = NativeCallWrapper.getResultByCommand(command);
-		//Log.d(TAG, "resLine is " + resLine);
-		String[] items = resLine.split("  ");
-		for (int i = 0; i < items.length; i++) {
-			int index = items[i].indexOf(token);
-			//Log.d(TAG, "items[" + i + "]: " + items[i] + "; index = " + index);
-			if (index >= 0) {
-				index += token.length();
-				//Log.d(TAG, "target is " + items[i] + "; index = " + index);
-				value = items[i].substring(index);
-				break;
-			} 
+		String value = null;		
+		ArrayList<String> result = Utility.runRootCommand(command, true);
+		if(result.size() > 0){
+			Iterator<String> rit = result.iterator();
+			//the result only has one line
+			String resLine = rit.next();
+	
+			//Log.d(TAG, "resLine is " + resLine);
+			String[] items = resLine.split("  ");
+			for (int i = 0; i < items.length; i++) {
+				int index = items[i].indexOf(token);
+				//Log.d(TAG, "items[" + i + "]: " + items[i] + "; index = " + index);
+				if (index >= 0) {
+					index += token.length();
+					//Log.d(TAG, "target is " + items[i] + "; index = " + index);
+					value = items[i].substring(index);
+					break;
+				} 
+			}
 		}
 		return value;
 	}

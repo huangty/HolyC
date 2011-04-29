@@ -1,15 +1,5 @@
 package net.holyc.host;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Method;
-
-import net.holyc.jni.NativeCallWrapper;
-
-import android.app.Activity;
-import android.content.Context;
-import android.net.ConnectivityManager;
-
 /**
 * The class to control virtual interface 
 *
@@ -30,16 +20,10 @@ public class VirtualInterface extends HostInterface {
 
 	@Override
 	public void setInterfaceEnable(boolean enable) {
-		String[] command = null;
 		if(enable){
-			command = new String[]{"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " up"};
+	   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " up ", false);
 		}else{
-			command = new String[]{"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " down"};
-		}
-		try {
-			Runtime.getRuntime().exec(command).waitFor();
-		} catch (Exception e) {			
-			e.printStackTrace();
+	   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " down ", false);
 		}
 		enabled = true;
 	}
@@ -58,30 +42,16 @@ public class VirtualInterface extends HostInterface {
 	}
 	
 	public void setIP(String ip, String mask){
-		String[] command = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " " + ip + " netmask " + mask};
-		try {
-			Runtime.getRuntime().exec(command).waitFor();
-		} catch (Exception e) {			
-			e.printStackTrace();
-		}
+   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " " + ip + " netmask " + mask, false);
 		hasIP = true;
 		setIP(ip);		
 	}
 	
 	@Override
 	public void setMac(String mac){
-		String[] if_down_cmd = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " down "};
-		String[] set_mac_cmd = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " hw ether " + mac};
-		String[] if_up_cmd = {"su", "-c", "/data/local/bin/busybox ifconfig " + getName() + " up "};		
-		try {
-			
-			Runtime.getRuntime().exec(if_down_cmd).waitFor();
-			Runtime.getRuntime().exec(set_mac_cmd).waitFor();
-			Runtime.getRuntime().exec(if_up_cmd).waitFor();
-			
-		} catch (Exception e) {			
-			e.printStackTrace();
-		}
+   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " down ", false);
+   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " hw ether " + mac, false);
+   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " up ", false);
 		super.setMac(mac);		
 	}	
 		
