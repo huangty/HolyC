@@ -1,17 +1,18 @@
 package net.holyc.host;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.holyc.jni.NativeCallWrapper;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -35,38 +36,47 @@ public class Utility {
 	
 	public static ArrayList<String> runRootCommand(String command, boolean returnResult) {
 		Process process = null;
-        DataOutputStream os = null;
-        ArrayList<String> resultLines = null; 
+        DataOutputStream out = null;
+        //String outputfile = "/data/local/tmp/";
+        String outputfile = "/sdcard/";
+        ArrayList<String> resultLines = null;
+        
         try {
         	process = Runtime.getRuntime().exec("su");
-            os = new DataOutputStream(process.getOutputStream());
-            if (returnResult == true)
-            	os.writeBytes(command + " > /data/local/tmp/result\n");
-            else
-            	os.writeBytes(command + "\n");
-            os.writeBytes("exit\n");
-            os.flush();
+        	outputfile += process.hashCode();
+        	new File(outputfile).createNewFile();
+            out = new DataOutputStream(process.getOutputStream());
+	        if (returnResult == true)
+	        	out.writeBytes(command + ">" + outputfile + "\n");
+	        else
+	        	out.writeBytes(command + "\n");
+            out.writeBytes("exit\n");
+            out.flush();
             process.waitFor();
          } catch (Exception e) {
                     Log.d("*** DEBUG ***", "Unexpected error - Here is what I know: "+e.getMessage());
-                    return resultLines;
          }
          finally {
                     try {
-                            if (os != null) {
-                                    os.close();
-                            }
+                            if (out != null) out.close();
                             process.destroy();
                     } catch (Exception e) {
                             // nothing
                     }
          }
          if (returnResult == true) {
-         	resultLines = readLinesFromFile("/data/local/tmp/result");
+         	resultLines = readLinesFromFile(outputfile);
+         	if (new File(outputfile).delete() == false) {
+         		Log.d(TAG, "can not delete " + outputfile);
+         	}
          }
          return resultLines;
     }
 
+	public static String getProp(String name) {
+		ArrayList<String> resultLines = runRootCommand("getprop " + name, true);
+		return (resultLines == null) ? null : resultLines.get(0);
+	}
 	
 	public static ArrayList<String> readLinesFromFile(String filename) {
 		ArrayList<String> lines = new ArrayList<String>();
@@ -157,19 +167,17 @@ public class Utility {
     public static int getPidFromAddr(String remoteIP, int remotePort, int localPort) {
     	int pid = -1;
     	String command = "lsof -n -nn -i ";
-    	//String command = "lsof -n -nn -i ";
     	if (remoteIP != null) command += "@" + remoteIP;
     	if (remotePort > 0) command += ":" + remotePort;
     	command += " | grep -v COMMAND";
     	if (localPort > 0) command += " | grep " + localPort;
-     	//Log.d(TAG, "command: " + command);
     	try {
     		ArrayList<String> resultLines = runRootCommand(command, true);
     		//Log.d(TAG, "result: " + resultLines.get(0));
     		String[] items = resultLines.get(0).split("\t| +");
     		pid = Integer.parseInt(items[1]);
     	} catch (Exception e) {
-    		Log.d(TAG, "error of getting pid from port");
+    		Log.d(TAG, "can not get pid with command: " + command);
     	}
     	return pid;
     }
@@ -247,23 +255,24 @@ public class Utility {
      * 
      */
 	public static void commandTest(Context cxt) {
-		/*try {
-			runRootCommand("rmmod openvswitch_mod.ko", false);
-			ArrayList<String> lines = runRootCommand("/data/local/bin/busybox ifconfig tiwlan0", true);
-			for (String line : lines) {
+		runRootCommand("rmmod openvswitch_mod.ko", false);
+		ArrayList<String> lines = runRootCommand("/data/local/bin/busybox ifconfig tiwlan0", true);
+		if (lines != null)
+			for (String line : lines)
 				Log.d(TAG, line);
-			}
-		} catch (Exception e) {
-			Log.d("run root command error: ", e.getMessage());
-		}*/	
-		String pkgName = getPKGNameFromAddr("74.125.224.64", 80, 33010, cxt); //src ip + src port
+		Log.d(TAG, "wifi.interface: " + getProp("wifi.interface"));
+		Log.d(TAG, "wifi.interfac: " + getProp("wifi.interfac"));
+		
+		/*String pkgName = getPKGNameFromAddr("74.125.224.64", 80, 33010, cxt); //src ip + src port
     	Log.d(TAG, "get pkgname : " + pkgName);
     	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
 		pkgName = getPKGNameFromAddr("74.125.224.66", 80, 53462, cxt); //src ip + src port
     	Log.d(TAG, "get pkgname : " + pkgName);
     	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
-		pkgName = getPKGNameFromAddr("74.125.224.66", 80, 53809, cxt); //src ip + src port
+		pkgName = getPKGNameFromAddr("74.125.224.66", 80, 44543, cxt); //src ip + src port
     	Log.d(TAG, "get pkgname : " + pkgName);
     	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
+    	*/
+    	
     }
 }

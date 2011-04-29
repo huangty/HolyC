@@ -1,16 +1,17 @@
 package edu.stanford.lal;
 
-import net.holyc.openflow.handler.FlowSwitch;
+import java.util.HashMap;
+
 import net.holyc.HolyCIntent;
+import net.holyc.host.Utility;
+import net.holyc.openflow.handler.FlowSwitch;
 
 import org.openflow.protocol.OFMatch;
-import org.openflow.util.U8 ;
+import org.openflow.util.U8;
 
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-
-import java.util.HashMap;
 
 /** Customized L2 learning switch
  *
@@ -47,13 +48,13 @@ public class LalFlowSwitch
 	    localPort = ofm.getTransportDestination();
 	}
 
-	String appname = null;
-	//String appname = Utility.getPKGNameFromAddr(remoteIP, remotePort, 
-	//localPort, context);
+	//String appname = null;
+	String appname = Utility.getPKGNameFromAddr(remoteIP, remotePort, 
+	localPort, context);
 	if (appname == null)
 	    appname = "System/Unidentified App";
 
-	Log.d(TAG, "Packet in with remote ip "+remoteIP+
+	Log.d(TAG, appname + "'s Packet in with remote ip "+remoteIP+
 	      " and port "+remotePort+" and local port "+localPort);
 	
 	//Broadcast new application name

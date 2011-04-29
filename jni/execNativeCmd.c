@@ -60,15 +60,12 @@ JNIEXPORT jstring JNICALL Java_net_holyc_jni_NativeCallWrapper_getResultByComman
   commandString = (*env)->GetStringUTFChars(env, command, 0);
   FILE* pin = popen(commandString, "r");
   if (!pin) return jstrResult;
-  /*while(fgets(line, LINE_LEN, pin) != NULL) {
-    LOGI(line);
-    if (strlen(line) + strlen(result) >= MAX_RESULT_LEN) break;
-    strcat(result, line); 
-  }*/
-  sleep(2);
+  //sleep(2);
+  LOGI("trying to get result\n");
   fgets(result, MAX_RESULT_LEN, pin);
+  LOGI("get result!\n");
   //clear the result from pin
-  while(fgets(line, LINE_LEN, pin)){}
+  //while(fgets(line, LINE_LEN, pin)){}
   pclose(pin);
   memset(result2, '\0', MAX_RESULT_LEN);
   strcpy(result2, result);
