@@ -38,9 +38,10 @@ public class EnvInitService extends Service{
 	
 	/** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
-        private boolean wifi_included;
+    private boolean wifi_included;
 	private boolean mobile_included;
 	private boolean isMultipleInterface;
+	//private Thread monitorThread = null;
 	/** The interfaces in the host*/
 	private VirtualInterfacePair vIFs = null;
 	private ThreeGInterface threeGIF = null;
@@ -113,6 +114,7 @@ public class EnvInitService extends Service{
     	doOVSInit();
     	doOpenflowdInit();
     	doRoutingInit();
+    	//startMonitorThread();
     	/**
     	 * TODO: Notify the statusUI that environment initiation is finished, time to start the Monitor service
     	 */
@@ -247,5 +249,33 @@ public class EnvInitService extends Service{
 	public IBinder onBind(Intent arg0) {
 		return mMessenger.getBinder();
 	}
-	
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		//stopMonitorThread();
+	}
+	/*public void startMonitorThread(){
+		monitorThread = new Thread(this);  
+		monitorThread.start();
+	}
+	public void stopMonitorThread(){
+   	 if (monitorThread != null) {
+            monitorThread.interrupt();
+            monitorThread = null;
+        }
+   }    
+	public void run() {
+
+		//check the status every 30 seconds?
+		try {
+			while(true){
+				Thread.sleep(120000);				
+				if(threeGIF!=null){
+					Log.d(TAG, "delete 3G route");
+					NativeCallWrapper.runCommand("su -c \"ip route del dev "+ threeGIF.getName()+"\"");
+				}
+			}
+		} catch (InterruptedException e) {
+		}
+	}*/
 }

@@ -44,12 +44,12 @@
         <!-- <category android:name="android.intent.category.LAUNCHER" />-->
       </intent-filter>
     </activity>
-    <service android:name=".ofcomm.OFCommService"
-             android:process=":ofcomm" />
-    <service android:name=".host.EnvInitService"
-             android:process=":envInit" />
-    <service android:name=".dispatcher.DispatchService" 
-             android:process=":dispatch" />        
+    <service android:name=".ofcomm.OFCommService"/>
+<!--             android:process=":ofcomm" />-->
+    <service android:name=".host.EnvInitService" />
+<!--             android:process=":envInit" /> -->
+    <service android:name=".dispatcher.DispatchService"  />
+<!--             android:process=":dispatch" /> -->
 
     <service android:name="edu.stanford.lal.Lal" />
  
