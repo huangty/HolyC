@@ -11,7 +11,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.holyc.jni.NativeCallWrapper;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -63,6 +62,9 @@ public class Utility {
          }
          if (returnResult == true) {
          	resultLines = readLinesFromFile("/data/local/tmp/result");
+         	if(resultLines.size() == 0){
+         		Log.d(TAG, command + " has no result ");
+         	}
          }
          return resultLines;
     }
