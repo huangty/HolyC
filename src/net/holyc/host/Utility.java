@@ -1,6 +1,7 @@
 package net.holyc.host;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -29,6 +30,43 @@ public class Utility {
 	
 	static final String TAG = "Utility";
 	public static final int MSG_REPORT_INTFACE_STATE = 0; 
+	static Process process = null;
+	
+	
+	public static ArrayList<String> runRootCommand(String command, boolean returnResult) {
+		Process process = null;
+        DataOutputStream os = null;
+        ArrayList<String> resultLines = null; 
+        try {
+        	process = Runtime.getRuntime().exec("su");
+            os = new DataOutputStream(process.getOutputStream());
+            if (returnResult == true)
+            	os.writeBytes(command + " > /data/local/tmp/result\n");
+            else
+            	os.writeBytes(command + "\n");
+            os.writeBytes("exit\n");
+            os.flush();
+            process.waitFor();
+         } catch (Exception e) {
+                    Log.d("*** DEBUG ***", "Unexpected error - Here is what I know: "+e.getMessage());
+                    return resultLines;
+         }
+         finally {
+                    try {
+                            if (os != null) {
+                                    os.close();
+                            }
+                            process.destroy();
+                    } catch (Exception e) {
+                            // nothing
+                    }
+         }
+         if (returnResult == true) {
+         	resultLines = readLinesFromFile("/data/local/tmp/result");
+         }
+         return resultLines;
+    }
+
 	
 	public static ArrayList<String> readLinesFromFile(String filename) {
 		ArrayList<String> lines = new ArrayList<String>();
@@ -118,16 +156,17 @@ public class Utility {
      * */
     public static int getPidFromAddr(String remoteIP, int remotePort, int localPort) {
     	int pid = -1;
-    	String command = "su -c \"lsof -n -nn -i ";
+    	String command = "lsof -n -nn -i ";
+    	//String command = "lsof -n -nn -i ";
     	if (remoteIP != null) command += "@" + remoteIP;
     	if (remotePort > 0) command += ":" + remotePort;
     	command += " | grep -v COMMAND";
     	if (localPort > 0) command += " | grep " + localPort;
-    	command += "\"";
-    	//Log.d(TAG, "command: " + command);
-    	String result = NativeCallWrapper.getResultByCommand(command);
+     	//Log.d(TAG, "command: " + command);
     	try {
-    		String[] items = result.split("\t| +");
+    		ArrayList<String> resultLines = runRootCommand(command, true);
+    		//Log.d(TAG, "result: " + resultLines.get(0));
+    		String[] items = resultLines.get(0).split("\t| +");
     		pid = Integer.parseInt(items[1]);
     	} catch (Exception e) {
     		Log.d(TAG, "error of getting pid from port");
@@ -208,7 +247,22 @@ public class Utility {
      * 
      */
 	public static void commandTest(Context cxt) {
-		String pkgName = getPKGNameFromAddr("74.125.224.33", 80, 42015, cxt); //src ip + src port
+		/*try {
+			runRootCommand("rmmod openvswitch_mod.ko", false);
+			ArrayList<String> lines = runRootCommand("/data/local/bin/busybox ifconfig tiwlan0", true);
+			for (String line : lines) {
+				Log.d(TAG, line);
+			}
+		} catch (Exception e) {
+			Log.d("run root command error: ", e.getMessage());
+		}*/	
+		String pkgName = getPKGNameFromAddr("74.125.224.64", 80, 33010, cxt); //src ip + src port
+    	Log.d(TAG, "get pkgname : " + pkgName);
+    	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
+		pkgName = getPKGNameFromAddr("74.125.224.66", 80, 53462, cxt); //src ip + src port
+    	Log.d(TAG, "get pkgname : " + pkgName);
+    	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
+		pkgName = getPKGNameFromAddr("74.125.224.66", 80, 53809, cxt); //src ip + src port
     	Log.d(TAG, "get pkgname : " + pkgName);
     	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
     }
