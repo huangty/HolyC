@@ -113,10 +113,9 @@ public class Lal
 		    for (int i = 0; i < names.length; i++)
 			Log.d(TAG, names[i]);
 
-		    break;
-		    /*if (c.isLast())
+		    if (c.isLast())
 			break;
-			c.moveToNext();*/
+			c.moveToNext();
 		}
 		c.close();
 	    }
@@ -142,6 +141,10 @@ public class Lal
 	IntentFilter lIntentFilter = new IntentFilter();
 	lIntentFilter.addAction(HolyCIntent.LalAppFound.action);
 	registerReceiver(bReceiver, lIntentFilter);
+
+	IntentFilter qIntentFilter = new IntentFilter();
+	qIntentFilter.addAction(LalMessage.Query.action);
+	registerReceiver(bReceiver, qIntentFilter);
 
 	db = new Database(getApplicationContext());
     }
