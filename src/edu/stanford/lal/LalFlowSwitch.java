@@ -8,6 +8,7 @@ import net.holyc.openflow.handler.FlowSwitch;
 
 import org.openflow.protocol.OFMatch;
 import org.openflow.util.U8;
+import org.openflow.util.U16;
 
 import android.content.Context;
 import android.content.Intent;
@@ -38,14 +39,14 @@ public class LalFlowSwitch
 	if (ofm.getInputPort() == LOCAL_PORT)
 	{
 	    remoteIP = ipToString(ofm.getNetworkDestination());
-	    remotePort = ofm.getTransportDestination();
-	    localPort = ofm.getTransportSource();
+	    remotePort = U16.f(ofm.getTransportDestination());
+	    localPort = U16.f(ofm.getTransportSource());
 	}
 	else
 	{
 	    remoteIP = ipToString(ofm.getNetworkSource());
-	    remotePort = ofm.getTransportSource();
-	    localPort = ofm.getTransportDestination();
+	    remotePort = U16.f(ofm.getTransportSource());
+	    localPort = U16.f(ofm.getTransportDestination());
 	}
 
 	//String appname = null;
