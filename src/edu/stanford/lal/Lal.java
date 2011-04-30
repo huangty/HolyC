@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import org.openflow.protocol.OFFlowRemoved;
 
 import org.sqlite.helper.OpenFlow;
+import org.sqlite.helper.CursorHelper;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -27,7 +28,7 @@ import edu.stanford.lal.Database;
 import edu.stanford.lal.LalMessage;
 
 import java.util.HashMap;
-
+import java.util.Vector;
 
 /** Lal
  * 
@@ -40,10 +41,12 @@ public class Lal
     /** Log name
      */
     private static String TAG = "HOLYC.Lal";
-    /**
-     * Reference to GSON
+    /** Reference to GSON
      */
     Gson gson = new Gson();
+    /** LalMessage reference
+     */
+    LalMessage lmsg = new LalMessage();
     /** Reference to database
      */
     public Database db = null;
@@ -105,19 +108,27 @@ public class Lal
 							    query.having,
 							    query.orderBy,
 							    query.limit);
+		//Read result
+		Vector r = new Vector();
 		c.moveToFirst();
-		Log.d(TAG, c.getCount()+" rows");
-		while (true)
+		while (!c.isAfterLast())
 		{
-		    String[] names = c.getColumnNames();
-		    for (int i = 0; i < names.length; i++)
-			Log.d(TAG, names[i]);
-
-		    if (c.isLast())
-			break;
-			c.moveToNext();
+		    r.add(CursorHelper.getRow(c));
+		    c.moveToNext();
 		}
 		c.close();
+
+		//Create result
+		LalMessage.LalResult result = lmsg.new LalResult();
+		result.columns = query.columns;
+		result.results = r;
+		String result_str = gson.toJson(result, LalMessage.LalResult.class);
+
+		//Return result
+		Intent i = new Intent(LalMessage.Result.action);
+		i.setPackage(context.getPackageName());
+		i.putExtra(LalMessage.Result.str_key, result_str);
+		sendBroadcast(i);
 	    }
 	}
     };
