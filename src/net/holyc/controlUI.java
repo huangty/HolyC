@@ -117,12 +117,12 @@ public class controlUI extends Activity{
     
     private Button.OnClickListener startDispatchService = new Button.OnClickListener(){
     	public void onClick(View v){
-    		Utility.commandTest(controlUI.this);
-    		/*if(((ToggleButton)v).isChecked()){   
+    		//Utility.commandTest(controlUI.this);
+    		if(((ToggleButton)v).isChecked()){   
     			doStartDispatchService();
     		}else{
     			doStopDispatchService();
-    		}*/
+    		}
     	}
     };
     
