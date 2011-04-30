@@ -23,7 +23,8 @@ public class WifiInterface extends HostInterface {
 	}	
 	@Override	
 	public String searchName() {
-		return NativeCallWrapper.getProp("wifi.interface");
+		//return NativeCallWrapper.getProp("wifi.interface");
+		return Utility.getProp("wifi.interface");
 	}
 	
 	/**
@@ -58,7 +59,7 @@ public class WifiInterface extends HostInterface {
 		if (context == null || getInterfaceEnable() == false) return super.searchGateway();
 		WifiInterface gateway = new WifiInterface(context);
 		String prop = "dhcp."+ getName() + ".gateway";
-		String gwIP = NativeCallWrapper.getProp(prop);
+		String gwIP = Utility.getProp(prop);
 		gateway.setIP(gwIP);
 		if (gwIP != null) {
 			//String mac = getMacFromIPByArpRequest(gwIP);

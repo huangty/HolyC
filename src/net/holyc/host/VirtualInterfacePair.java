@@ -1,5 +1,7 @@
 package net.holyc.host;
 
+import java.util.ArrayList;
+
 import net.holyc.jni.NativeCallWrapper;
 import android.content.Context;
 import android.util.Log;
@@ -20,7 +22,13 @@ class VirtualInterfacePair{
 	}
 	
 	public void init(){
-		String result = NativeCallWrapper.getResultByCommand("/data/local/bin/busybox ip link | grep veth0");
+		//String result = NativeCallWrapper.getResultByCommand("/data/local/bin/busybox ip link | grep veth0");
+		String result = "";
+		ArrayList<String> resList = Utility.runRootCommand("/data/local/bin/busybox ip link | grep veth0", true);
+		if(resList.size() >0){
+			result = resList.get(0);
+		}
+		
 		StringBuffer sb = new StringBuffer("veth0");
 		if(!result.contains(sb.subSequence(0, sb.length()))){ //the veth0/1 pair hasn't been created
 			Utility.runRootCommand("/data/local/bin/busybox ip link add type veth", true);

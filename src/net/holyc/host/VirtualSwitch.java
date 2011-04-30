@@ -2,6 +2,7 @@ package net.holyc.host;
 
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -25,7 +26,12 @@ class VirtualSwitch{
 		loadKernelModule();
 	}
 	public void loadKernelModule(){		
-		String result = NativeCallWrapper.getResultByCommand("lsmod | grep openvswitch");		
+		//String result = NativeCallWrapper.getResultByCommand("lsmod | grep openvswitch");
+		String result = "";
+		ArrayList<String> resList = Utility.runRootCommand("lsmod | grep openvswitch", true);
+		if(resList.size() >0){
+			result = resList.get(0);
+		}
 		StringBuffer sb = new StringBuffer("openvswitch");
 		if(!result.contains(sb.subSequence(0, sb.length()))){			
 	   		Utility.runRootCommand("insmod /data/local/lib/openvswitch_mod.ko" , false);

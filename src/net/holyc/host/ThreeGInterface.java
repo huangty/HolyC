@@ -37,7 +37,7 @@ public class ThreeGInterface extends HostInterface {
 		HostInterface gateway = new ThreeGInterface(context);
 		String devName = getName();
 		String prop = "net." + devName +".gw";
-		String gwIP = NativeCallWrapper.getProp(prop);
+		String gwIP = Utility.getProp(prop);
 		gateway.setIP(gwIP);
 		if (gwIP != null) {
 			//gateway.setMac(getMacFromIPByArpRequest(gwIP));
