@@ -37,44 +37,34 @@ public class Utility {
 	public static ArrayList<String> runRootCommand(String command, boolean returnResult) {
 		Process process = null;
         DataOutputStream out = null;
-        //String outputfile = "/data/local/tmp/";
-        String outputfile = "/sdcard/";
+        DataInputStream in = null;
         ArrayList<String> resultLines = null;
         
         try {
         	process = Runtime.getRuntime().exec("su");
-        	outputfile += process.hashCode();
-        	new File(outputfile).createNewFile();
             out = new DataOutputStream(process.getOutputStream());
-	        if (returnResult == true)
-	        	out.writeBytes(command + ">" + outputfile + "\n");
-	        else
-	        	out.writeBytes(command + "\n");
+        	out.writeBytes(command + "\n");
             out.writeBytes("exit\n");
             out.flush();
             process.waitFor();
+            if (returnResult == true) {
+            	in = new DataInputStream(process.getInputStream());
+            	resultLines = new ArrayList<String>();
+            	String line = null;
+            	while ((line = in.readLine()) != null)
+            		resultLines.add(line);
+            }
          } catch (Exception e) {
                     Log.d("*** DEBUG ***", "Unexpected error - Here is what I know: "+e.getMessage());
          }
          finally {
                     try {
                             if (out != null) out.close();
+                            if (in != null) in.close();
                             process.destroy();
                     } catch (Exception e) {
                             // nothing
                     }
-         }
-         if (returnResult == true) {
-<<<<<<< HEAD
-         	resultLines = readLinesFromFile(outputfile);
-         	if (new File(outputfile).delete() == false) {
-         		Log.d(TAG, "can not delete " + outputfile);
-=======
-         	resultLines = readLinesFromFile("/data/local/tmp/result");
-         	if(resultLines.size() == 0){
-         		Log.d(TAG, command + " has no result ");
->>>>>>> 3fe8f2be7865551066e5695bf5a11b3b6c530005
-         	}
          }
          return resultLines;
     }
@@ -183,7 +173,7 @@ public class Utility {
     		String[] items = resultLines.get(0).split("\t| +");
     		pid = Integer.parseInt(items[1]);
     	} catch (Exception e) {
-    		Log.d(TAG, "can not get pid with command: " + command);
+    		//Log.d(TAG, "can not get pid with command: " + command);
     	}
     	return pid;
     }
