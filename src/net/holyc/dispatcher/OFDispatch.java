@@ -93,8 +93,8 @@ public class OFDispatch extends BroadcastReceiver {
 			case ERROR:
 				OFErrorEvent ore = new OFErrorEvent(ofe);
 				OFError oe = ore.getOFError();
-				Log.d(TAG, "Error!!! Error code " + oe.getErrorCode()
-						+ "and type " + oe.getErrorType());
+				Log.d(TAG, "Error!!! Error type " + oe.getErrorType()+
+				      " code " + oe.getErrorCode());
 				break;
 			}
 
