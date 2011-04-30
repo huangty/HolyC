@@ -1,17 +1,12 @@
 package net.holyc.openflow.handler;
 
-import java.nio.ByteBuffer;
 
-import org.openflow.protocol.OFEchoReply;
 import org.openflow.protocol.OFMessage;
-import org.openflow.protocol.OFType;
 
 import com.google.gson.Gson;
 
 import net.holyc.HolyCIntent;
-import net.holyc.dispatcher.OFEchoRequestEvent;
 import net.holyc.dispatcher.OFErrorEvent;
-import net.holyc.dispatcher.OFReplyEvent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;

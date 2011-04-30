@@ -38,6 +38,15 @@ public class HolyCIntent{
 	public static final String str_key = "OFECHOREQUEST";	
     }
 
+    /** Intent to deliver OpenFlow echo request event
+    *
+    * @see OFErrorEvent
+    */
+   public class OFError_Intent{
+	   public static final String action = "holyc.intent.broadcast.ERROR";
+	   public static final String str_key = "OFERROR";	
+   }
+
     /** Intent to deliver OpenFlow packet in event
      *
      * @see OFPacketInEvent
