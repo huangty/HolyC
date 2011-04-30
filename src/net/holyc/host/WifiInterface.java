@@ -1,8 +1,6 @@
 package net.holyc.host;
 
 
-import net.beaconcontroller.packet.IPv4;
-import net.holyc.jni.NativeCallWrapper;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;

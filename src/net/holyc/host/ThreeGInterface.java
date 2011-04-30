@@ -3,8 +3,6 @@ package net.holyc.host;
 import java.io.File;
 import java.lang.reflect.Method;
 
-import net.holyc.jni.NativeCallWrapper;
-
 import android.app.Activity;
 import android.content.Context;
 import android.net.ConnectivityManager;

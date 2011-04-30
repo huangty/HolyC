@@ -2,7 +2,6 @@ package net.holyc.host;
 
 import java.util.ArrayList;
 
-import net.holyc.jni.NativeCallWrapper;
 import android.content.Context;
 import android.util.Log;
 

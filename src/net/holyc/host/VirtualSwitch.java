@@ -8,8 +8,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 
-import net.holyc.jni.NativeCallWrapper;
-
 import android.util.Log;
 
 /**

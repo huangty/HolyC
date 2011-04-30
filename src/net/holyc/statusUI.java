@@ -2,7 +2,6 @@ package net.holyc;
 
 import net.holyc.HolyCMessage;
 import net.holyc.host.EnvInitService;
-import net.holyc.jni.NativeCallWrapper;
 import net.holyc.ofcomm.OFCommService;
 import android.app.Activity;
 import android.content.ComponentName;
