@@ -35,7 +35,7 @@ public class Utility {
 	
 	
 	public static ArrayList<String> runRootCommand(String command, boolean returnResult) {
-		Process process = null;
+	Process process = null;
         DataOutputStream out = null;
         DataInputStream in = null;
         ArrayList<String> resultLines = null;
@@ -65,12 +65,6 @@ public class Utility {
                     } catch (Exception e) {
                             // nothing
                     }
-         }
-         if (returnResult == true) {
-         	resultLines = readLinesFromFile(outputfile);
-         	if (new File(outputfile).delete() == false) {
-         		Log.d(TAG, "can not delete " + outputfile);
-         	}
          }
          return resultLines;
     }
