@@ -66,6 +66,12 @@ public class Utility {
                             // nothing
                     }
          }
+         if (returnResult == true) {
+         	resultLines = readLinesFromFile(outputfile);
+         	if (new File(outputfile).delete() == false) {
+         		Log.d(TAG, "can not delete " + outputfile);
+         	}
+         }
          return resultLines;
     }
 
