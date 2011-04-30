@@ -51,12 +51,9 @@ public class LalFlowSwitch
 
 	//String appname = null;
 	String appname = Utility.getPKGNameFromAddr(remoteIP, remotePort, 
-	localPort, context);
+						    localPort, context);
 	if (appname == null)
 	    appname = "System/Unidentified App";
-
-	Log.d(TAG, appname + "'s Packet in with remote ip "+remoteIP+
-	      " and port "+remotePort+" and local port "+localPort);
 	
 	//Broadcast new application name
 	if (appNames.get(appname) == null)
