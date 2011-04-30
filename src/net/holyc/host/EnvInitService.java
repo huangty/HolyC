@@ -250,6 +250,9 @@ public class EnvInitService extends Service implements Runnable{
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
+		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);
+		Utility.runRootCommand("rmmod openvswitch_mod", false);
+		Log.d(TAG, "cleanup the environment ");
 		stopMonitorThread();
 	}
 	public void startMonitorThread(){
