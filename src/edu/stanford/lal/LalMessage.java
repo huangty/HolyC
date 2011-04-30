@@ -1,5 +1,7 @@
 package edu.stanford.lal;
 
+import java.util.Vector;
+
 /** Class to contain query for Lal
  *
  * @author ykk
@@ -7,11 +9,34 @@ package edu.stanford.lal;
  */
 public class LalMessage
 {
+    /** Intent to send query to Lal
+     *
+     * @see LalQuery
+     */
+    public class Query{
+	public static final String action = "lal.intent.query";
+	public static final String str_key = "LALQUERY";
+    }
+    
+    /** Intent to send result of query from Lal
+     *
+     * @see LalResult
+     */
+    public class Result{
+	public static final String action = "lal.intent.result";
+	public static final String str_key = "LALRESULT";
+    }
+
+
+    public class LalResult
+    {
+	public String[] columns = null;
+
+	public Vector<Object> results = new Vector<Object>();
+    }
+
     public class LalQuery
     {
-	/** Message number
-	 */
-	public static final int what = 1;
 	/** Return distinct values
 	 */
 	public boolean distinct = false;

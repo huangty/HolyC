@@ -63,6 +63,7 @@ public class Lal
 	{
 	    if (intent.getAction().equals(HolyCIntent.OFFlowRemoved_Intent.action))
 	    {
+		//Flow removed event (to be recorded)
 		String ofre_json = intent
 		    .getStringExtra(HolyCIntent.OFFlowRemoved_Intent.str_key);
 		OFFlowRemovedEvent ofre = gson.fromJson(ofre_json, 
@@ -84,25 +85,17 @@ public class Lal
 	    }
 	    else if (intent.getAction().equals(HolyCIntent.LalAppFound.action))
 	    {
+		//Application name notified
 		String app_name = intent.getStringExtra(HolyCIntent.LalAppFound.str_key);
 		Long h = new Long(app_name.hashCode());
 		appNames.put(h.toString(), app_name);
 		Log.d(TAG, "New application: "+app_name+" with hash "+h.toString());
 	    }
-	}
-    };
-	
-    /** Handler of incoming messages from clients.
-     */
-    class IncomingHandler extends Handler 
-    {
-        @Override
-	    public void handleMessage(Message msg) 
-	{
-            switch (msg.what) 
+	    else if (intent.getAction().equals(LalMessage.Query.action))
 	    {
-	    case LalMessage.LalQuery.what:
-		LalMessage.LalQuery query = (LalMessage.LalQuery) msg.obj;
+		//Query request
+		String q_json = intent.getStringExtra(LalMessage.Query.str_key);
+		LalMessage.LalQuery query = gson.fromJson(q_json, LalMessage.LalQuery.class);
 		SQLiteCursor c = (SQLiteCursor) db.db.query(query.distinct,
 							    TABLE_NAME,
 							    query.columns,
@@ -112,21 +105,28 @@ public class Lal
 							    query.having,
 							    query.orderBy,
 							    query.limit);
-		break;
-	    default:
-		super.handleMessage(msg);
-            }
-        }
-    }
+		c.moveToFirst();
+		Log.d(TAG, c.getCount()+" rows");
+		while (true)
+		{
+		    String[] names = c.getColumnNames();
+		    for (int i = 0; i < names.length; i++)
+			Log.d(TAG, names[i]);
 
-    /** Target for clients to send messages.
-     */
-    public final Messenger mMessenger = new Messenger(new IncomingHandler());
-    
+		    break;
+		    /*if (c.isLast())
+			break;
+			c.moveToNext();*/
+		}
+		c.close();
+	    }
+	}
+    };
+	
     @Override
-	public IBinder onBind(Intent intent) 
+	public IBinder onBind(Intent intent)
     {
-	return mMessenger.getBinder();
+	return null;
     }
 
     @Override
@@ -144,24 +144,6 @@ public class Lal
 	registerReceiver(bReceiver, lIntentFilter);
 
 	db = new Database(getApplicationContext());
-
-	/////////////////////////////
-	/*SQLiteCursor c = (SQLiteCursor) db.db.query("TIA_FLOW",
-						    null, null, null, 
-						    null, null, null);
-	c.moveToFirst();
-	Log.d(TAG, c.getCount()+" rows");
-	while (true)
-	{
-	    String[] names = c.getColumnNames();
-	    for (int i = 0; i < names.length; i++)
-		Log.d(TAG, names[i]);
-	    
-	    if (c.isLast())
-		break;
-	    c.moveToNext();
-	}
-	c.close();*/
     }
 
     @Override
