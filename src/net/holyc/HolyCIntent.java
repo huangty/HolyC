@@ -78,4 +78,18 @@ public class HolyCIntent{
 	public static final String action = "holyc.intent.broadcast.LALAPPFOUND";
 	public static final String str_key = "LAL_APP_NAME";	
     }
+    
+    /** Intent Lal use to request permission from applications
+     */
+    public class LalPermRequest{
+    	public static final String action = "holyc.intent.broadcast.LALPERMREQUEST";
+    	public static final String str_key = "LAL_PERM_REQUEST";	
+    }
+    
+    /** Intent Lal use to receive permission response from applications
+     */
+    public class LalPermResponse{
+    	public static final String action = "holyc.intent.broadcast.LALPERMRESPONSE";
+    	public static final String str_key = "LAL_PERM_RESPONSE";	
+    }
 }
