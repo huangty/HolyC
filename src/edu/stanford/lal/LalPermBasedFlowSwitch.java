@@ -42,9 +42,9 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 			int app_cookie = getCookie(ofm, context);
 			String app_name = getAppName(ofm, context);
 			PermissionEnquiry pe = new PermissionEnquiry(ofm, opie, app_name, app_cookie, opi.getSocketChannelNumber());
-			Intent reqIntent = new Intent(HolyCIntent.LalPermRequest.action);
+			Intent reqIntent = new Intent(HolyCIntent.LalPermEnquiry.action);
 			reqIntent.setPackage(context.getPackageName());
-			reqIntent.putExtra(HolyCIntent.LalPermRequest.str_key, gson.toJson(pe, PermissionEnquiry.class));
+			reqIntent.putExtra(HolyCIntent.LalPermEnquiry.str_key, gson.toJson(pe, PermissionEnquiry.class));
 			context.sendBroadcast(reqIntent);
 			
 			

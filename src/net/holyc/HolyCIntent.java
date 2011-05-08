@@ -81,9 +81,9 @@ public class HolyCIntent{
     
     /** Intent Lal use to request permission from applications
      */
-    public class LalPermRequest{
-    	public static final String action = "holyc.intent.broadcast.LALPERMREQUEST";
-    	public static final String str_key = "LAL_PERM_REQUEST";	
+    public class LalPermEnquiry{
+    	public static final String action = "holyc.intent.broadcast.LALPERMENQUIRY";
+    	public static final String str_key = "LAL_PERM_ENQUIRY";	
     }
     
     /** Intent Lal use to receive permission response from applications
