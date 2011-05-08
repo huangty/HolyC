@@ -15,7 +15,7 @@ import org.openflow.util.U16;
 
 import com.google.gson.Gson;
 
-import edu.stanford.lal.permission.PermissionEnquiry;
+import edu.stanford.lal.permission.PermissionInquiry;
 import edu.stanford.lal.permission.PermissionResponse;
 
 import android.content.Context;
@@ -41,10 +41,10 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 			// Send to Adam and ask for permission 
 			int app_cookie = getCookie(ofm, context);
 			String app_name = getAppName(ofm, context);
-			PermissionEnquiry pe = new PermissionEnquiry(ofm, opie, app_name, app_cookie, opi.getSocketChannelNumber());
-			Intent reqIntent = new Intent(HolyCIntent.LalPermEnquiry.action);
+			PermissionInquiry pe = new PermissionInquiry(ofm, opie, app_name, app_cookie, opi.getSocketChannelNumber());
+			Intent reqIntent = new Intent(HolyCIntent.LalPermInquiry.action);
 			reqIntent.setPackage(context.getPackageName());
-			reqIntent.putExtra(HolyCIntent.LalPermEnquiry.str_key, gson.toJson(pe, PermissionEnquiry.class));
+			reqIntent.putExtra(HolyCIntent.LalPermInquiry.str_key, gson.toJson(pe, PermissionInquiry.class));
 			context.sendBroadcast(reqIntent);
 			
 			
