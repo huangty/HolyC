@@ -86,8 +86,10 @@ public class OFCommService extends Service{
 		}else{
 		    Socket socket = socketMap.get(new Integer(scn)); 
 		    if(socket != null){
-			sendOFPacket(socket, ofpoe.getData());
-		    }                		
+		    	sendOFPacket(socket, ofpoe.getData());
+		    }else{
+		    	socketMap.remove(new Integer(scn));
+		    }
 		    /** for debug */
 		    //sendReportToUI("Send OFReply packet = " + ofpoe.getOFMessage().toString());
 		}                	                	
@@ -183,13 +185,15 @@ public class OFCommService extends Service{
     
     private void sendOFPacket(Socket socket, byte[] data ){
     	try {
-	    OutputStream out = socket.getOutputStream();
-	    out.write(data);
-	    out.flush();
-	} catch (IOException e) {
-	    // TODO Auto-generated catch block
-	    e.printStackTrace();
-	}
+    		OutputStream out = socket.getOutputStream();
+    		out.write(data);
+    		out.flush();
+    	} catch (Exception e) {
+    		// TODO Auto-generated catch block
+    		Integer remotePort = new Integer(socket.getPort());
+    		socketMap.remove(remotePort);
+    		e.printStackTrace();    		
+    	}
     }
     
     private class AcceptThread extends Thread {
@@ -339,6 +343,7 @@ public class OFCommService extends Service{
 
         public void close() {
             try {
+            	socketMap.remove(mRemotePort);
                 mmSocket.close();
             } catch (IOException e) {
             }
