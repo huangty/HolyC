@@ -189,8 +189,6 @@ public class OFCommService extends Service{
 	} catch (IOException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
-	} catch (SocketException e) {
-	    ;
 	}
     }
     
