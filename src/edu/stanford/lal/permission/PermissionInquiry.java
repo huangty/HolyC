@@ -43,4 +43,9 @@ public class PermissionInquiry{
 	public int getSocketChannelNumber(){
 		return control_socket_channel;
 	}
+	public String toString(){
+ 		return "OFMatch: " + ofm.toString() + " AppName: " + app_name + " AppHash: "+ app_cookie + 
+ 					"OFPacketIn: " + ofpi.toString() + " Controller Port: " + control_socket_channel;
+	}
+
 }

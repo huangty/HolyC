@@ -38,4 +38,8 @@ public class PermissionResponse{
 	public int getSocketChannelNumber(){
 		return control_socket_channel;
 	}
+	
+	public String toString(){
+ 		return "OFMatch: " + ofm.toString() + " Decision: " + allow + "OFPacketIn: " + ofpi.toString() + " Controller Port: " + control_socket_channel;
+	}
 }
