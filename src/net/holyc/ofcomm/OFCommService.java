@@ -34,8 +34,6 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.widget.Toast;
 
-import android.os.Debug;
-
 /**
  * The Thread Create and Maintain Connections to Openflowd
  *
@@ -77,8 +75,13 @@ public class OFCommService extends Service{
 		break;
 	    case HolyCMessage.OFREPLY_EVENT.type:
 		String json = msg.getData().getString(HolyCMessage.OFREPLY_EVENT.str_key);
-		//Log.d(TAG, "serialized json = " + json);               	
-		OFReplyEvent ofpoe =  gson.fromJson(json, OFReplyEvent.class);
+		OFReplyEvent ofpoe;
+		try {
+		    ofpoe =  gson.fromJson(json, OFReplyEvent.class);
+		} catch (ClassCastException ce) {
+		    Log.e(TAG, "Cannot cast event into OFReplyEvent");
+		    break;
+		}
 		int scn = ofpoe.getSocketChannelNumber();                	
 		//Log.d(TAG, "Send OFReply through socket channel with Remote Port "+scn);
 		if(!socketMap.containsKey(new Integer(scn))){
@@ -297,8 +300,6 @@ public class OFCommService extends Service{
             //Log.d(TAG, "leftOverData size = " + leftOverData.length);
             try{
 		while (( bytes = mmInStream.read(buffer)) != -1) {
-		    //Debug.startMethodTracing("ofcomm");
-
 		    byte[] ofdata = new byte[bytes+leftOverData.length];
 		    //copy leftOverData to the beginning of OFdata if there is any
 		    if(leftOverData.length >0){
@@ -331,8 +332,6 @@ public class OFCommService extends Service{
 			    //Log.d(TAG, "there are left over, with size = " + leftOverData.length);
 			}
 		    }
-		    
-		    //Debug.stopMethodTracing();
 		    //Log.d(TAG, "Finish retrieve data from buffer, read one more time");
 		}
             }catch (Exception e) {
