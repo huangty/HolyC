@@ -52,7 +52,7 @@
 <!--             android:process=":dispatch" /> -->
 
     <service android:name="edu.stanford.lal.Lal" />
- 
+ 	<!-- <service android:name="edu.stanford.lal.LalPermTester" /> -->
     <receiver android:name=".dispatcher.StartupIntentReceiver">   
       <intent-filter>   
 	<action android:name="android.intent.action.BOOT_COMPLETED"/>   
