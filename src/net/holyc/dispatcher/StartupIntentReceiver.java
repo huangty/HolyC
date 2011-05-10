@@ -7,7 +7,7 @@ import android.util.Log;
 
 public class StartupIntentReceiver extends BroadcastReceiver{
 
-	private String TAG = "HolyC.StartupIntentReceiver"; 
+	private String TAG = "HOLYC.StartupIntentReceiver"; 
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		// TODO Auto-generated method stub

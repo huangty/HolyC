@@ -34,7 +34,7 @@ import android.widget.Toast;
 
 public class DispatchService extends Service {
 	private NotificationManager mNM;
-	private String TAG = "HolyC.DispatcherService";
+	private String TAG = "HOLYC.DispatcherService";
 	private int bind_port = 6633;
 	/** TODO: link this to UI */
 	private boolean wifi_included = true;

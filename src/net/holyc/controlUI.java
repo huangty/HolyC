@@ -2,6 +2,8 @@ package net.holyc;
 
 import java.util.List;
 
+import edu.stanford.lal.LalPermTester;
+
 import net.holyc.dispatcher.DispatchService;
 import net.holyc.host.Utility;
 import android.app.Activity;
@@ -26,7 +28,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 public class controlUI extends Activity{
-	private String TAG = "HolyC.controUI";
+	private String TAG = "HOLYC.controUI";
 	private String dispatchServiceName;
 	private StringBuffer mBuffer = new StringBuffer();
 	private ToggleButton button_starter;
@@ -47,7 +49,9 @@ public class controlUI extends Activity{
         dispatchServiceName = this.getPackageName()+".dispatcher.DispatchService";
         setContentView(R.layout.control);
         findViews();
-        setListeners();        
+        setListeners();      
+        //Log.d(TAG, "start Testeer");
+        //startService(new Intent(this, LalPermTester.class));
     }
     @Override
     public void onDestroy(){
