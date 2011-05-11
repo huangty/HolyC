@@ -7,10 +7,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import android.app.ActivityManager;
@@ -31,8 +31,7 @@ public class Utility {
 	
 	static final String TAG = "Utility";
 	public static final int MSG_REPORT_INTFACE_STATE = 0; 
-	static Process process = null;
-	
+	public static final ConnectionList Connections = new ConnectionList();
 	
 	public static ArrayList<String> runRootCommand(String command, boolean returnResult) {
 	Process process = null;
@@ -69,12 +68,12 @@ public class Utility {
          return resultLines;
     }
 
-	public static String getProp(String name) {
-		ArrayList<String> resultLines = runRootCommand("getprop " + name, true);
-		return (resultLines == null) ? null : resultLines.get(0);
+    public static String getProp(String name) {
+	    ArrayList<String> resultLines = runRootCommand("getprop " + name, true);
+	    return (resultLines == null) ? null : resultLines.get(0);
 	}
 	
-	public static ArrayList<String> readLinesFromFile(String filename) {
+    public static ArrayList<String> readLinesFromFile(String filename) {
 		ArrayList<String> lines = new ArrayList<String>();
 		File file = new File(filename);
 		if (!file.canRead()) {
@@ -191,8 +190,9 @@ public class Utility {
     	List<RunningAppProcessInfo> process;
     	process = activityMan.getRunningAppProcesses();
     	for (int i = 0; i < process.size(); i++) {
-    		if (pid == process.get(i).pid) {
-    			appInfo = process.get(i);
+    		RunningAppProcessInfo proc = process.get(i);
+    		if (pid == proc.pid) {
+    			appInfo = proc;
     			break;
     		}
     	}
@@ -206,18 +206,66 @@ public class Utility {
     	List<RunningServiceInfo> service;
     	service = activityMan.getRunningServices(100);
     	for (int i = 0; i < service.size(); i++) {
-    		if (pid == service.get(i).pid) {
-    			servInfo = service.get(i);
+    		RunningServiceInfo serv = service.get(i);
+    		if (pid == serv.pid) {
+    			servInfo = serv;
     			break;
     		}
     	}
     	return servInfo;
     }
     
+    /**
+     * Look up pkg name by network address. 
+     * It uses cache to fast lookup speed. Only when cache misses, 
+     * lsof command is triggered.
+     * 
+     * @param remoteIP
+     * @param remotePort
+     * @param localPort
+     * @param cxt
+     * @return
+     */
+    public static String fastGetPKGNameFromAddr(String remoteIP, int remotePort, int localPort, Context cxt) {
+    	if (localPort <= 3 || localPort == 111 || localPort == 137 || 
+    			localPort == 67 || localPort == 68 || remotePort <= 3) 
+    		return null; //non-tcp or non-udp
+    	if (remotePort == 53) return "DNSQuery";
+    	if (remoteIP == null || remoteIP.equals("0.0.0.0") == true) return null;
+    	Connection conn = null;
+    	boolean refreshed = false;
+    	while ((conn = Connections.find(remoteIP, remotePort, localPort)) == null &&
+    			refreshed == false) {
+    		//Log.d(TAG, "Before refreshing");
+    		//Connections.showList();
+    		Connections.refresh();
+    		refreshed = true;
+    		//Log.d(TAG, "After refreshing");
+    		//Connections.showList();
+    	}
+    	if (conn == null) return null;
+    	if (conn.getPkgName() == null) conn.setPkgName(getPKGNameFromPid(conn.pid, cxt));
+    	return conn.getPkgName();
+    }
+    
+    /**
+     * Look up pkg name by network address.
+     * Each query triggers lsof command
+     * 
+     * @param remoteIP
+     * @param remotePort
+     * @param localPort
+     * @param cxt
+     * @return
+     */
     public static String getPKGNameFromAddr(String remoteIP, int remotePort, int localPort, Context cxt) {
-    	String pkgName = null;
     	int pid = getPidFromAddr(remoteIP, remotePort, localPort);
-    	if (pid < 0 || cxt == null) return pkgName;
+        return getPKGNameFromPid(pid, cxt);
+    }
+    
+    public static String getPKGNameFromPid(int pid, Context cxt) {
+    	String pkgName = null;
+       	if (pid < 0 || cxt == null) return pkgName;
     	RunningAppProcessInfo appInfo = getAppInfoFromPid(pid, cxt);
     	if (appInfo != null) {
     		pkgName = appInfo.processName;
@@ -226,24 +274,7 @@ public class Utility {
     		if (servInfo != null) pkgName = servInfo.process;
     	}
     	return pkgName;
-    	
     }
-    
-    private static String getLabelFromPKGName(String PKGName, Context cxt) {
-    	PackageManager pk = cxt.getPackageManager();
-    	String appLabel = null;
-    	if (PKGName == null) return appLabel;
-    	try {
-    		ApplicationInfo ai = pk.getApplicationInfo(PKGName, 0);
-    		appLabel = ai.loadLabel(pk).toString();
-    	} catch (NameNotFoundException e) {
-			// TODO Auto-generated catch block
-    		appLabel = PKGName;
-			Log.d(TAG, "Label of " + PKGName + "Not Found");
-		}
-    	return appLabel;
-    }
-    
     /**
      * Can invoke the test code in any Context. For example,
      * in controlUI activity, you can call test as follows:
@@ -251,24 +282,217 @@ public class Utility {
      * 
      */
 	public static void commandTest(Context cxt) {
-		runRootCommand("rmmod openvswitch_mod.ko", false);
+		/*runRootCommand("rmmod openvswitch_mod.ko", false);
 		ArrayList<String> lines = runRootCommand("/data/local/bin/busybox ifconfig tiwlan0", true);
 		if (lines != null)
 			for (String line : lines)
 				Log.d(TAG, line);
 		Log.d(TAG, "wifi.interface: " + getProp("wifi.interface"));
 		Log.d(TAG, "wifi.interfac: " + getProp("wifi.interfac"));
-		
-		/*String pkgName = getPKGNameFromAddr("74.125.224.64", 80, 33010, cxt); //src ip + src port
-    	Log.d(TAG, "get pkgname : " + pkgName);
-    	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
-		pkgName = getPKGNameFromAddr("74.125.224.66", 80, 53462, cxt); //src ip + src port
-    	Log.d(TAG, "get pkgname : " + pkgName);
-    	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
-		pkgName = getPKGNameFromAddr("74.125.224.66", 80, 44543, cxt); //src ip + src port
-    	Log.d(TAG, "get pkgname : " + pkgName);
-    	Log.d(TAG, "get label : " + getLabelFromPKGName(pkgName, cxt));
-    	*/
-    	
+		*/
+		Long start = System.currentTimeMillis();
+		for (int i = 0; i< 1; i++) {
+			testFastCommand(cxt);
+		}
+		Log.d(TAG, "fast time: " + (System.currentTimeMillis()-start) + "ms");
+		start = System.currentTimeMillis();
+		for (int i = 0; i< 1; i++) {
+			testSlowCommand(cxt);
+		}
+		Log.d(TAG, "slow time: " + (System.currentTimeMillis()-start) + "ms");
+
     }
+	
+	private static void testFastCommand(Context cxt) {
+		String pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 59855, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 59855, cxt);
+    	Log.d(TAG, "get pkgname2 : " + pkgName);
+		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 0, cxt);
+    	Log.d(TAG, "get pkgname3 : " + pkgName);
+		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 1, 59855, cxt);
+    	Log.d(TAG, "get pkgname4 : " + pkgName);
+	}
+	
+	private static void testSlowCommand(Context cxt) {
+		String pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
+    	Log.d(TAG, "get pkgname1 : " + pkgName);
+		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 59855, cxt);
+    	Log.d(TAG, "get pkgname2 : " + pkgName);
+		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 0, cxt);
+    	Log.d(TAG, "get pkgname3 : " + pkgName);
+		pkgName = getPKGNameFromAddr("74.125.224.76", 1, 59855, cxt);
+    	Log.d(TAG, "get pkgname4 : " + pkgName);
+	}
+}
+
+
+/**
+ * Connection class to keep network address and process ID
+ * information of a connection
+ * 
+ * @author leo
+ *
+ */
+class Connection {
+    public String destIP;
+    public int destPort;
+    public int srcPort;
+    public int pid;
+    private String pkgName;
+    private Long timestamp;
+    
+    public Connection(String destIP, int destPort, int srcPort, int pid) {
+    	this.destIP = destIP;
+    	this.destPort = destPort;
+    	this.srcPort = srcPort;
+    	this.pid = pid;
+    	this.pkgName = null;
+    	this.timestamp = System.currentTimeMillis()/1000;
+    }
+    
+    public boolean match(String destIP, int destPort, int srcPort) {
+    	return (this.destPort == destPort && this.srcPort == srcPort
+    			&& this.destIP.equalsIgnoreCase(destIP));
+    }
+    
+    /**
+     * judge if a conection information expires according to the 
+     * given threhold
+     * @param threshold (seconds)
+     * @return
+     */
+    public boolean expire(Long threshold) {
+    	return (System.currentTimeMillis()/1000 - this.timestamp >= threshold);
+    }
+    
+    public int getPid() {
+    	return pid;
+    }
+    
+    public String getPkgName() {
+    	return pkgName;
+    }
+    
+    public void setPkgName(String name) {
+    	this.pkgName = name;
+    }
+    
+	public String toString() {
+		return this.pid + "::" + "local_ip" + ":" + this.srcPort
+		       + "->" + this.destIP + ":" + this.destPort;
+	}
+} 
+
+/**
+ * Wrapper a cache of connections and the operations on it
+ * @author leo
+ *
+ */
+class ConnectionList {
+	static final String TAG = "ConnectionList";
+	ArrayList<Connection> mConnections = null;
+	static final Long THRESHOLD = 300L; //300 seconds for expiring
+
+	public ConnectionList() {
+	    mConnections = new ArrayList<Connection>();	
+	}
+	
+	/**
+	 * Find a connection by given network address.
+	 * For efficiency, it filters out the expiring connection when looking up
+	 * Since the remove operation of ArrayList is very heavy, we add unexpired
+	 * connection to new ArrayList 
+	 */
+	public synchronized Connection find(String destIP, int destPort, int srcPort) {
+		Connection target = null;
+		ArrayList<Connection> newConnList = new ArrayList<Connection>();
+		for (int i = 0; i < mConnections.size(); i++) {
+			Connection conn = mConnections.get(i);
+			if (conn.match(destIP, destPort, srcPort) == true)
+				target = conn;
+			if (conn.expire(THRESHOLD) == false)
+				newConnList.add(conn);
+		}
+		mConnections = newConnList;
+		return target;
+	}
+	
+	/**
+	 * Find if the connection exists in the cache
+	 * @param conn
+	 * @return
+	 */
+	private synchronized boolean find(Connection conn) {
+		boolean found = false;
+		for (int i = 0; i < mConnections.size(); i++) {
+			if (mConnections.get(i).match(conn.destIP, conn.destPort, conn.srcPort)==true) {
+				found = true;
+				break;
+			}
+		}
+		return found;
+	}
+	/**
+	 * load new connections info into cache by lsof command
+	 */
+	public synchronized void refresh() {
+		String command = "su -c \"lsof -P -n -i | grep -\"";
+		try {
+			ArrayList<String> results = Utility.runRootCommand(command, true);
+			for (int i = 0; i < results.size(); i++) {
+				Connection conn = createConnectionByString(results.get(i));
+				if (conn != null && find(conn) == false)
+				    mConnections.add(conn);
+			}
+		} catch (Exception e) {
+		}
+		return;
+	}
+	
+	public void showList() {
+		for (int i = 0; i < mConnections.size(); i++) {
+			Log.d(TAG, mConnections.get(i).toString());
+		}
+	}
+	
+	private Connection createConnectionByString(String s) {
+		String[] items = s.split("\t| +");
+		int pid = Integer.parseInt(items[1]);
+		String dstIP = getDestIP(items[8]);
+		int dstPort = getDestPort(items[8]);
+		int srcPort = getSrcPort(items[8]);
+		return new Connection(dstIP, dstPort, srcPort, pid);
+	}
+	
+	private String getDestIP(String s) {
+		int index1 = s.indexOf("->");
+		int index2 = s.lastIndexOf(':');
+		return (index2 > index1 && index1 >= 0)? s.substring(index1+2, index2):null;
+	}
+	
+	private int getDestPort(String s) {
+		int index1 = s.indexOf("->");
+		int index2 = s.lastIndexOf(':');
+		return (index2 > index1 && index1 >= 0)? Integer.parseInt(s.substring(index2+1)):-1;
+	}
+	
+	private int getSrcPort(String s) {
+		int index1 = s.indexOf("->");
+		int index2 = s.indexOf(':');
+		return (index2 < index1 && index1 >= 0)? Integer.parseInt(s.substring(index2+1, index1)):-1;
+	}
+
 }

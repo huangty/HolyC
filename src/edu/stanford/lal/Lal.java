@@ -97,6 +97,7 @@ public class Lal
 	    else if (intent.getAction().equals(LalMessage.Query.action))
 	    {
 		//Query request
+	    Log.d(TAG, "receive query from app");	
 		String q_json = intent.getStringExtra(LalMessage.Query.str_key);
 		LalMessage.LalQuery query = gson.fromJson(q_json, LalMessage.LalQuery.class);
 		SQLiteCursor c = (SQLiteCursor) db.db.query(query.distinct,
