@@ -37,16 +37,19 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 			ofm.loadFromPacket(opie.getPacketData(), opie.getInPort());
 			hostPort.put(HexString.toHexString(ofm.getDataLayerSource()),
 					new Short(ofm.getInputPort()));
-
-			// Send to Adam and ask for permission 
-			int app_cookie = getCookie(ofm, context);
-			String app_name = getAppName(ofm, context);
-			PermissionInquiry pe = new PermissionInquiry(ofm, opie, app_name, app_cookie, opi.getSocketChannelNumber());
-			Intent reqIntent = new Intent(HolyCIntent.LalPermInquiry.action);
-			reqIntent.setPackage(context.getPackageName());
-			reqIntent.putExtra(HolyCIntent.LalPermInquiry.str_key, gson.toJson(pe, PermissionInquiry.class));
-			context.sendBroadcast(reqIntent);
-			
+			if(ofm.getNetworkProtocol() == 0x06 || ofm.getNetworkProtocol() == 0x11){
+				// if it's TCP or UDP, send to Adam and ask for permission 
+				
+				String app_name = getAppName(ofm, context);
+				int app_cookie = getCookie(ofm, context);
+				PermissionInquiry pe = new PermissionInquiry(ofm, opie, app_name, app_cookie, opi.getSocketChannelNumber());
+				Intent reqIntent = new Intent(HolyCIntent.LalPermInquiry.action);
+				reqIntent.setPackage(context.getPackageName());
+				reqIntent.putExtra(HolyCIntent.LalPermInquiry.str_key, gson.toJson(pe, PermissionInquiry.class));
+				context.sendBroadcast(reqIntent);
+			}else{
+				installFlow(context, ofm, opie, opi.getSocketChannelNumber());
+			}
 			
 			
 		}else if(intent.getAction().equals(HolyCIntent.LalPermResponse.action)){
@@ -56,25 +59,30 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 			OFMatch ofm = pr.getOFMatch();
 			OFPacketIn opie = pr.getOFPacketIn();
 			
-			// Find outport if any
-			Short out;
-			if (HexString.toHexString(ofm.getDataLayerDestination()).equals(
-					"ff:ff:ff:ff:ff:ff"))
-				out = new Short(OFPort.OFPP_FLOOD.getValue());
-			else
-				out = hostPort.get(HexString.toHexString(ofm
-						.getDataLayerDestination()));			
-			// Send response
-			Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
-			poutIntent.setPackage(context.getPackageName());
-			ByteBuffer bb = getResponse(out, opie, ofm, context);
-			OFReplyEvent ofpoe = new OFReplyEvent(pr.getSocketChannelNumber(),
-					bb.array());
-			poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key,
-					gson.toJson(ofpoe, OFReplyEvent.class));
-			context.sendBroadcast(poutIntent);
+			installFlow(context, ofm, opie, pr.getSocketChannelNumber());
 		}
 	}
+	
+	public void installFlow(Context context, OFMatch ofm, OFPacketIn opie, int socketChannelNumber){
+		// Find outport if any
+		Short out;
+		if (HexString.toHexString(ofm.getDataLayerDestination()).equals(
+				"ff:ff:ff:ff:ff:ff"))
+			out = new Short(OFPort.OFPP_FLOOD.getValue());
+		else
+			out = hostPort.get(HexString.toHexString(ofm
+					.getDataLayerDestination()));			
+		// Send response
+		Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
+		poutIntent.setPackage(context.getPackageName());
+		ByteBuffer bb = getResponse(out, opie, ofm, context);
+		OFReplyEvent ofpoe = new OFReplyEvent(socketChannelNumber, 
+				bb.array());
+		poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key,
+				gson.toJson(ofpoe, OFReplyEvent.class));
+		context.sendBroadcast(poutIntent);
+	}
+	
 	public String getAppName(OFMatch ofm, Context context) {
 		String remoteIP = "";
 		int remotePort = 0;
@@ -90,7 +98,7 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 		}
 
 		// String appname = null;
-		String appname = Utility.getPKGNameFromAddr(remoteIP, remotePort,
+		String appname = Utility.fastGetPKGNameFromAddr(remoteIP, remotePort,
 				localPort, context);
 		if (appname == null)
 			appname = "System/Unidentified App";		
