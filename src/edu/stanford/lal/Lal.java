@@ -23,7 +23,7 @@ import android.util.Log;
 
 import net.holyc.HolyCIntent;
 import net.holyc.dispatcher.OFFlowRemovedEvent;
-
+import net.holyc.host.Utility;
 import edu.stanford.lal.Database;
 import edu.stanford.lal.LalMessage;
 
@@ -50,6 +50,10 @@ public class Lal
     /** Reference to database
      */
     public Database db = null;
+    /**
+     * Local port number
+     */
+    public static short LOCAL_PORT = 1;
     /** Table name
      */
     public static final String TABLE_NAME = "LAL_FLOW_TABLE";
@@ -71,13 +75,33 @@ public class Lal
 		    .getStringExtra(HolyCIntent.OFFlowRemoved_Intent.str_key);
 		OFFlowRemovedEvent ofre = gson.fromJson(ofre_json, 
 							OFFlowRemovedEvent.class);
+		OFMatch ofm = ofre.getMatch();
 
 		//Get App Name
-		String app_name = appNames.get((new Long(ofre.getOFFlowRemoved().getCookie())).
-					       toString());
+		String app_name = null;
+		if(ofm.getNetworkProtocol() == 0x06 || 
+		   ofm.getNetworkProtocol() == 0x11)
+		{
+		    //it is tcp or udp
+		    String remoteIP = "";
+		    int remotePort = 0;
+		    int localPort = 0;
+		    
+		    if (ofm.getInputPort() == LOCAL_PORT) {
+			remoteIP = ipToString(ofm.getNetworkDestination());
+			remotePort = U16.f(ofm.getTransportDestination());
+			localPort = U16.f(ofm.getTransportSource());
+		    } else {
+			remoteIP = ipToString(ofm.getNetworkSource());
+			remotePort = U16.f(ofm.getTransportSource());
+			localPort = U16.f(ofm.getTransportDestination());
+		    }
+		    app_name = Utility.getPKGNameFromAddr(remoteIP, remotePort,
+							  localPort, context);
+		}
 		if (app_name == null)
 		    app_name = "Unknown";
-
+		
 		//Insert data into database
 		ContentValues cv = new ContentValues();
 		cv.put("App", app_name);

@@ -25,49 +25,13 @@ public class LalFlowSwitch extends FlowSwitch {
 	 */
 	private String TAG = "Lal.FlowSwitch";
 	/**
-	 * Local port number
-	 */
-	public static short LOCAL_PORT = 1;
-	/**
 	 * Hashmap for app name
 	 */
 	public static HashMap<String, Object> appNames = new HashMap<String, Object>();
 
 	public int getCookie(OFMatch ofm, Context context) {
-		String appname = null;
-		if(ofm.getNetworkProtocol() == 0x06 || ofm.getNetworkProtocol() == 0x11){
-			//it is tcp or udp
-			String remoteIP = "";
-			int remotePort = 0;
-			int localPort = 0;
-			
-			if (ofm.getInputPort() == LOCAL_PORT) {
-				remoteIP = ipToString(ofm.getNetworkDestination());
-				remotePort = U16.f(ofm.getTransportDestination());
-				localPort = U16.f(ofm.getTransportSource());
-			} else {
-				remoteIP = ipToString(ofm.getNetworkSource());
-				remotePort = U16.f(ofm.getTransportSource());
-				localPort = U16.f(ofm.getTransportDestination());
-			}
-			appname = Utility.fastGetPKGNameFromAddr(remoteIP, remotePort,
-				localPort, context);
-			Log.d(TAG, appname + ":" + localPort + "->" + remoteIP + ":"
-					+ remotePort);
-		}
-		if (appname == null)
-			appname = "System/Unidentified App";
-		
-		// Broadcast new application name
-		if (appNames.get(appname) == null) {
-			appNames.put(appname, appname);
-			Intent i = new Intent(HolyCIntent.LalAppFound.action);
-			i.setPackage(context.getPackageName());
-			i.putExtra(HolyCIntent.LalAppFound.str_key, appname);
-			context.sendBroadcast(i);
-		}
-
-		return appname.hashCode();
+	    Utility.sendQueryRequest();
+	    return 0;
 	}
 
 	protected static String ipToString(int ip) {
