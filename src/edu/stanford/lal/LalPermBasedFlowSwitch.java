@@ -97,9 +97,9 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 			localPort = U16.f(ofm.getTransportDestination());
 		}
 
-		// String appname = null;
-		String appname = Utility.fastGetPKGNameFromAddr(remoteIP, remotePort,
-				localPort, context);
+		String appname = null;
+		//String appname = Utility.fastGetPKGNameFromAddr(remoteIP, remotePort,
+		//		localPort, context);
 		if (appname == null)
 			appname = "System/Unidentified App";		
 		return appname;

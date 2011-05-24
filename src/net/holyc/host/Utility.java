@@ -31,7 +31,6 @@ public class Utility {
 	
 	static final String TAG = "Utility";
 	public static final int MSG_REPORT_INTFACE_STATE = 0; 
-	public static final ConnectionList Connections = new ConnectionList();
 	
 	public static ArrayList<String> runRootCommand(String command, boolean returnResult) {
 	Process process = null;
@@ -215,54 +214,6 @@ public class Utility {
     	return servInfo;
     }
     
-    /**
-     * Look up pkg name by network address. 
-     * It uses cache to fast lookup speed. Only when cache misses, 
-     * lsof command is triggered.
-     * 
-     * @param remoteIP
-     * @param remotePort
-     * @param localPort
-     * @param cxt
-     * @return
-     */
-    public static String fastGetPKGNameFromAddr(String remoteIP, int remotePort, int localPort, Context cxt) {
-    	if (localPort <= 3 || localPort == 111 || localPort == 137 || 
-    			localPort == 67 || localPort == 68 || remotePort <= 3) 
-    		return null; //non-tcp or non-udp
-    	if (remotePort == 53) return "DNSQuery";
-    	if (remoteIP == null || remoteIP.equals("0.0.0.0") == true) return null;
-    	Connection conn = null;
-    	boolean refreshed = false;
-    	while ((conn = Connections.find(remoteIP, remotePort, localPort)) == null &&
-    			refreshed == false) {
-    		//Log.d(TAG, "Before refreshing");
-    		//Connections.showList();
-    		Connections.refresh();
-    		refreshed = true;
-    		//Log.d(TAG, "After refreshing");
-    		//Connections.showList();
-    	}
-    	if (conn == null) return null;
-    	if (conn.getPkgName() == null) conn.setPkgName(getPKGNameFromPid(conn.pid, cxt));
-    	return conn.getPkgName();
-    }
-    
-    /**
-     * Look up pkg name by network address.
-     * Each query triggers lsof command
-     * 
-     * @param remoteIP
-     * @param remotePort
-     * @param localPort
-     * @param cxt
-     * @return
-     */
-    public static String getPKGNameFromAddr(String remoteIP, int remotePort, int localPort, Context cxt) {
-    	int pid = getPidFromAddr(remoteIP, remotePort, localPort);
-        return getPKGNameFromPid(pid, cxt);
-    }
-    
     public static String getPKGNameFromPid(int pid, Context cxt) {
     	String pkgName = null;
        	if (pid < 0 || cxt == null) return pkgName;
@@ -290,209 +241,20 @@ public class Utility {
 		Log.d(TAG, "wifi.interface: " + getProp("wifi.interface"));
 		Log.d(TAG, "wifi.interfac: " + getProp("wifi.interfac"));
 		*/
-		Long start = System.currentTimeMillis();
-		for (int i = 0; i< 1; i++) {
-			testFastCommand(cxt);
-		}
-		Log.d(TAG, "fast time: " + (System.currentTimeMillis()-start) + "ms");
-		start = System.currentTimeMillis();
-		for (int i = 0; i< 1; i++) {
-			testSlowCommand(cxt);
-		}
-		Log.d(TAG, "slow time: " + (System.currentTimeMillis()-start) + "ms");
-
-    }
-	
-	private static void testFastCommand(Context cxt) {
-		String pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 59855, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 59855, cxt);
-    	Log.d(TAG, "get pkgname2 : " + pkgName);
-		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 80, 0, cxt);
-    	Log.d(TAG, "get pkgname3 : " + pkgName);
-		pkgName = fastGetPKGNameFromAddr("74.125.224.76", 1, 59855, cxt);
-    	Log.d(TAG, "get pkgname4 : " + pkgName);
-	}
-	
-	private static void testSlowCommand(Context cxt) {
-		String pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 49284, cxt);
-    	Log.d(TAG, "get pkgname1 : " + pkgName);
-		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 59855, cxt);
-    	Log.d(TAG, "get pkgname2 : " + pkgName);
-		pkgName = getPKGNameFromAddr("74.125.224.76", 80, 0, cxt);
-    	Log.d(TAG, "get pkgname3 : " + pkgName);
-		pkgName = getPKGNameFromAddr("74.125.224.76", 1, 59855, cxt);
-    	Log.d(TAG, "get pkgname4 : " + pkgName);
-	}
-}
-
-
-/**
- * Connection class to keep network address and process ID
- * information of a connection
- * 
- * @author leo
- *
- */
-class Connection {
-    public String destIP;
-    public int destPort;
-    public int srcPort;
-    public int pid;
-    private String pkgName;
-    private Long timestamp;
-    
-    public Connection(String destIP, int destPort, int srcPort, int pid) {
-    	this.destIP = destIP;
-    	this.destPort = destPort;
-    	this.srcPort = srcPort;
-    	this.pid = pid;
-    	this.pkgName = null;
-    	this.timestamp = System.currentTimeMillis()/1000;
-    }
-    
-    public boolean match(String destIP, int destPort, int srcPort) {
-    	return (this.destPort == destPort && this.srcPort == srcPort
-    			&& this.destIP.equalsIgnoreCase(destIP));
-    }
-    
-    /**
-     * judge if a conection information expires according to the 
-     * given threhold
-     * @param threshold (seconds)
-     * @return
-     */
-    public boolean expire(Long threshold) {
-    	return (System.currentTimeMillis()/1000 - this.timestamp >= threshold);
-    }
-    
-    public int getPid() {
-    	return pid;
-    }
-    
-    public String getPkgName() {
-    	return pkgName;
-    }
-    
-    public void setPkgName(String name) {
-    	this.pkgName = name;
-    }
-    
-	public String toString() {
-		return this.pid + "::" + "local_ip" + ":" + this.srcPort
-		       + "->" + this.destIP + ":" + this.destPort;
-	}
-} 
-
-/**
- * Wrapper a cache of connections and the operations on it
- * @author leo
- *
- */
-class ConnectionList {
-	static final String TAG = "ConnectionList";
-	ArrayList<Connection> mConnections = null;
-	static final Long THRESHOLD = 300L; //300 seconds for expiring
-
-	public ConnectionList() {
-	    mConnections = new ArrayList<Connection>();	
-	}
-	
-	/**
-	 * Find a connection by given network address.
-	 * For efficiency, it filters out the expiring connection when looking up
-	 * Since the remove operation of ArrayList is very heavy, we add unexpired
-	 * connection to new ArrayList 
-	 */
-	public synchronized Connection find(String destIP, int destPort, int srcPort) {
-		Connection target = null;
-		ArrayList<Connection> newConnList = new ArrayList<Connection>();
-		for (int i = 0; i < mConnections.size(); i++) {
-			Connection conn = mConnections.get(i);
-			if (conn.match(destIP, destPort, srcPort) == true)
-				target = conn;
-			if (conn.expire(THRESHOLD) == false)
-				newConnList.add(conn);
-		}
-		mConnections = newConnList;
-		return target;
-	}
-	
-	/**
-	 * Find if the connection exists in the cache
-	 * @param conn
-	 * @return
-	 */
-	private synchronized boolean find(Connection conn) {
-		boolean found = false;
-		for (int i = 0; i < mConnections.size(); i++) {
-			if (mConnections.get(i).match(conn.destIP, conn.destPort, conn.srcPort)==true) {
-				found = true;
-				break;
-			}
-		}
-		return found;
-	}
-	/**
-	 * load new connections info into cache by lsof command
-	 */
-	public synchronized void refresh() {
-		String command = "su -c \"lsof -P -n -i | grep -\"";
+		AppNameQueryEngine.sendQueryRequest("74.125.224.106", 80, 36971, cxt);
+		AppNameQueryEngine.sendQueryRequest("74.125.224.97", 80, 54955, cxt);
+		AppNameQueryEngine.sendQueryRequest("61.135.218.49", 80, 58099, cxt);
+		AppNameQueryEngine.sendQueryRequest("72.14.213.139", 80, 38731, cxt);
 		try {
-			ArrayList<String> results = Utility.runRootCommand(command, true);
-			for (int i = 0; i < results.size(); i++) {
-				Connection conn = createConnectionByString(results.get(i));
-				if (conn != null && find(conn) == false)
-				    mConnections.add(conn);
-			}
-		} catch (Exception e) {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		return;
-	}
-	
-	public void showList() {
-		for (int i = 0; i < mConnections.size(); i++) {
-			Log.d(TAG, mConnections.get(i).toString());
-		}
-	}
-	
-	private Connection createConnectionByString(String s) {
-		String[] items = s.split("\t| +");
-		int pid = Integer.parseInt(items[1]);
-		String dstIP = getDestIP(items[8]);
-		int dstPort = getDestPort(items[8]);
-		int srcPort = getSrcPort(items[8]);
-		return new Connection(dstIP, dstPort, srcPort, pid);
-	}
-	
-	private String getDestIP(String s) {
-		int index1 = s.indexOf("->");
-		int index2 = s.lastIndexOf(':');
-		return (index2 > index1 && index1 >= 0)? s.substring(index1+2, index2):null;
-	}
-	
-	private int getDestPort(String s) {
-		int index1 = s.indexOf("->");
-		int index2 = s.lastIndexOf(':');
-		return (index2 > index1 && index1 >= 0)? Integer.parseInt(s.substring(index2+1)):-1;
-	}
-	
-	private int getSrcPort(String s) {
-		int index1 = s.indexOf("->");
-		int index2 = s.indexOf(':');
-		return (index2 < index1 && index1 >= 0)? Integer.parseInt(s.substring(index2+1, index1)):-1;
-	}
+		Log.d(TAG, "query1: " + AppNameQueryEngine.getPKGNameFromAddr("74.125.224.106", 80, 36971, cxt));
+		Log.d(TAG, "query2: " + AppNameQueryEngine.getPKGNameFromAddr("74.125.224.97", 80, 54955, cxt));
+		Log.d(TAG, "query3: " + AppNameQueryEngine.getPKGNameFromAddr("61.135.218.49", 80, 58099, cxt));	
+		Log.d(TAG, "query4: " + AppNameQueryEngine.getPKGNameFromAddr("72.14.213.139", 80, 38731, cxt));	
 
+    }
 }

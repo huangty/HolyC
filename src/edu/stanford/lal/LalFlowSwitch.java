@@ -50,8 +50,8 @@ public class LalFlowSwitch extends FlowSwitch {
 				remotePort = U16.f(ofm.getTransportSource());
 				localPort = U16.f(ofm.getTransportDestination());
 			}
-			appname = Utility.fastGetPKGNameFromAddr(remoteIP, remotePort,
-				localPort, context);
+			//appname = Utility.fastGetPKGNameFromAddr(remoteIP, remotePort,
+			//	localPort, context);
 			Log.d(TAG, appname + ":" + localPort + "->" + remoteIP + ":"
 					+ remotePort);
 		}
