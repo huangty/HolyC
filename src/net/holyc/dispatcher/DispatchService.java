@@ -68,9 +68,8 @@ public class DispatchService extends Service {
 			Bundle bundle = new Bundle();
 			bundle.putString(HolyCMessage.OFREPLY_EVENT.str_key, json);
 			msg.setData(bundle);
-
-			/** for debug */
 			try {
+				Log.d(TAG, "Send OFReply to OFComm");
 				mOFService.send(msg);
 			} catch (RemoteException e) {
 				// TODO Auto-generated catch block

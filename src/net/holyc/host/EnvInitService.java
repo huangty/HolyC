@@ -217,13 +217,15 @@ public class EnvInitService extends Service implements Runnable{
     }         
         
     public void doOpenflowdInit(){    	    	
-    	//Utility.runRootCommand("/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 --out-of-band --detach", false);
+    	Utility.runRootCommand("/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 " + 
+    			"--out-of-band --monitor --detach --log-file=/data/local/var/ovs.log", false);
+    	Log.d(TAG, "Openflowd is running in detached mode");
     	/**
     	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
     	 */
     	/** debug messages*/
-    	sendReportToUI("Please Setup Openflowd By Hand, go to adb shell; /data/local/bin/ovs-openflowd dp0 tcp:127.0.0.1 --out-of-band");
-    	//sendReportToUI("Openflowd is running in detached mode");
+    	//sendReportToUI("Please Setup Openflowd By Hand, go to adb shell; /data/local/bin/ovs-openflowd dp0 tcp:127.0.0.1 --out-of-band");
+    	sendReportToUI("Openflowd is running in detached mode");
     }
        
     public void doRoutingInit(){
@@ -250,6 +252,9 @@ public class EnvInitService extends Service implements Runnable{
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
+		Utility.runRootCommand("killall ovs-openflowd", false);
+		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + wifiIF.getName(), false);
+		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + vIFs.getVeth0().getName(), false);
 		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);
 		Utility.runRootCommand("rmmod openvswitch_mod", false);
 		Log.d(TAG, "cleanup the environment ");

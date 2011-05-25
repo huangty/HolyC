@@ -74,7 +74,8 @@
 	<action android:name="holyc.intent.broadcast.ERROR"/>   
       </intent-filter>   
     </receiver>    
-    <receiver android:name="edu.stanford.lal.LalFlowSwitch">   
+    <!-- <receiver android:name="edu.stanford.lal.LalPermBasedFlowSwitch"> -->
+    <receiver android:name="edu.stanford.lal.LalFlowSwitch">
       <intent-filter>   
 	<action android:name="holyc.intent.broadcast.PACKETIN"/>   
       </intent-filter>   

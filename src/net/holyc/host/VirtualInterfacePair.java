@@ -24,7 +24,7 @@ class VirtualInterfacePair{
 		//String result = NativeCallWrapper.getResultByCommand("/data/local/bin/busybox ip link | grep veth0");
 		String result = "";
 		ArrayList<String> resList = Utility.runRootCommand("/data/local/bin/busybox ip link | grep veth0", true);
-		if(resList.size() >0){
+		if(resList.size() > 0){
 			result = resList.get(0);
 		}
 		

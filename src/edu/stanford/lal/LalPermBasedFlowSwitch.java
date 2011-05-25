@@ -20,13 +20,15 @@ import edu.stanford.lal.permission.PermissionResponse;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 public class LalPermBasedFlowSwitch extends LalFlowSwitch {
-
+	String TAG = "Lal.PermBasedFlowSwitch";
 	Gson gson = new Gson();
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		if (intent.getAction().equals(HolyCIntent.OFPacketIn_Intent.action)) {
+			Log.d(TAG, "PermBasedFlowSwitch");
 			OFPacketInEvent opi = gson.fromJson(intent
 					.getStringExtra(HolyCIntent.OFPacketIn_Intent.str_key),
 					OFPacketInEvent.class);
