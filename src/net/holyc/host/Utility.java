@@ -69,7 +69,7 @@ public class Utility {
 
     public static String getProp(String name) {
 	    ArrayList<String> resultLines = runRootCommand("getprop " + name, true);
-	    return (resultLines == null) ? null : resultLines.get(0);
+	    return (resultLines.size() == 0) ? null : resultLines.get(0);
 	}
 	
     public static ArrayList<String> readLinesFromFile(String filename) {

@@ -16,7 +16,7 @@ import android.util.Log;
  * 
  * @author Yongqiang Liu (yliu78@stanford.edu)
  */
-class AppNameQueryEngine {
+public class AppNameQueryEngine {
 	static final String TAG = "AppNameQueryEngine";
     static Context cxt = null;
 	/**
@@ -38,7 +38,7 @@ class AppNameQueryEngine {
     	boolean valid = true;
     	if (srcPort <= 3 || srcPort == 111 || srcPort == 137 || 
     			srcPort == 67 || srcPort == 68 || destPort <= 3 ||
-    			destPort == 53 || destIP == null || 
+    			destPort == 53 || destPort == 17500 || destIP == null || 
     			destIP.equals("0.0.0.0") == true) 
     		valid = false;
         return valid;
@@ -46,6 +46,8 @@ class AppNameQueryEngine {
     
     public static String getPKGNameFromAddr(String remoteIP, int remotePort, int localPort, Context cxt) {
     	if (remotePort == 53) return "DNSQuery";
+    	if (remotePort == 17500) return "CrazzyNet.Trojan";
+    	if (remotePort == 111) return "SUN.RemoteControl";
     	if (isValidQuery(remoteIP, remotePort, localPort) == false) return null;
     	Connection found = Connections.find(remoteIP, remotePort, localPort);
     	if (found == null) return null;
@@ -122,18 +124,18 @@ class AppNameRequest extends Request {
     
     public boolean process() {
     	boolean tryAgain = false;
-    	Log.d(TAG, "processing " + this.destIP + ":" + this.destPort);
+    	//Log.d(TAG, "processing " + this.destIP + ":" + this.destPort);
     	if (this.ttl == 0)
     		return tryAgain;
     	Connection found = AppNameQueryEngine.Connections.find(destIP, destPort, srcPort);
     	if (found == null) {
     		this.ttl -= 1;
     		tryAgain = true;
-    		Log.d(TAG, "Before refreshing");
-    		AppNameQueryEngine.Connections.showList();
+    		//Log.d(TAG, "Before refreshing");
+    		//AppNameQueryEngine.Connections.showList();
     		AppNameQueryEngine.Connections.refresh();
-    		Log.d(TAG, "After refreshing");
-    		AppNameQueryEngine.Connections.showList();
+    		//Log.d(TAG, "After refreshing");
+    		//AppNameQueryEngine.Connections.showList();
     	} else {
     		if (found.getPkgName() == null) found.setPkgName(Utility.getPKGNameFromPid(found.pid, AppNameQueryEngine.cxt));
     	}
@@ -208,7 +210,7 @@ class Connection {
 class ConnectionList {
 	static final String TAG = "ConnectionList";
 	ArrayList<Connection> mConnections = null;
-	static final Long THRESHOLD = 300L; // 300 seconds for expiring
+	static final Long THRESHOLD = 1800L; // seconds for expiring
 
 	public ConnectionList() {
 		mConnections = new ArrayList<Connection>();
