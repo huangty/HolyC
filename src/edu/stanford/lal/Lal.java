@@ -84,19 +84,26 @@ public class Lal extends Service {
 					String remoteIP = "";
 					int remotePort = 0;
 					int localPort = 0;
+					int outward = 0;
 
 					if (ofm.getInputPort() == LOCAL_PORT) {
 						remoteIP = ipToString(ofm.getNetworkDestination());
 						remotePort = U16.f(ofm.getTransportDestination());
 						localPort = U16.f(ofm.getTransportSource());
+						outward = 1;
 					} else {
 						remoteIP = ipToString(ofm.getNetworkSource());
 						remotePort = U16.f(ofm.getTransportSource());
 						localPort = U16.f(ofm.getTransportDestination());
+						outward = 0;
 					}
 					app_name = AppNameQueryEngine.getPKGNameFromAddr(remoteIP,
 							remotePort, localPort, context);
-					Log.d(TAG, app_name+":"+localPort+"->"+remoteIP+":"+remotePort);
+					if (outward == 1){
+						Log.d(TAG, app_name+":"+localPort+"->"+remoteIP+":"+remotePort);
+					}else{
+						Log.d(TAG, remoteIP+":"+remotePort+ "->"+ app_name+":"+localPort);
+					}
 				}
 				if (app_name == null)
 					app_name = "Unknown";
