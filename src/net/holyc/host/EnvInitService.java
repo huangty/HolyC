@@ -257,6 +257,7 @@ public class EnvInitService extends Service implements Runnable{
 		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + vIFs.getVeth0().getName(), false);
 		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);
 		Utility.runRootCommand("rmmod openvswitch_mod", false);
+		Utility.runRootCommand("/data/local/bin/busybox ip link del veth0", false);
 		Log.d(TAG, "cleanup the environment ");
 		stopMonitorThread();
 	}
