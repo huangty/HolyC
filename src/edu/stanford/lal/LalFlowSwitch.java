@@ -31,7 +31,7 @@ public class LalFlowSwitch extends FlowSwitch {
 	 */
 	public static HashMap<String, Object> appNames = new HashMap<String, Object>();
 
-	public int getCookie(OFMatch ofm, Context context) {
+	public int sendQuery(OFMatch ofm, Context context) {
 		if (ofm.getNetworkProtocol() == 0x06
 				|| ofm.getNetworkProtocol() == 0x11) {
 			// it is tcp or udp

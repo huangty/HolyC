@@ -43,8 +43,8 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 				// if it's TCP or UDP, send to Adam and ask for permission 
 				
 				String app_name = getAppName(ofm, context);
-				int app_cookie = getCookie(ofm, context);
-				PermissionInquiry pe = new PermissionInquiry(ofm, opie, app_name, app_cookie, opi.getSocketChannelNumber());
+				sendQuery(ofm, context);
+				PermissionInquiry pe = new PermissionInquiry(ofm, opie, app_name, 0, opi.getSocketChannelNumber());
 				Intent reqIntent = new Intent(HolyCIntent.LalPermInquiry.action);
 				reqIntent.setPackage(context.getPackageName());
 				reqIntent.putExtra(HolyCIntent.LalPermInquiry.str_key, gson.toJson(pe, PermissionInquiry.class));

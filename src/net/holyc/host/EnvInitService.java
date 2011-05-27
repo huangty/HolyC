@@ -272,14 +272,13 @@ public class EnvInitService extends Service implements Runnable{
         }
    }    
 	public void run() {
-
 		//check the status every 30 seconds?
 		try {
 			while(true){
-				Thread.sleep(120000);				
-				if(threeGIF!=null){
-					Log.d(TAG, "delete 3G route");					
+				Thread.sleep(30000);				
+				if(threeGIF!=null){									
 					Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
+					Log.d(TAG, "delete 3G route " + threeGIF.getName());
 				}
 			}
 		} catch (InterruptedException e) {

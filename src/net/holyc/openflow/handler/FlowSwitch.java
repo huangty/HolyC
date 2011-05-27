@@ -68,7 +68,10 @@ public class FlowSwitch
 	    else
 		out = hostPort.get(HexString.toHexString(ofm.getDataLayerDestination()));
 
+	    //Send Query  
+	    sendQuery(ofm, context);
 	    //Send response
+	    
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
 	    ByteBuffer bb = getResponse(out, opie, ofm, context);
@@ -103,7 +106,7 @@ public class FlowSwitch
 	    offm.setHardTimeout((short) 0);
 	    offm.setPriority((short) 32768);
 	    offm.setFlags((short) 1); //Send flow removed
-	    offm.setCookie(getCookie(ofm, context));
+	    //offm.setCookie(getCookie(ofm, context));
 	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
 	    
 	    bb = ByteBuffer.allocate(offm.getLength());
@@ -131,7 +134,7 @@ public class FlowSwitch
 	return bb;
     }
 
-    public int getCookie(OFMatch ofm, Context context)
+    public int sendQuery(OFMatch ofm, Context context)
     {
 	return 0;
     }

@@ -11,14 +11,21 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.dispatcher.OFEvent;
+import net.holyc.dispatcher.OFPacketInEvent;
 import net.holyc.dispatcher.OFReplyEvent;
+
+import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFHello;
+import org.openflow.protocol.OFMessage;
+import org.openflow.protocol.OFType;
+import org.openflow.protocol.factory.BasicFactory;
 
 import com.google.gson.Gson;
 
@@ -51,7 +58,10 @@ public class OFCommService extends Service{
     /** For showing and hiding our notification. */
     NotificationManager mNM;
     /** Keeps track of all current registered clients. */
-    ArrayList<Messenger> mClients = new ArrayList<Messenger>();    
+    ArrayList<Messenger> mClients = new ArrayList<Messenger>();   
+    
+    /** for debug **/
+    static HashMap<Integer, Delay> procDelayTable = new HashMap<Integer, Delay>();
     
     Gson gson = new Gson();
     /**
@@ -82,6 +92,26 @@ public class OFCommService extends Service{
 		    Log.e(TAG, "Cannot cast event into OFReplyEvent");
 		    break;
 		}
+		/** for debug **/
+		if(ofpoe.getOFMessage().getType() == OFType.FLOW_MOD){
+			OFFlowMod offm = ofpoe.getOFFlowMod(); 
+			/*new OFFlowMod();
+			BasicFactory bf = new BasicFactory();
+			offm.setActionFactory(bf.getActionFactory());
+			ByteBuffer bb = ByteBuffer.allocate(ofpoe.getData().length);
+			bb.put(ofpoe.getData());
+			bb.flip();
+			offm.readFrom(bb);*/
+			
+			if(procDelayTable.containsKey(offm.getBufferId())){
+				Delay d = procDelayTable.get(offm.getBufferId());
+				Log.d(TAG, "buffer ID:" + offm.getBufferId() + " delay = " + d.getDelay(new Date()));
+				procDelayTable.remove(offm.getBufferId());
+			}
+		}
+		
+		
+		
 		int scn = ofpoe.getSocketChannelNumber();                	
 		//Log.d(TAG, "Send OFReply through socket channel with Remote Port "+scn);
 		if(!socketMap.containsKey(new Integer(scn))){
@@ -159,7 +189,13 @@ public class OFCommService extends Service{
             	data.putString(HolyCMessage.OFCOMM_EVENT.str_key, 
 			       gson.toJson(ofe, OFEvent.class));
             	msg.setData(data);
-                mClients.get(i).send(msg);    	
+                mClients.get(i).send(msg);
+                /** for debug **/
+                if(ofe.getOFMessage().getType() == OFType.PACKET_IN){                	
+                	Delay d = new Delay(ofe.getOFMessage(), new Date());
+                	OFPacketInEvent opie = new OFPacketInEvent(ofe);
+                	procDelayTable.put(opie.getOFPacketIn().getBufferId(), d);
+                }
             } catch (RemoteException e) {
                 mClients.remove(i);
             }
@@ -351,4 +387,17 @@ public class OFCommService extends Service{
 
 }
 
-
+class Delay{
+	private OFMessage ofm;
+	private Date time_pktin;	
+	public Delay(OFMessage _ofm, Date time){
+		this.ofm = _ofm;
+		time_pktin = time;
+	}
+	public long getDelay(Date now){
+		return now.getTime() - time_pktin.getTime(); 
+	}
+	public String toString(){
+		return ofm.toString() + " startTime: " + time_pktin.toLocaleString();
+	}
+}

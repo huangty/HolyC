@@ -75,7 +75,7 @@ public class Utility {
     public static ArrayList<String> readLinesFromFile(String filename) {
 		ArrayList<String> lines = new ArrayList<String>();
 		File file = new File(filename);
-		if (!file.canRead()) {
+		if (!file.exists() || !file.canRead()) {
 			Log.d(TAG, filename + "can not be read");
 			return lines;
 		}
@@ -212,6 +212,12 @@ public class Utility {
     		}
     	}
     	return servInfo;
+    }
+    
+    public static String getPKGNameFromPidByCmdLine(int pid) {
+    	String fileName = "/proc/" + pid + "/cmdline"; 
+    	ArrayList<String> lines = readLinesFromFile(fileName);
+    	return (lines.size() > 0) ? lines.get(0) : null;
     }
     
     public static String getPKGNameFromPid(int pid, Context cxt) {

@@ -104,6 +104,8 @@ public class Lal extends Service {
 					}else{
 						Log.d(TAG, remoteIP+":"+remotePort+ "->"+ app_name+":"+localPort);
 					}
+				}else{
+					app_name = "System-NonIP";
 				}
 				if (app_name == null)
 					app_name = "Unknown";
@@ -112,7 +114,8 @@ public class Lal extends Service {
 				ContentValues cv = new ContentValues();
 				cv.put("App", app_name);
 				cv.put("Time_Received",
-						((double) System.currentTimeMillis()) / (1000.0));
+						((double) System.currentTimeMillis()) / (1000.0));				
+				ofre.getOFFlowRemoved().setCookie(app_name.hashCode());
 				OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
 				db.insert(TABLE_NAME, cv);
 			} else if (intent.getAction()

@@ -1,6 +1,7 @@
 package net.holyc.host;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -51,7 +52,7 @@ public class AppNameQueryEngine {
     	if (isValidQuery(remoteIP, remotePort, localPort) == false) return null;
     	Connection found = Connections.find(remoteIP, remotePort, localPort);
     	if (found == null) return null;
-    	if (found.getPkgName() == null) found.setPkgName(Utility.getPKGNameFromPid(found.pid, cxt));
+    	if (found.getPkgName() == null) found.setPkgName(Utility.getPKGNameFromPidByCmdLine(found.pid));
     	return found.getPkgName();
     }
     
@@ -59,6 +60,7 @@ public class AppNameQueryEngine {
     	if (AppNameQueryEngine.cxt == null) AppNameQueryEngine.cxt = cxt;
     	if (isValidQuery(remoteIP, remotePort, localPort) == false) return;
     	AppNameRequest request = new AppNameRequest(remoteIP, remotePort, localPort);
+    	
     	try {
 			requestQueue.put(request);
 		} catch (InterruptedException e) {
@@ -77,8 +79,19 @@ class RequestHandler implements Runnable {
 
 	@Override
 	public void run() {
+		boolean printOut = false;
 		while (!Thread.currentThread().isInterrupted()) {
 			try {
+				int queueSize = AppNameQueryEngine.requestQueue.size();
+				Log.d(TAG, "lsof dequeue, queue size = " + queueSize);
+				if (queueSize > 50 && printOut == false) {
+					printOut = true;
+					Iterator<Request> itr = AppNameQueryEngine.requestQueue.iterator();					
+					while(itr.hasNext()){
+						AppNameRequest req = (AppNameRequest)itr.next();
+						Log.d(TAG, ":"+req.srcPort+"<->"+req.destIP+":"+req.destPort);
+					}
+				}
 				Request req = AppNameQueryEngine.requestQueue.take(); //block on empty queue
 				if (req.process() == true) AppNameQueryEngine.requestQueue.put(req);
 			} catch (InterruptedException e) {
@@ -124,7 +137,7 @@ class AppNameRequest extends Request {
     
     public boolean process() {
     	boolean tryAgain = false;
-    	//Log.d(TAG, "processing " + this.destIP + ":" + this.destPort);
+    	Log.d(TAG, "processing dest IP:" + this.destIP + ":" + this.destPort);
     	if (this.ttl == 0)
     		return tryAgain;
     	Connection found = AppNameQueryEngine.Connections.find(destIP, destPort, srcPort);
@@ -135,9 +148,9 @@ class AppNameRequest extends Request {
     		//AppNameQueryEngine.Connections.showList();
     		AppNameQueryEngine.Connections.refresh();
     		//Log.d(TAG, "After refreshing");
-    		//AppNameQueryEngine.Connections.showList();
+    		AppNameQueryEngine.Connections.showList();
     	} else {
-    		if (found.getPkgName() == null) found.setPkgName(Utility.getPKGNameFromPid(found.pid, AppNameQueryEngine.cxt));
+    		if (found.getPkgName() == null) found.setPkgName(Utility.getPKGNameFromPidByCmdLine(found.pid));
     	}
         return tryAgain;
     }
@@ -196,7 +209,7 @@ class Connection {
 	}
 
 	public String toString() {
-		return this.pid + "::" + "local_ip" + ":" + this.srcPort + "->"
+		return "" + this.pkgName + "::" + this.pid + "::" + "local_ip" + ":" + this.srcPort + "->"
 				+ this.destIP + ":" + this.destPort;
 	}
 }
@@ -258,13 +271,15 @@ class ConnectionList {
 	 * load new connections info into cache by lsof command
 	 */
 	public synchronized void refresh() {
-		String command = "su -c \"lsof -P -n -i | grep -\"";
+		String command = "lsof -P -n -i | grep -";
 		try {
 			ArrayList<String> results = Utility.runRootCommand(command, true);
 			for (int i = 0; i < results.size(); i++) {
 				Connection conn = createConnectionByString(results.get(i));
-				if (conn != null && find(conn) == false)
+				if (conn != null && find(conn) == false){
+					conn.setPkgName(Utility.getPKGNameFromPidByCmdLine(conn.pid));
 					mConnections.add(conn);
+				}
 			}
 		} catch (Exception e) {
 		}
@@ -275,6 +290,7 @@ class ConnectionList {
 		for (int i = 0; i < mConnections.size(); i++) {
 			Log.d(TAG, mConnections.get(i).toString());
 		}
+		Log.d(TAG, "===============================================");
 	}
 
 	private Connection createConnectionByString(String s) {

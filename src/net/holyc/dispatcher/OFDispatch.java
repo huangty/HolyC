@@ -79,7 +79,7 @@ public class OFDispatch extends BroadcastReceiver {
 				r.action = HolyCIntent.OFPacketIn_Intent.action;
 				r.key = HolyCIntent.OFPacketIn_Intent.str_key;
 				OFPacketInEvent opie = new OFPacketInEvent(ofe);
-				r.string = gson.toJson(opie, OFPacketInEvent.class);
+				r.string = gson.toJson(opie, OFPacketInEvent.class);               
 				break;
 
 			case FLOW_REMOVED:

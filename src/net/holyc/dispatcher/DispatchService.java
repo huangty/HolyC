@@ -8,6 +8,7 @@ import net.holyc.HolyCIntent;
 import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.controlUI;
+import net.holyc.host.AppNameQueryEngine;
 import net.holyc.host.EnvInitService;
 import net.holyc.ofcomm.OFCommService;
 
@@ -69,7 +70,7 @@ public class DispatchService extends Service {
 			bundle.putString(HolyCMessage.OFREPLY_EVENT.str_key, json);
 			msg.setData(bundle);
 			try {
-				Log.d(TAG, "Send OFReply to OFComm");
+				//Log.d(TAG, "Send OFReply to OFComm");
 				mOFService.send(msg);
 			} catch (RemoteException e) {
 				// TODO Auto-generated catch block
@@ -169,6 +170,9 @@ public class DispatchService extends Service {
 		// Cancel the persistent notification.
 		mNM.cancel(R.string.dispatcher_started);
 		doUnBindServices();
+		/*if (AppNameQueryEngine.handleThread != null) {
+			AppNameQueryEngine.handleThread.interrupt();			
+		}*/
 		unregisterReceiver(mOFReplyReceiver);
 		// Tell the user we stopped.
 		Toast.makeText(this, "DispatchService Distroyed", Toast.LENGTH_SHORT)

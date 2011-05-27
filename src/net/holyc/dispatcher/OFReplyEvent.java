@@ -2,7 +2,10 @@ package net.holyc.dispatcher;
 
 import java.nio.ByteBuffer;
 
+import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFMessage;
+import org.openflow.protocol.OFType;
+import org.openflow.protocol.factory.BasicFactory;
 
 
 public class OFReplyEvent{
@@ -25,5 +28,15 @@ public class OFReplyEvent{
 		bb.flip();
 		ofm.readFrom(bb);
 		return ofm;
-	}
+	}	
+	public OFFlowMod getOFFlowMod(){
+		OFFlowMod offm = new OFFlowMod();
+		BasicFactory bf = new BasicFactory();
+		offm.setActionFactory(bf.getActionFactory());
+		ByteBuffer bb = ByteBuffer.allocate(data.length);
+		bb.put(data);
+		bb.flip();
+		offm.readFrom(bb);
+		return offm;
+	}	
 }
