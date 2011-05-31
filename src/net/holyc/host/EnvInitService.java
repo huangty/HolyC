@@ -126,13 +126,15 @@ public class EnvInitService extends Service implements Runnable{
     	Log.d(TAG, "wifi Name is " + wifiIF.getName());
     	Log.d(TAG, "wifi IP is " + wifiIF.getIP());
     	Log.d(TAG, "wifi mac is " + wifiIF.getMac());
-    	Log.d(TAG, "wifi gw IP is " + wifiGW.getIP());
-    	Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());
     	sendReportToUI("wifi Name is " + wifiIF.getName());
     	sendReportToUI("wifi IP is " + wifiIF.getIP());
     	sendReportToUI("wifi mac is " + wifiIF.getMac());
-    	sendReportToUI("wifi gw IP is " + wifiGW.getIP());
-    	sendReportToUI("wifi gw mac is " + wifiGW.getMac());
+    	if(wifiGW != null){
+    		Log.d(TAG, "wifi gw IP is " + wifiGW.getIP());
+    		Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());    	
+    		sendReportToUI("wifi gw IP is " + wifiGW.getIP());
+    		sendReportToUI("wifi gw mac is " + wifiGW.getMac());
+    	}
     }
     
     public void doMobileInit(){
