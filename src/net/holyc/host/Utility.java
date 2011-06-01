@@ -9,6 +9,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -263,4 +264,11 @@ public class Utility {
 		Log.d(TAG, "query4: " + AppNameQueryEngine.getPKGNameFromAddr("72.14.213.139", 80, 38731, cxt));	
 
     }
+	public static ByteBuffer getByteBuffer(byte[] data){
+		ByteBuffer bb;
+		bb = ByteBuffer.allocate(data.length);
+		bb.put(data);
+		bb.flip();
+		return bb;
+	}
 }

@@ -6,7 +6,9 @@ import java.util.Vector;
 import net.holyc.HolyCIntent;
 import net.holyc.dispatcher.OFFlowRemovedEvent;
 import net.holyc.host.AppNameQueryEngine;
+import net.holyc.host.Utility;
 
+import org.openflow.protocol.OFFlowRemoved;
 import org.openflow.protocol.OFMatch;
 import org.openflow.util.U16;
 import org.openflow.util.U8;
@@ -70,12 +72,19 @@ public class Lal extends Service {
 			if (intent.getAction().equals(
 					HolyCIntent.OFFlowRemoved_Intent.action)) {
 				// Flow removed event (to be recorded)
-				String ofre_json = intent
+				/** gson test**/
+				/*String ofre_json = intent
 						.getStringExtra(HolyCIntent.OFFlowRemoved_Intent.str_key);
 				OFFlowRemovedEvent ofre = gson.fromJson(ofre_json,
 						OFFlowRemovedEvent.class);
-				OFMatch ofm = ofre.getOFFlowRemoved().getMatch();
-
+				OFMatch ofm = ofre.getOFFlowRemoved().getMatch();*/
+				byte[] ofdata = intent.getByteArrayExtra(HolyCIntent.OFFlowRemoved_Intent.data_key);
+				//int port = intent.getIntExtra(HolyCIntent.OFFlowRemoved_Intent.port_key, -1);
+				OFFlowRemoved ofr = new OFFlowRemoved();
+				ofr.readFrom(Utility.getByteBuffer(ofdata));
+				OFMatch ofm = ofr.getMatch();
+				/** end of gson test**/
+				
 				// Get App Name
 				String app_name = null;
 				if (ofm.getNetworkProtocol() == 0x06
@@ -114,9 +123,13 @@ public class Lal extends Service {
 				ContentValues cv = new ContentValues();
 				cv.put("App", app_name);
 				cv.put("Time_Received",
-						((double) System.currentTimeMillis()) / (1000.0));				
-				ofre.getOFFlowRemoved().setCookie(app_name.hashCode());
-				OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
+						((double) System.currentTimeMillis()) / (1000.0));
+				/** gson test**/
+				//ofre.getOFFlowRemoved().setCookie(app_name.hashCode());
+				//OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
+				ofr.setCookie(app_name.hashCode());
+				OpenFlow.addOFFlowRemoved2CV(cv, ofr);
+				/** end of gson test**/
 				db.insert(TABLE_NAME, cv);
 			} else if (intent.getAction()
 					.equals(HolyCIntent.LalAppFound.action)) {

@@ -66,6 +66,8 @@ public class HolyCMessage
     {
 	public static final int type = MAX_MSG_TYPE+6;
 	public static final String str_key = "OFEVENT";
+	public static final String data_key = "OFDATA";
+	public static final String port_key = "OFPORT";
     }
 
     /**
@@ -74,7 +76,9 @@ public class HolyCMessage
     public class OFREPLY_EVENT
     {
 	public static final int type = MAX_MSG_TYPE+7;
-	public static final String str_key = "OF_REPLY_EVENT";
+	public static final String str_key = "OFREPLY_EVENT";
+	public static final String data_key = "OFREPLY_DATA";
+	public static final String port_key = "OFREPLY_PORT";
     }
 
     /**
@@ -164,8 +168,5 @@ public class HolyCMessage
     public class OFCOMM_START_OPENFLOWD
     {
 	public static final int type = MAX_MSG_TYPE+18;
-    }
-    
-
-
+    }      
 }

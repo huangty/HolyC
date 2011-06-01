@@ -4,6 +4,8 @@ package net.holyc.ofcomm;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -20,7 +22,11 @@ import net.holyc.R;
 import net.holyc.dispatcher.OFEvent;
 import net.holyc.dispatcher.OFPacketInEvent;
 import net.holyc.dispatcher.OFReplyEvent;
+import net.holyc.host.Utility;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFHello;
 import org.openflow.protocol.OFMessage;
@@ -63,7 +69,7 @@ public class OFCommService extends Service{
     /** for debug **/
     static HashMap<Integer, Delay> procDelayTable = new HashMap<Integer, Delay>();
     
-    Gson gson = new Gson();
+    
     /**
      * Handler of incoming messages from clients.
      */
@@ -84,49 +90,52 @@ public class OFCommService extends Service{
 		startOpenflowController();
 		break;
 	    case HolyCMessage.OFREPLY_EVENT.type:
-		String json = msg.getData().getString(HolyCMessage.OFREPLY_EVENT.str_key);
-		OFReplyEvent ofpoe;
-		try {
-		    ofpoe =  gson.fromJson(json, OFReplyEvent.class);
-		} catch (ClassCastException ce) {
-		    Log.e(TAG, "Cannot cast event into OFReplyEvent");
-		    break;
-		}
-		/** for debug **/
-		if(ofpoe.getOFMessage().getType() == OFType.FLOW_MOD){
-			OFFlowMod offm = ofpoe.getOFFlowMod(); 
-			/*new OFFlowMod();
-			BasicFactory bf = new BasicFactory();
-			offm.setActionFactory(bf.getActionFactory());
-			ByteBuffer bb = ByteBuffer.allocate(ofpoe.getData().length);
-			bb.put(ofpoe.getData());
-			bb.flip();
-			offm.readFrom(bb);*/
-			
-			if(procDelayTable.containsKey(offm.getBufferId())){
-				Delay d = procDelayTable.get(offm.getBufferId());
-				Log.d(TAG, "buffer ID:" + offm.getBufferId() + " delay = " + d.getDelay(new Date()));
-				procDelayTable.remove(offm.getBufferId());
+	    	/** test gson **/
+	    	/*Gson gson = new Gson();
+	    	String json = msg.getData().getString(HolyCMessage.OFREPLY_EVENT.str_key);	    	
+			OFReplyEvent ofpoe;
+			try {
+			    ofpoe =  gson.fromJson(json, OFReplyEvent.class);
+			} catch (ClassCastException ce) {
+			    Log.e(TAG, "Cannot cast event into OFReplyEvent");
+			    break;
 			}
-		}
-		
-		
-		
-		int scn = ofpoe.getSocketChannelNumber();                	
-		//Log.d(TAG, "Send OFReply through socket channel with Remote Port "+scn);
-		if(!socketMap.containsKey(new Integer(scn))){
-		    Log.e(TAG, "there is no SocketChannel left");
-		}else{
-		    Socket socket = socketMap.get(new Integer(scn)); 
-		    if(socket != null){
-		    	sendOFPacket(socket, ofpoe.getData());
-		    }else{
-		    	socketMap.remove(new Integer(scn));
-		    }
-		    /** for debug */
-		    //sendReportToUI("Send OFReply packet = " + ofpoe.getOFMessage().toString());
-		}                	                	
-		break;
+			int scn = ofpoe.getSocketChannelNumber();*/
+	    	byte[] ofdata = msg.getData().getByteArray(HolyCMessage.OFREPLY_EVENT.data_key);	    	
+			int scn = msg.getData().getInt(HolyCMessage.OFREPLY_EVENT.port_key);
+			/** for debug **/
+			OFMessage ofm = new OFMessage();
+			ofm.readFrom(Utility.getByteBuffer(ofdata));
+			if(ofm.getType() == OFType.FLOW_MOD){
+				OFFlowMod offm = new OFFlowMod();
+				BasicFactory bf = new BasicFactory();
+				offm.setActionFactory(bf.getActionFactory());
+				ByteBuffer bb = ByteBuffer.allocate(ofdata.length);
+				bb.put(ofdata);
+				bb.flip();
+				offm.readFrom(bb);				
+				if(procDelayTable.containsKey(offm.getBufferId())){
+					Delay d = procDelayTable.get(offm.getBufferId());
+					Log.d(TAG, "buffer ID:" + offm.getBufferId() + " delay = " + d.getDelay(new Date()));
+					procDelayTable.remove(offm.getBufferId());
+				}
+			}																
+			//Log.d(TAG, "Send OFReply through socket channel with Remote Port "+scn);
+			if(!socketMap.containsKey(new Integer(scn))){
+			    Log.e(TAG, "there is no SocketChannel left");
+			}else{
+			    Socket socket = socketMap.get(new Integer(scn)); 
+			    if(socket != null){
+			    	//sendOFPacket(socket, ofpoe.getData());
+			    	sendOFPacket(socket, ofdata);
+			    }else{
+			    	socketMap.remove(new Integer(scn));
+			    }
+			    /** for debug */
+			    //sendReportToUI("Send OFReply packet = " + ofpoe.getOFMessage().toString());
+			}
+			/** end of test gson **/
+			break;
 	    default:
 		super.handleMessage(msg);
             }
@@ -177,25 +186,29 @@ public class OFCommService extends Service{
         }
     }
     public void sendOFEventToDispatchService(Integer remotePort, byte[] ofdata){
-    	Gson gson = new Gson();
+    	//Gson gson = new Gson();
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
             	Message msg = Message.obtain(null, HolyCMessage.OFCOMM_EVENT.type);
-            	OFEvent ofe = new OFEvent(remotePort.intValue(), ofdata);
-            	//sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
-            	//Log.d(TAG, "Recevie OFMessage: " + ofe.getOFMessage().toString());
-            	//Log.d(TAG, "OFMessage length = " + ofe.getOFMessage().getLength() + "  ofdata length = " + ofdata.length);
-            	Bundle data = new Bundle();            	
-            	data.putString(HolyCMessage.OFCOMM_EVENT.str_key, 
-			       gson.toJson(ofe, OFEvent.class));
-            	msg.setData(data);
-                mClients.get(i).send(msg);
-                /** for debug **/
+            	/** for debug **/
+            	OFEvent ofe = new OFEvent(remotePort.intValue(), ofdata);            	
                 if(ofe.getOFMessage().getType() == OFType.PACKET_IN){                	
                 	Delay d = new Delay(ofe.getOFMessage(), new Date());
                 	OFPacketInEvent opie = new OFPacketInEvent(ofe);
                 	procDelayTable.put(opie.getOFPacketIn().getBufferId(), d);
                 }
+            	//sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
+            	//Log.d(TAG, "Recevie OFMessage: " + ofe.getOFMessage().toString());
+            	//Log.d(TAG, "OFMessage length = " + ofe.getOFMessage().getLength() + "  ofdata length = " + ofdata.length);
+            	Bundle data = new Bundle();            	
+            	/** test gson **/
+            	//data.putString(HolyCMessage.OFCOMM_EVENT.str_key, gson.toJson(ofe, OFEvent.class));
+            	data.putByteArray(HolyCMessage.OFCOMM_EVENT.data_key, ofdata);
+            	data.putInt(HolyCMessage.OFCOMM_EVENT.port_key, remotePort.intValue());
+            	/** end of gson test**/
+            	msg.setData(data);
+                mClients.get(i).send(msg);
+                
             } catch (RemoteException e) {
                 mClients.remove(i);
             }

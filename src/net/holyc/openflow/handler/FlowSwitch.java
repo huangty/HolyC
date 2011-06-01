@@ -49,11 +49,15 @@ public class FlowSwitch
 	public void onReceive(Context context, Intent intent) 
     {
 	if(intent.getAction().equals(HolyCIntent.OFPacketIn_Intent.action)){
-	    OFPacketInEvent opi = 
-		gson.fromJson(intent.getStringExtra(HolyCIntent.OFPacketIn_Intent.str_key),
+		/** gson test**/
+	    /*OFPacketInEvent opi = gson.fromJson(intent.getStringExtra(HolyCIntent.OFPacketIn_Intent.str_key),
 			      OFPacketInEvent.class);
-	    OFPacketIn opie = opi.getOFPacketIn();
-	    
+	    OFPacketIn opie = opi.getOFPacketIn();*/
+		byte[] ofdata = intent.getByteArrayExtra(HolyCIntent.OFPacketIn_Intent.data_key);
+		int port = intent.getIntExtra(HolyCIntent.OFPacketIn_Intent.port_key, -1);
+		OFPacketIn opie = new OFPacketIn();
+		opie.readFrom(Utility.getByteBuffer(ofdata));
+	    /** end of gson test**/
 	    //Record port and entry
 	    OFMatch ofm = new OFMatch();
 	    ofm.loadFromPacket(opie.getPacketData(),
@@ -75,10 +79,14 @@ public class FlowSwitch
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
 	    ByteBuffer bb = getResponse(out, opie, ofm, context);
-	    OFReplyEvent ofpoe = new OFReplyEvent(opi.getSocketChannelNumber(),
+	    /** gson test**/
+	    /*OFReplyEvent ofpoe = new OFReplyEvent(opi.getSocketChannelNumber(),
 						  bb.array());
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key,
-				gson.toJson(ofpoe, OFReplyEvent.class));
+				gson.toJson(ofpoe, OFReplyEvent.class));*/
+	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb.array());
+	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);
+	    /** end of gson test**/
 	    context.sendBroadcast(poutIntent);
 	}
     }    
