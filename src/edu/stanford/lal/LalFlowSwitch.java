@@ -53,8 +53,7 @@ public class LalFlowSwitch extends FlowSwitch {
 			}
 			/** @TODO: (1) only send request when it's localIP or multicast IP (224.0.0.0 - 239.255.255.255) 
 			 *         (2) keep track of wifi states and 3G states **/
-			AppNameQueryEngine.sendQueryRequest(remoteIP, remotePort,
-					localPort, context);
+			AppNameQueryEngine.sendQueryRequest(remoteIP, remotePort, localPort);
 		}
 		return 0;
 	}

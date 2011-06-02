@@ -106,8 +106,7 @@ public class Lal extends Service {
 						localPort = U16.f(ofm.getTransportDestination());
 						outward = 0;
 					}
-					app_name = AppNameQueryEngine.getPKGNameFromAddr(remoteIP,
-							remotePort, localPort, context);
+					app_name = AppNameQueryEngine.getPKGNameFromAddr(remoteIP, remotePort, localPort);
 					if (outward == 1){
 						Log.d(TAG, app_name+":"+localPort+"->"+remoteIP+":"+remotePort);
 					}else{
