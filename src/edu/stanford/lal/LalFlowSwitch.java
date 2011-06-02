@@ -38,16 +38,21 @@ public class LalFlowSwitch extends FlowSwitch {
 			String remoteIP = "";
 			int remotePort = 0;
 			int localPort = 0;
-
+			String localIP = "";
+			
 			if (ofm.getInputPort() == LOCAL_PORT) {
 				remoteIP = ipToString(ofm.getNetworkDestination());
 				remotePort = U16.f(ofm.getTransportDestination());
-				localPort = U16.f(ofm.getTransportSource());
+				localIP = ipToString(ofm.getNetworkSource());
+				localPort = U16.f(ofm.getTransportSource());				
 			} else {
 				remoteIP = ipToString(ofm.getNetworkSource());
 				remotePort = U16.f(ofm.getTransportSource());
+				localIP = ipToString(ofm.getNetworkDestination());
 				localPort = U16.f(ofm.getTransportDestination());
 			}
+			/** @TODO: (1) only send request when it's localIP or multicast IP (224.0.0.0 - 239.255.255.255) 
+			 *         (2) keep track of wifi states and 3G states **/
 			AppNameQueryEngine.sendQueryRequest(remoteIP, remotePort,
 					localPort, context);
 		}

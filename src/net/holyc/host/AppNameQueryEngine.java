@@ -1,6 +1,7 @@
 package net.holyc.host;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -27,8 +28,9 @@ public class AppNameQueryEngine {
 
 	/**
 	 * Query request Queue
-	 */
+	 */	
 	public static BlockingQueue<Request> requestQueue = new LinkedBlockingQueue<Request>();
+	public static HashMap<String, Integer> requestMap = new HashMap<String, Integer>();
 	
 	public static Thread handleThread = null;
 	
@@ -56,7 +58,7 @@ public class AppNameQueryEngine {
     	return found.getPkgName();
     }
     
-    public static void sendQueryRequest(String remoteIP, int remotePort, int localPort, Context cxt) {
+    public static void sendQueryRequest(String remoteIP, int remotePort, int localPort, Context cxt) {    	
     	if (AppNameQueryEngine.cxt == null) AppNameQueryEngine.cxt = cxt;
     	if (isValidQuery(remoteIP, remotePort, localPort) == false) return;
     	AppNameRequest request = new AppNameRequest(remoteIP, remotePort, localPort);
@@ -88,7 +90,7 @@ class RequestHandler implements Runnable {
 					printOut = true;
 					Iterator<Request> itr = AppNameQueryEngine.requestQueue.iterator();					
 					while(itr.hasNext()){
-						AppNameRequest req = (AppNameRequest)itr.next();
+						AppNameRequest req = (AppNameRequest)itr.next();						
 						Log.d(TAG, ":"+req.srcPort+"<->"+req.destIP+":"+req.destPort);
 					}
 				}
@@ -123,6 +125,8 @@ abstract class Request {
  */
 class AppNameRequest extends Request {
 	static final String TAG = "AppNameRequest";
+	static final int TRYTIMES = 1;
+	
 	public String destIP;
 	public int destPort;
 	public int srcPort;
@@ -132,7 +136,7 @@ class AppNameRequest extends Request {
 		this.destIP = destIP;
 		this.destPort = destPort;
 		this.srcPort = srcPort;
-    	ttl = 3;
+    	ttl = TRYTIMES;
     }
     
     public boolean process() {
@@ -154,6 +158,10 @@ class AppNameRequest extends Request {
     	}
         return tryAgain;
     }
+	
+	public String toString(){
+		 return srcPort+" "+destIP+":"+destPort;		
+	}
 }
 
 /**

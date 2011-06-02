@@ -98,6 +98,7 @@ public class EnvInitService extends Service implements Runnable{
             }
         }
     }
+    
     public void doEnvInit(){
     	threeGIF = new ThreeGInterface(this);
     	wifiIF = new WifiInterface(this);
