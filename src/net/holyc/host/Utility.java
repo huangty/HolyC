@@ -11,16 +11,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.util.Log;
 
 /**
@@ -248,27 +245,78 @@ public class Utility {
 		Log.d(TAG, "wifi.interface: " + getProp("wifi.interface"));
 		Log.d(TAG, "wifi.interfac: " + getProp("wifi.interfac"));
 		*/
-		AppNameQueryEngine.sendQueryRequest("74.125.224.106", 80, 36971, cxt);
-		AppNameQueryEngine.sendQueryRequest("74.125.224.97", 80, 54955, cxt);
-		AppNameQueryEngine.sendQueryRequest("61.135.218.49", 80, 58099, cxt);
-		AppNameQueryEngine.sendQueryRequest("72.14.213.139", 80, 38731, cxt);
+		for (int i = 0; i < 2; i++) {
+			AppNameQueryEngine.sendQueryRequest("74.125.224.44", 80, 43622);
+			AppNameQueryEngine.sendQueryRequest("61.135.218.49", 80, 58099);
+				
+		}
 		try {
 			Thread.sleep(500);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		Log.d(TAG, "query1: " + AppNameQueryEngine.getPKGNameFromAddr("74.125.224.106", 80, 36971, cxt));
-		Log.d(TAG, "query2: " + AppNameQueryEngine.getPKGNameFromAddr("74.125.224.97", 80, 54955, cxt));
-		Log.d(TAG, "query3: " + AppNameQueryEngine.getPKGNameFromAddr("61.135.218.49", 80, 58099, cxt));	
-		Log.d(TAG, "query4: " + AppNameQueryEngine.getPKGNameFromAddr("72.14.213.139", 80, 38731, cxt));	
-
+		Log.d(TAG, "query1: " + AppNameQueryEngine.getPKGNameFromAddr("74.125.224.44", 80, 43622));
+		Log.d(TAG, "query3: " + AppNameQueryEngine.getPKGNameFromAddr("61.135.218.49", 80, 58099));	
     }
+	
 	public static ByteBuffer getByteBuffer(byte[] data){
 		ByteBuffer bb;
 		bb = ByteBuffer.allocate(data.length);
 		bb.put(data);
 		bb.flip();
 		return bb;
+	}
+	
+}
+
+/**
+ * a thread-safe implementation of hashmap<string, int>
+ */
+class StringCounterMap {
+	public static final String TAG = "StringCounter"; 
+	public HashMap<String, Integer> hashMap;
+	private Object hashLock = new Object();
+	
+	public StringCounterMap() {
+		hashMap = new HashMap<String, Integer>();
+	}
+	
+	/**
+	 * get count of a request
+	 * @param request
+	 * @return 0 if request doesn't exist
+	 */
+	public int getCount(String key) {
+		Integer countObj = null;
+		int count = 0;
+		synchronized(hashLock) {
+				countObj = hashMap.get(key);
+				if (countObj != null) count = countObj.intValue();
+		}
+		return count;
+	}
+	
+	/**
+	 * set count value of a request
+	 * if the value is less than 0, remove it from requestMap
+	 * @param request, value
+	 */
+	public void setCount(String key, int value) {
+		synchronized(hashLock) {
+			if (value <= 0) {
+				hashMap.remove(key);	
+			} else {
+				hashMap.put(key, value);	
+			}
+		}
+	}
+	
+	public void showMap() {
+		synchronized(hashLock) {
+			for (String k : hashMap.keySet()) {
+				Log.d(TAG, k + "::" + hashMap.get(k));
+			}
+		}
 	}
 }

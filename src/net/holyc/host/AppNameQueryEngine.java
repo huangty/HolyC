@@ -1,12 +1,10 @@
 package net.holyc.host;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import android.content.Context;
 import android.util.Log;
 
 /**
@@ -20,7 +18,6 @@ import android.util.Log;
  */
 public class AppNameQueryEngine {
 	static final String TAG = "AppNameQueryEngine";
-    static Context cxt = null;
 	/**
 	 * Connection info cache
 	 */
@@ -29,10 +26,11 @@ public class AppNameQueryEngine {
 	/**
 	 * Query request Queue
 	 */	
-	public static BlockingQueue<Request> requestQueue = new LinkedBlockingQueue<Request>();
-	public static HashMap<String, Integer> requestMap = new HashMap<String, Integer>();
-	
+	public static final BlockingQueue<Request> requestQueue = new LinkedBlockingQueue<Request>();
+	public static final StringCounterMap requestMap = new StringCounterMap();
 	public static Thread handleThread = null;
+	
+	public static final int MAX_REPLICA = 1;
 	
     /**
      * Judge if the request connection is valid to lsof  
@@ -47,7 +45,7 @@ public class AppNameQueryEngine {
         return valid;
     }
     
-    public static String getPKGNameFromAddr(String remoteIP, int remotePort, int localPort, Context cxt) {
+    public static String getPKGNameFromAddr(String remoteIP, int remotePort, int localPort) {
     	if (remotePort == 53) return "DNSQuery";
     	if (remotePort == 17500) return "CrazzyNet.Trojan";
     	if (remotePort == 111) return "SUN.RemoteControl";
@@ -58,18 +56,24 @@ public class AppNameQueryEngine {
     	return found.getPkgName();
     }
     
-    public static void sendQueryRequest(String remoteIP, int remotePort, int localPort, Context cxt) {    	
-    	if (AppNameQueryEngine.cxt == null) AppNameQueryEngine.cxt = cxt;
+    public static void sendQueryRequest(String remoteIP, int remotePort, int localPort) {    	
     	if (isValidQuery(remoteIP, remotePort, localPort) == false) return;
     	AppNameRequest request = new AppNameRequest(remoteIP, remotePort, localPort);
-    	
+    	int replicaNum = requestMap.getCount(request.toString());
+    	if ( replicaNum >= MAX_REPLICA) {
+    		Log.d(TAG, "drop request " + request.toString());
+    		return;
+    	}
     	try {
+    		//note: the sequence of the two statements can not be changed
+    		requestMap.setCount(request.toString(), replicaNum + 1);
 			requestQueue.put(request);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			Log.d(TAG, "Error of enqeuing request: " + e.getMessage());
 		}
-		if (AppNameQueryEngine.handleThread == null) {
+		if (AppNameQueryEngine.handleThread == null || 
+				AppNameQueryEngine.handleThread.isAlive() == false) {
 			AppNameQueryEngine.handleThread = new Thread(new RequestHandler());
 			AppNameQueryEngine.handleThread.start();
 		}
@@ -95,7 +99,14 @@ class RequestHandler implements Runnable {
 					}
 				}
 				Request req = AppNameQueryEngine.requestQueue.take(); //block on empty queue
-				if (req.process() == true) AppNameQueryEngine.requestQueue.put(req);
+				if (req.process() == true) {
+					AppNameQueryEngine.requestQueue.put(req);
+				} else {
+					String key = req.toString();
+					int value = AppNameQueryEngine.requestMap.getCount(key) - 1;
+					AppNameQueryEngine.requestMap.setCount(key, value);
+					//AppNameQueryEngine.requestMap.showMap();
+				}
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				Log.d(TAG, "Error of dequeuing request: " + e.getMessage());
@@ -105,6 +116,8 @@ class RequestHandler implements Runnable {
 	}
 	
 }
+
+
 
 /**
  * Base class of request class
@@ -125,7 +138,7 @@ abstract class Request {
  */
 class AppNameRequest extends Request {
 	static final String TAG = "AppNameRequest";
-	static final int TRYTIMES = 1;
+	static final int TRYTIMES = 2;
 	
 	public String destIP;
 	public int destPort;
@@ -141,18 +154,15 @@ class AppNameRequest extends Request {
     
     public boolean process() {
     	boolean tryAgain = false;
-    	Log.d(TAG, "processing dest IP:" + this.destIP + ":" + this.destPort);
-    	if (this.ttl == 0)
-    		return tryAgain;
+    	Log.d(TAG, "processing " + this.toString());
     	Connection found = AppNameQueryEngine.Connections.find(destIP, destPort, srcPort);
     	if (found == null) {
-    		this.ttl -= 1;
-    		tryAgain = true;
-    		//Log.d(TAG, "Before refreshing");
-    		//AppNameQueryEngine.Connections.showList();
     		AppNameQueryEngine.Connections.refresh();
     		//Log.d(TAG, "After refreshing");
-    		AppNameQueryEngine.Connections.showList();
+    		//AppNameQueryEngine.Connections.showList();
+    		if (AppNameQueryEngine.requestMap.getCount(this.toString()) - 1 <= 0) {
+        		if (--this.ttl > 0) tryAgain = true;
+    		} 
     	} else {
     		if (found.getPkgName() == null) found.setPkgName(Utility.getPKGNameFromPidByCmdLine(found.pid));
     	}
@@ -160,7 +170,7 @@ class AppNameRequest extends Request {
     }
 	
 	public String toString(){
-		 return srcPort+" "+destIP+":"+destPort;		
+		 return srcPort + "-" + destIP + ":" + destPort;		
 	}
 }
 
