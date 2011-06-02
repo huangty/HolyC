@@ -24,9 +24,6 @@ import net.holyc.dispatcher.OFPacketInEvent;
 import net.holyc.dispatcher.OFReplyEvent;
 import net.holyc.host.Utility;
 
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFHello;
 import org.openflow.protocol.OFMessage;
