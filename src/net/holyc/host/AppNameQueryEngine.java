@@ -45,11 +45,29 @@ public class AppNameQueryEngine {
         return valid;
     }
     
+    public static String queryServiceByPort(int remotePort) {
+    	String service = null;
+    	switch (remotePort) {
+    	case 53:
+    		service = "DNSQuery";
+    		break;
+    	case 17500:
+    		service = "CrazzyNet.Trojan";
+    		break;
+    	case 111:
+    		service = "SUN.RemoteControl";
+    		break;
+    	case 137:
+    		service = "NETBOIS";
+    		break;
+    	}
+    	return service;
+    }
+    
     public static String getPKGNameFromAddr(String remoteIP, int remotePort, int localPort) {
-    	if (remotePort == 53) return "DNSQuery";
-    	if (remotePort == 17500) return "CrazzyNet.Trojan";
-    	if (remotePort == 111) return "SUN.RemoteControl";
     	if (isValidQuery(remoteIP, remotePort, localPort) == false) return null;
+    	String knownService = queryServiceByPort(remotePort);
+    	if (knownService != null) return knownService;
     	Connection found = Connections.find(remoteIP, remotePort, localPort);
     	if (found == null) return null;
     	if (found.getPkgName() == null) found.setPkgName(Utility.getPKGNameFromPidByCmdLine(found.pid));

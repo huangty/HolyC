@@ -258,7 +258,7 @@ public class Utility {
 		 * Log.d(TAG, "wifi.interface: " + getProp("wifi.interface"));
 		 * Log.d(TAG, "wifi.interfac: " + getProp("wifi.interfac"));
 		 */
-		for (int i = 0; i < 2; i++) {
+		/*for (int i = 0; i < 2; i++) {
 			AppNameQueryEngine.sendQueryRequest("74.125.224.44", 80, 43622);
 			AppNameQueryEngine.sendQueryRequest("61.135.218.49", 80, 58099);
 
@@ -277,6 +277,10 @@ public class Utility {
 				"query3: "
 						+ AppNameQueryEngine.getPKGNameFromAddr(
 								"61.135.218.49", 80, 58099));
+		*/
+		//Log.d(TAG, "format: " + toHexNetworkAddr("127.0.0.1", 5037));
+		Log.d(TAG, "query:" + SimpleAppNameQuery.getPKGNameFromAddr(cxt, "192.168.2.2", 53846, "74.125.224.131", 80));
+		Log.d(TAG, "query:" + SimpleAppNameQuery.getPKGNameFromAddr(cxt, "192.168.2.2", 53728, "61.135.218.49", 80));
 	}
 
 	public static ByteBuffer getByteBuffer(byte[] data) {
@@ -286,6 +290,7 @@ public class Utility {
 		bb.flip();
 		return bb;
 	}
+	
 
 }
 
