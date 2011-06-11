@@ -82,6 +82,7 @@ public class Lal extends Service {
 				//int port = intent.getIntExtra(HolyCIntent.OFFlowRemoved_Intent.port_key, -1);
 				OFFlowRemoved ofr = new OFFlowRemoved();
 				ofr.readFrom(Utility.getByteBuffer(ofdata));
+				long cookie = ofr.getCookie();
 				OFMatch ofm = ofr.getMatch();
 				/** end of gson test**/
 				
@@ -126,7 +127,6 @@ public class Lal extends Service {
 				/** gson test**/
 				//ofre.getOFFlowRemoved().setCookie(app_name.hashCode());
 				//OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
-				ofr.setCookie(app_name.hashCode());
 				OpenFlow.addOFFlowRemoved2CV(cv, ofr);
 				/** end of gson test**/
 				db.insert(TABLE_NAME, cv);

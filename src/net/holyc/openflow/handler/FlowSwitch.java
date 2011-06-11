@@ -73,12 +73,12 @@ public class FlowSwitch
 		out = hostPort.get(HexString.toHexString(ofm.getDataLayerDestination()));
 
 	    //Send Query  
-	    sendQuery(ofm, context);
+	    long cookie = sendQuery(ofm, context);
 	    //Send response
 	    
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
-	    ByteBuffer bb = getResponse(out, opie, ofm, context);
+	    ByteBuffer bb = getResponse(out, opie, ofm, context, cookie);
 	    /** gson test**/
 	    /*OFReplyEvent ofpoe = new OFReplyEvent(opi.getSocketChannelNumber(),
 						  bb.array());
@@ -92,12 +92,14 @@ public class FlowSwitch
     }    
 
 
-    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, Context context)
+    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, Context context, long cookie)
     {
 	OFActionOutput oao = new OFActionOutput();	    
 	oao.setMaxLength((short) 0);     
 	List<OFAction> actions = new ArrayList<OFAction>();
 	ByteBuffer bb;
+	/** to handle DHCP specially, always broadcast a dhcp packet**/
+	boolean isDHCP = Utility.isDHCP(ofm);
 	
 	if (out != null)
 	{		
@@ -114,7 +116,7 @@ public class FlowSwitch
 	    offm.setHardTimeout((short) 0);
 	    offm.setPriority((short) 32768);
 	    offm.setFlags((short) 1); //Send flow removed
-	    //offm.setCookie(getCookie(ofm, context));
+	    offm.setCookie(cookie);	    
 	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
 	    
 	    bb = ByteBuffer.allocate(offm.getLength());
@@ -122,6 +124,9 @@ public class FlowSwitch
 	}
 	else
 	{
+		if(isDHCP){
+			Log.d(TAG, "DHCP and flood");
+		}
 	    //Flood packet
 	    oao.setPort(OFPort.OFPP_FLOOD.getValue()); //Flood port
 	    OFPacketOut opo = new OFPacketOut();
@@ -146,4 +151,5 @@ public class FlowSwitch
     {
 	return 0;
     }
+        
 }

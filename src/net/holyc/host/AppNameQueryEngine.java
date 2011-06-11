@@ -86,6 +86,7 @@ public class AppNameQueryEngine {
     		//note: the sequence of the two statements can not be changed
     		requestMap.setCount(request.toString(), replicaNum + 1);
 			requestQueue.put(request);
+			Log.d(TAG, "enqueue req: " + request.toString());
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			Log.d(TAG, "Error of enqeuing request: " + e.getMessage());
@@ -118,6 +119,7 @@ class RequestHandler implements Runnable {
 				}
 				Request req = AppNameQueryEngine.requestQueue.take(); //block on empty queue
 				if (req.process() == true) {
+					Log.d(TAG, "re-enqueue request: " + req.toString());
 					AppNameQueryEngine.requestQueue.put(req);
 				} else {
 					String key = req.toString();

@@ -3,6 +3,7 @@ package edu.stanford.lal;
 import java.util.HashMap;
 
 import net.holyc.host.AppNameQueryEngine;
+import net.holyc.host.SimpleAppNameQuery;
 import net.holyc.openflow.handler.FlowSwitch;
 
 import org.openflow.protocol.OFMatch;
@@ -32,6 +33,7 @@ public class LalFlowSwitch extends FlowSwitch {
 	public static HashMap<String, Object> appNames = new HashMap<String, Object>();
 
 	public int sendQuery(OFMatch ofm, Context context) {
+		int cookie = 0;
 		if (ofm.getNetworkProtocol() == 0x06
 				|| ofm.getNetworkProtocol() == 0x11) {
 			// it is tcp or udp
@@ -52,10 +54,17 @@ public class LalFlowSwitch extends FlowSwitch {
 				localPort = U16.f(ofm.getTransportDestination());
 			}
 			/** @TODO: (1) only send request when it's localIP or multicast IP (224.0.0.0 - 239.255.255.255) 
-			 *         (2) keep track of wifi states and 3G states **/
+			 *         (2) keep track of wifi states and 3G states **/			
+			String appName = SimpleAppNameQuery.getPKGNameFromAddr(context, localIP, localPort, remoteIP, remotePort);
 			AppNameQueryEngine.sendQueryRequest(remoteIP, remotePort, localPort);
+			if(appName == null){
+				cookie = -1;
+			}else{
+				cookie = appName.hashCode();				
+			}
+			
 		}
-		return 0;
+		return cookie;
 	}
 
 	protected static String ipToString(int ip) {

@@ -109,11 +109,15 @@ public class SimpleAppNameQuery {
     	if (AppNameQueryEngine.isValidQuery(remoteIP, remotePort, localPort) == false) return null;
     	String knownService = AppNameQueryEngine.queryServiceByPort(remotePort);
     	if (knownService != null) return knownService;
+    	
     	int uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
     	//Log.d(TAG, "uid = " + uid);
     	if (uid < 0) return null;
     	if (uid2PkgName.containsKey(uid) == false) {
     		refreshCache(cxt);
+    	}
+    	if (uid2PkgName.containsKey(uid) == false) {
+    		uid2PkgName.put(uid, ""+uid);
     	}
     	return uid2PkgName.get(uid);
 	}
