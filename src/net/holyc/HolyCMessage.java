@@ -45,9 +45,18 @@ public class HolyCMessage
     /**
      * @see DispatcheService
      */
-    public class UIREPORT_UPDATE
+    public class DISPATCH_STOP
     {
 	public static final int type = MAX_MSG_TYPE+4;
+	public static final String str_key = "MSG_DISPATCH_STOP_REASON";
+    }
+
+    /**
+     * @see DispatcheService
+     */
+    public class UIREPORT_UPDATE
+    {
+	public static final int type = MAX_MSG_TYPE+5;
 	public static final String str_key = "MSG_UIREPORT_UPDATE";
     }
 
@@ -56,7 +65,7 @@ public class HolyCMessage
      */
     public class NEW_EVENT
     {
-	public static final int type = MAX_MSG_TYPE+5;
+	public static final int type = MAX_MSG_TYPE+6;
     }
 
     /**
@@ -64,7 +73,7 @@ public class HolyCMessage
      */
     public class OFCOMM_EVENT
     {
-	public static final int type = MAX_MSG_TYPE+6;
+	public static final int type = MAX_MSG_TYPE+7;
 	public static final String str_key = "OFEVENT";
 	public static final String data_key = "OFDATA";
 	public static final String port_key = "OFPORT";
@@ -75,7 +84,7 @@ public class HolyCMessage
      */
     public class OFREPLY_EVENT
     {
-	public static final int type = MAX_MSG_TYPE+7;
+	public static final int type = MAX_MSG_TYPE+8;
 	public static final String str_key = "OFREPLY_EVENT";
 	public static final String data_key = "OFREPLY_DATA";
 	public static final String port_key = "OFREPLY_PORT";
@@ -86,7 +95,7 @@ public class HolyCMessage
      */
     public class ENV_INIT_REGISTER
     {
-	public static final int type = MAX_MSG_TYPE+8;
+	public static final int type = MAX_MSG_TYPE+9;
     }
 
     /**
@@ -94,7 +103,7 @@ public class HolyCMessage
      */
     public class ENV_INIT_UNREGISTER
     {
-	public static final int type = MAX_MSG_TYPE+9;
+	public static final int type = MAX_MSG_TYPE+10;
     }
 
     /**
@@ -102,7 +111,7 @@ public class HolyCMessage
      */
     public class ENV_INIT_START
     {
-	public static final int type = MAX_MSG_TYPE+10;
+	public static final int type = MAX_MSG_TYPE+11;
     }
 
     /**
@@ -110,7 +119,7 @@ public class HolyCMessage
      */
     public class MONITOR_REGISTER
     {
-	public static final int type = MAX_MSG_TYPE+11;
+	public static final int type = MAX_MSG_TYPE+12;
     }
 
     /**
@@ -118,7 +127,7 @@ public class HolyCMessage
      */
     public class MONITOR_UNREGISTER
     {
-	public static final int type = MAX_MSG_TYPE+12;
+	public static final int type = MAX_MSG_TYPE+13;
     }
 
     /**
@@ -126,7 +135,7 @@ public class HolyCMessage
      */
     public class MONITOR_START
     {
-	public static final int type = MAX_MSG_TYPE+13;
+	public static final int type = MAX_MSG_TYPE+14;
     }
 
     /**
@@ -134,7 +143,7 @@ public class HolyCMessage
      */
     public class STATUSUI_REPORT_UPDATE
     {
-	public static final int type = MAX_MSG_TYPE+14;
+	public static final int type = MAX_MSG_TYPE+15;
 	public static final String str_key = "MSG_REPORT_UPDATE";
     }
 
@@ -143,7 +152,7 @@ public class HolyCMessage
      */
     public class OFCOMM_REGISTER
     {
-	public static final int type = MAX_MSG_TYPE+15;
+	public static final int type = MAX_MSG_TYPE+16;
     }
 
     /**
@@ -151,7 +160,7 @@ public class HolyCMessage
      */
     public class OFCOMM_UNREGISTER
     {
-	public static final int type = MAX_MSG_TYPE+16;
+	public static final int type = MAX_MSG_TYPE+17;
     }
 
     /**
@@ -159,7 +168,7 @@ public class HolyCMessage
      */
     public class OFCOMM_SET_VALUE
     {
-	public static final int type = MAX_MSG_TYPE+17;
+	public static final int type = MAX_MSG_TYPE+18;
     }
 
     /**
@@ -167,6 +176,6 @@ public class HolyCMessage
      */
     public class OFCOMM_START_OPENFLOWD
     {
-	public static final int type = MAX_MSG_TYPE+18;
+	public static final int type = MAX_MSG_TYPE+19;
     }      
 }

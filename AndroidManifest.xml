@@ -22,34 +22,10 @@
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
-    </activity>
-    <activity android:name=".entryUI"
-              android:label="@string/entry_UI"
-              android:configChanges="keyboardHidden|orientation"
-              android:screenOrientation="portrait"
-              >
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-      </intent-filter>
-    </activity>        
-    <activity android:name=".statusUI"
-              android:label="@string/report_title"
-              android:configChanges="keyboardHidden|orientation"
-              android:screenOrientation="portrait"
-              android:launchMode="singleTask"
-              >
-      <intent-filter>
-        <!-- <action android:name="android.intent.action.MAIN" /> -->
-        <!-- <category android:name="android.intent.category.LAUNCHER" />-->
-      </intent-filter>
-    </activity>
+    </activity>    
     <service android:name=".ofcomm.OFCommService"/>
-<!--             android:process=":ofcomm" />-->
     <service android:name=".host.EnvInitService" />
-<!--             android:process=":envInit" /> -->
     <service android:name=".dispatcher.DispatchService"  />
-<!--             android:process=":dispatch" /> -->
 
     <service android:name="edu.stanford.lal.Lal" />
  	<!-- <service android:name="edu.stanford.lal.LalPermTester" /> -->

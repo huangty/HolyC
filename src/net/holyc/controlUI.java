@@ -112,7 +112,7 @@ public class controlUI extends Activity{
     private Button.OnClickListener bindDispatchService = new Button.OnClickListener(){
     	public void onClick(View v){
     		if(((ToggleButton)v).isChecked()){    		
-    			doBindDispatchService();    		
+    			doBindDispatchService(true);    		
     		}else{
     			doUnbindDispatchService();
     		}    		
@@ -136,6 +136,8 @@ public class controlUI extends Activity{
     	clearTextView(); 
     	mBuffer.append("Dispatch Service is running ... \n");
     	doRedraw();
+    	doBindDispatchService(false);
+
     	return c;
     }
     private void doStopDispatchService(){
@@ -144,11 +146,12 @@ public class controlUI extends Activity{
     	clearTextView(); 
     	mBuffer.append("Dispatch Service is NOT running ... \n");
     	doRedraw();
+    	doUnbindDispatchService();
     }
     /** Bind with DispatchService **/
-	void doBindDispatchService() {		
+	void doBindDispatchService(boolean check) {		
 		Intent intent = new Intent(controlUI.this, DispatchService.class);
-		if(isDispatchServiceRunning() ){
+		if(check && isDispatchServiceRunning() == false ){
 			//if the service is not running
 			doStartDispatchService();
 		}
@@ -194,11 +197,13 @@ public class controlUI extends Activity{
 	        switch (msg.what) {
 	            case HolyCMessage.DISPATCH_REPORT.type:
 					mBuffer.append(msg.getData().getString(HolyCMessage.DISPATCH_REPORT.str_key)+"\n");
+					Log.d(TAG, "get report from dispatch service: " + msg.getData().getString(HolyCMessage.DISPATCH_REPORT.str_key));
+					doRedraw();
 	                break;
 	            default:
 	                super.handleMessage(msg);
 	        }
-	        doRedraw();
+	        
 	    }
 	}
 	

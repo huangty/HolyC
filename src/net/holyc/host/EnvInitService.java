@@ -4,7 +4,12 @@ import java.util.ArrayList;
 
 import net.holyc.HolyCMessage;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -30,7 +35,7 @@ import android.util.Log;
  */
 
 
-public class EnvInitService extends Service implements Runnable{
+public class EnvInitService extends Service {//implements Runnable{
 
 	String TAG = "HOLYC.EnvInit";	
 	
@@ -47,7 +52,13 @@ public class EnvInitService extends Service implements Runnable{
 	private HostInterface wifiGW = null;
 	private HostInterface threeGGW= null;
 	private VirtualSwitch ovs = null;
-        
+	private ConnectivityManager mConnectivityManager = null; 
+    private NetworkInfo wifiInfo = null;
+    private NetworkInfo mobileInfo = null;
+    private boolean isOVSsetup = false;
+    private boolean isOpenflowdSetup = false;
+    
+	
     /** Handler of incoming messages from clients (Activities). */
     class IncomingHandler extends Handler {
         @Override
@@ -59,7 +70,7 @@ public class EnvInitService extends Service implements Runnable{
                 case HolyCMessage.ENV_INIT_UNREGISTER.type:
                     mClients.remove(msg.replyTo);
                     break;                                   
-	        case HolyCMessage.ENV_INIT_START.type:
+                case HolyCMessage.ENV_INIT_START.type:
             		wifi_included = true;
             		mobile_included = true;
                 	if(msg.arg1 == 0){
@@ -69,7 +80,7 @@ public class EnvInitService extends Service implements Runnable{
                 		mobile_included = false;
                 	}                	
                 	isMultipleInterface = wifi_included & mobile_included;
-                	sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
+                	//sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	Log.d(TAG, "Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	doEnvInit();
                 	
@@ -79,12 +90,44 @@ public class EnvInitService extends Service implements Runnable{
             }
         }
     }    
+    
+    /**
+     * Broadcast Receiver to receive status changes for WiFi
+     */
+    private BroadcastReceiver mNetworkInfoReceiver = new BroadcastReceiver(){
+
+		@Override
+		public void onReceive(Context arg0, Intent arg1) {
+			   NetworkInfo networkInfo = (NetworkInfo) arg1.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
+			   
+			   if(networkInfo.getType() == ConnectivityManager.TYPE_WIFI){
+				   wifiInfo = networkInfo;
+				   Log.d(TAG, "Broadcast Receiver WiFi: " + wifiInfo.toString());
+				   if(wifiInfo.isConnected()){ //connected to a different ap
+					   sendReportToUI("WiFi: a new connection");
+					   //doEnvCleanup();
+					   doEnvInit();
+				   }else if (wifiInfo.isConnectedOrConnecting()){ //is connecting
+					   sendReportToUI("WiFi: is connecting ... ");
+				   }else{ //currently disconnected
+					   sendReportToUI("WiFi: disconnected from the network");
+					   doEnvCleanup();					   
+				   }
+			   }else if(networkInfo.getType() == ConnectivityManager.TYPE_MOBILE){
+				   mobileInfo = networkInfo;
+				   Log.d(TAG, "delete 3G route " + threeGIF.getName());
+				   Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
+			   }else{
+				   Log.d(TAG, "Broadcast Receiver: " + networkInfo.toString());
+			   }
+		}    	
+    };
     /**
      * Target we publish for clients to send messages to IncomingHandler.
      */
     final Messenger mMessenger = new Messenger(new IncomingHandler());
     
-    /** Send Message Back To statusUI */
+    /** Send Message Back To UI */
     public void sendReportToUI(String str){
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
@@ -99,10 +142,40 @@ public class EnvInitService extends Service implements Runnable{
         }
     }
     
+    
+    
     public void doEnvInit(){
     	threeGIF = new ThreeGInterface(this);
     	wifiIF = new WifiInterface(this);
+    	mConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+    	
+        wifiInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        mobileInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 
+        // print info
+        Log.d(TAG, "Init : WiFi Info: " + wifiInfo.toString());
+        Log.d(TAG, "Init : 3G Info:" + mobileInfo.toString());
+        Log.d(TAG, "interfaces in the system " + android.os.Build.DEVICE);
+
+        if(wifiInfo.isConnected()){
+        	wifi_included = true;
+        }else{
+        	wifi_included = false;
+        }
+    	
+        if(mobileInfo.isConnected()){
+        	mobile_included = true;        
+        }else{
+        	mobile_included = false;
+        }
+        
+        if(wifi_included == false && mobile_included == false){
+        	//stopController();
+        	Log.d(TAG, "NO connection available");
+        	sendReportToUI("NO connection available, abort!");
+        	return;
+        }
+        
     	if(wifi_included){
     		doWiFiInit();
     	}
@@ -110,10 +183,17 @@ public class EnvInitService extends Service implements Runnable{
     		doMobileInit();
     	}
     	doVethInit();
-    	doOVSInit();
-    	doOpenflowdInit();
+    	if(isOVSsetup == false){
+    		doOVSInit();
+    		isOVSsetup = true;
+    	}
+    	if(isOpenflowdSetup == false){
+    		doOpenflowdInit();
+    		isOpenflowdSetup = true;
+    	}
     	doRoutingInit();
-    	startMonitorThread();
+    	//startMonitorThread();    	
+    	sendReportToUI("Setup the Environment successfully");
     	/**
     	 * TODO: Notify the statusUI that environment initiation is finished, time to start the Monitor service
     	 */
@@ -127,14 +207,14 @@ public class EnvInitService extends Service implements Runnable{
     	Log.d(TAG, "wifi Name is " + wifiIF.getName());
     	Log.d(TAG, "wifi IP is " + wifiIF.getIP());
     	Log.d(TAG, "wifi mac is " + wifiIF.getMac());
-    	sendReportToUI("wifi Name is " + wifiIF.getName());
-    	sendReportToUI("wifi IP is " + wifiIF.getIP());
-    	sendReportToUI("wifi mac is " + wifiIF.getMac());
+    	//sendReportToUI("wifi Name is " + wifiIF.getName());
+    	//sendReportToUI("wifi IP is " + wifiIF.getIP());
+    	//sendReportToUI("wifi mac is " + wifiIF.getMac());
     	if(wifiGW != null){
     		Log.d(TAG, "wifi gw IP is " + wifiGW.getIP());
     		Log.d(TAG, "wifi gw mac is " + wifiGW.getMac());    	
-    		sendReportToUI("wifi gw IP is " + wifiGW.getIP());
-    		sendReportToUI("wifi gw mac is " + wifiGW.getMac());
+    		//sendReportToUI("wifi gw IP is " + wifiGW.getIP());
+    		//sendReportToUI("wifi gw mac is " + wifiGW.getMac());
     	}
     }
     
@@ -150,12 +230,12 @@ public class EnvInitService extends Service implements Runnable{
     	Log.d(TAG, "3G Mac is " + threeGIF.getMac());
     	Log.d(TAG, "3G GW IP is " + threeGGW.getIP());
     	Log.d(TAG, "3G GW Mac is " + threeGGW.getMac());
-    	sendReportToUI("3G name is " + threeGIF.getName());
-    	sendReportToUI("3G IP is " + threeGIF.getIP());
-    	sendReportToUI("3G Mask is " + threeGIF.getMask());
-    	sendReportToUI("3G Mac is " + threeGIF.getMac());
-    	sendReportToUI("3G GW IP is " + threeGGW.getIP());
-    	sendReportToUI("3G GW Mac is " + threeGGW.getMac());
+    	//sendReportToUI("3G name is " + threeGIF.getName());
+    	//sendReportToUI("3G IP is " + threeGIF.getIP());
+    	//sendReportToUI("3G Mask is " + threeGIF.getMask());
+    	//sendReportToUI("3G Mac is " + threeGIF.getMac());
+    	//sendReportToUI("3G GW IP is " + threeGGW.getIP());
+    	//sendReportToUI("3G GW Mac is " + threeGGW.getMac());
     }
     
     public void doVethInit(){    	
@@ -191,9 +271,9 @@ public class EnvInitService extends Service implements Runnable{
     	Log.d(TAG, "veth name is " + vIFs.getNames());
     	Log.d(TAG, "veth IP is " + vIFs.getIPs());
     	Log.d(TAG, "veth Mac is " + vIFs.getMacs());    	
-    	sendReportToUI("veth name is " + vIFs.getNames());
-    	sendReportToUI("veth IP is " + vIFs.getIPs());
-    	sendReportToUI("veth Mac is " + vIFs.getMacs());
+    	//sendReportToUI("veth name is " + vIFs.getNames());
+    	//sendReportToUI("veth IP is " + vIFs.getIPs());
+    	//sendReportToUI("veth Mac is " + vIFs.getMacs());
     }
     
     /**
@@ -215,7 +295,7 @@ public class EnvInitService extends Service implements Runnable{
     		ovs.addIF("dp0", threeGIF.getName());
     	}
     	/** debug messages*/
-    	sendReportToUI("Setup OVS");
+    	//sendReportToUI("Setup OVS");
     	Log.d(TAG, "OVS setuped");
     }         
         
@@ -228,7 +308,7 @@ public class EnvInitService extends Service implements Runnable{
     	 */
     	/** debug messages*/
     	//sendReportToUI("Please Setup Openflowd By Hand, go to adb shell; /data/local/bin/ovs-openflowd dp0 tcp:127.0.0.1 --out-of-band");
-    	sendReportToUI("Openflowd is running in detached mode");
+    	//sendReportToUI("Openflowd is running in detached mode");
     }
        
     public void doRoutingInit(){
@@ -248,43 +328,56 @@ public class EnvInitService extends Service implements Runnable{
     	}
     	Log.d(TAG, "Routing setuped");
     }
+    
+    public void doEnvCleanup(){    	
+    	Utility.runRootCommand("killall ovs-openflowd", false);
+    	if(wifiIF != null){
+    		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + wifiIF.getName(), false);
+    	}
+    	if(vIFs != null){
+    		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + vIFs.getVeth0().getName(), false);
+    	}
+		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);
+		Utility.runRootCommand("rmmod openvswitch_mod", false);		
+		Utility.runRootCommand("/data/local/bin/busybox ip link del veth0", false);
+		isOVSsetup = false;
+		isOpenflowdSetup = false;
+		sendReportToUI("Clean up the environment");
+		//stopMonitorThread();
+    }
 	@Override
 	public IBinder onBind(Intent arg0) {
-		return mMessenger.getBinder();
+		this.registerReceiver(this.mNetworkInfoReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+		return mMessenger.getBinder();		
 	}
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		Utility.runRootCommand("killall ovs-openflowd", false);
-		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + wifiIF.getName(), false);
-		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + vIFs.getVeth0().getName(), false);
-		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);
-		Utility.runRootCommand("rmmod openvswitch_mod", false);
-		Utility.runRootCommand("/data/local/bin/busybox ip link del veth0", false);
-		Log.d(TAG, "cleanup the environment ");
-		stopMonitorThread();
+		doEnvCleanup();
+		Log.d(TAG, "cleanup the environment ");		
+		unregisterReceiver(this.mNetworkInfoReceiver);
 	}
 	public void startMonitorThread(){
-		monitorThread = new Thread(this);  
-		monitorThread.start();
+		//monitorThread = new Thread(this);  
+		//monitorThread.start();
 	}
 	public void stopMonitorThread(){
-   	 if (monitorThread != null) {
+   	 /*if (monitorThread != null) {
             monitorThread.interrupt();
             monitorThread = null;
-        }
+        }*/
    }    
-	public void run() {
+	/*public void run() {
 		//check the status every 30 seconds?
 		try {
 			while(true){
 				Thread.sleep(30000);				
 				if(threeGIF!=null){									
-					Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
-					Log.d(TAG, "delete 3G route " + threeGIF.getName());
+					//Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
+					//Log.d(TAG, "delete 3G route " + threeGIF.getName());
 				}
 			}
 		} catch (InterruptedException e) {
 		}
-	}
+	}*/
 }

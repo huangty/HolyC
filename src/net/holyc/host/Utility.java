@@ -15,6 +15,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.openflow.protocol.OFMatch;
+import org.openflow.util.U16;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -291,6 +294,17 @@ public class Utility {
 		return bb;
 	}
 	
+	public static boolean isDHCP(OFMatch ofm){
+		if(ofm.getNetworkProtocol() == 0x11){ //UDP
+			int dPort = U16.f(ofm.getTransportDestination());
+			int sPort = U16.f(ofm.getTransportSource());
+			if((dPort == 67 || dPort == 68) && (sPort == 67 || sPort == 68)){
+				Log.d(TAG, "found a dhcp packet! " + ofm.toString());
+				return true;
+			}
+		}
+		return false;
+	}
 
 }
 
@@ -337,5 +351,5 @@ class StringCounterMap {
 		for (String k : hashMap.keySet()) {
 			Log.d(TAG, k + "::" + hashMap.get(k));
 		}
-	}
+	}	
 }
