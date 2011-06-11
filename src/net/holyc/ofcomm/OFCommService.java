@@ -15,6 +15,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.holyc.HolyCMessage;
@@ -26,9 +27,14 @@ import net.holyc.host.Utility;
 
 import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFHello;
+import org.openflow.protocol.OFMatch;
 import org.openflow.protocol.OFMessage;
+import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFType;
+import org.openflow.protocol.action.OFAction;
+import org.openflow.protocol.action.OFActionOutput;
 import org.openflow.protocol.factory.BasicFactory;
+import org.openflow.util.U16;
 
 import com.google.gson.Gson;
 
@@ -82,7 +88,7 @@ public class OFCommService extends Service{
 		break;                    
 	    case HolyCMessage.OFCOMM_START_OPENFLOWD.type:
 		bind_port = msg.arg1;
-		sendReportToUI("Bind on port: " + bind_port);
+		//sendReportToUI("Bind on port: " + bind_port);
 		Log.d(TAG, "Send msg on bind: " + bind_port);
 		startOpenflowController();
 		break;
@@ -215,7 +221,8 @@ public class OFCommService extends Service{
     public void startOpenflowController(){    	
         mAcceptThread = new AcceptThread();
         mAcceptThread.start();
-    	sendReportToUI("Start Controller Daemon"); 
+    	//sendReportToUI("Start Controller Daemon");
+        Log.d(TAG, "Start Controller Daemon");
     }
     public void stopOpenflowController(){
 	if (mAcceptThread != null) {
@@ -263,42 +270,119 @@ public class OFCommService extends Service{
         }
 
         public void run() {
-            setName("HolycAccpetThread");            
-            while (true) {
-            	Socket socket = null;
-                try {
-                    // This is a blocking call and will only return on a
-                    // successful connection or an exception
-                    Log.d(TAG, "waiting for openflow client ...");
-                    socket = mmServerSocket.accept();
-                    socket.setTcpNoDelay(true);
-                    Log.d(TAG, "Client connected!");
-                    
-                } catch (SocketException e) {
-                } catch (IOException e) {
-                    Log.e(TAG, "accept() failed", e);
-                    break;
-                }
+        	setName("HolycAccpetThread");            
+        	while (true) {
+        		Socket socket = null;
+        		try {
+        			// This is a blocking call and will only return on a
+        			// successful connection or an exception
+        			Log.d(TAG, "waiting for openflow client ...");
+        			socket = mmServerSocket.accept();
+        			socket.setTcpNoDelay(true);
+        			Log.d(TAG, "Client connected!");
 
-                // If a connection was accepted
-                if (socket == null) {
-                    break;
-                }
-                
-                //immediately send an OFHello back
-		OFHello ofh = new OFHello();
-		ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
-		ofh.writeTo(bb);
-		sendOFPacket(socket, bb.array());
-		
-		Integer remotePort = new Integer(socket.getPort());
-                socketMap.put(remotePort, socket);
-                ConnectedThread conThread = new ConnectedThread(remotePort, socket);
-                conThread.start();
-            }
-            Log.d(TAG, "END mAcceptThread");
+        		} catch (SocketException e) {
+        		} catch (IOException e) {
+        			Log.e(TAG, "accept() failed", e);
+        			break;
+        		}
+
+        		// If a connection was accepted
+        		if (socket == null) {
+        			break;
+        		}
+
+        		//immediately send an OFHello back
+        		OFHello ofh = new OFHello();
+        		ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
+        		ofh.writeTo(bb);
+        		sendOFPacket(socket, bb.array());
+
+        		//insert default rules
+        		insertDefaultRule(socket);
+        		
+        		Integer remotePort = new Integer(socket.getPort());
+        		socketMap.put(remotePort, socket);
+        		ConnectedThread conThread = new ConnectedThread(remotePort, socket);
+        		conThread.start();
+        	}
+        	Log.d(TAG, "END mAcceptThread");
         }
 
+        
+        public void insertDefaultRule(Socket socket){
+        	/** drop malicious traffic
+        	 * udp srcPort 138 and dstPort 138
+        	 * udp dstPort 137
+        	 * udp srcPort 17500 and dstPort 17500
+        	 * **/  
+        	
+        	ByteBuffer bb;
+    	    OFFlowMod offm = new OFFlowMod();    	        	    
+    	    OFMatch ofm = new OFMatch();
+    	    ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~OFMatch.OFPFW_NW_PROTO & ~OFMatch.OFPFW_TP_DST & ~OFMatch.OFPFW_TP_SRC);    	    
+    	    ofm.setNetworkProtocol((byte)0x11); //udp
+    	    ofm.setDataLayerType((short) 0x0800); //ip    	    
+    	    ofm.setTransportDestination((short) 138);
+    	    ofm.setTransportSource((short) 138);    	    
+    	    offm.setMatch(ofm);
+    	    offm.setOutPort((short) OFPort.OFPP_NONE.getValue());                              
+    	    offm.setBufferId(-1);
+    	    offm.setCommand(OFFlowMod.OFPFC_ADD);
+    	    offm.setIdleTimeout((short) 0);
+    	    offm.setHardTimeout((short) 0); //make the flow entry permenent    	    
+    	    offm.setFlags((short) 1); //Send flow removed    	    
+    	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	    
+    	    bb = ByteBuffer.allocate(offm.getLength());
+    	    offm.writeTo(bb);
+    	    sendOFPacket(socket, bb.array());
+    	    
+    	    offm = new OFFlowMod();    	
+    	    ofm = new OFMatch();
+    	    ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~OFMatch.OFPFW_NW_PROTO & ~OFMatch.OFPFW_TP_DST);    	    
+    	    ofm.setNetworkProtocol((byte)0x11); //udp
+    	    ofm.setDataLayerType((short) 0x0800); //ip    	    
+    	    ofm.setTransportDestination((short) 137);
+    	    offm.setMatch(ofm);
+    	    offm.setOutPort((short) OFPort.OFPP_NONE.getValue());                              
+    	    offm.setBufferId(-1);
+    	    offm.setCommand(OFFlowMod.OFPFC_ADD);
+    	    offm.setIdleTimeout((short) 0);
+    	    offm.setHardTimeout((short) 0); //make the flow entry permenent    	    
+    	    offm.setFlags((short) 1); //Send flow removed    	    
+    	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	    
+    	    bb = ByteBuffer.allocate(offm.getLength());
+    	    offm.writeTo(bb);
+    	    sendOFPacket(socket, bb.array());
+    	    
+    	    offm = new OFFlowMod();    	
+    	    ofm = new OFMatch();
+    	    ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~OFMatch.OFPFW_NW_PROTO & ~OFMatch.OFPFW_TP_DST & ~OFMatch.OFPFW_TP_SRC);    	    
+    	    ofm.setNetworkProtocol((byte)0x11); //udp
+    	    ofm.setDataLayerType((short) 0x0800); //ip    	    
+    	    ofm.setTransportDestination((short) 17500);
+    	    ofm.setTransportSource((short) 17500);    	    
+    	    offm.setMatch(ofm);
+    	    offm.setOutPort((short) OFPort.OFPP_NONE.getValue());                              
+    	    offm.setBufferId(-1);
+    	    offm.setCommand(OFFlowMod.OFPFC_ADD);
+    	    offm.setIdleTimeout((short) 0);
+    	    offm.setHardTimeout((short) 0); //make the flow entry permenent    	    
+    	    offm.setFlags((short) 1); //Send flow removed    	    
+    	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	    
+    	    bb = ByteBuffer.allocate(offm.getLength());
+    	    offm.writeTo(bb);
+    	    sendOFPacket(socket, bb.array());
+    	    
+    	   
+    	    
+        	//forward related arp to controller
+        	//forward related tcp to controller
+        	//forward related udp to controller
+        	//forward related icmp to controller
+        	
+        	//drop all the unrelated traffic (lowest priority )
+        }
         public void close() {
             Log.d(TAG, "close " + this);
             try {
