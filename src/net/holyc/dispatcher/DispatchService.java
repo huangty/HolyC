@@ -99,8 +99,8 @@ public class DispatchService extends Service {
 				mClients.remove(msg.replyTo);
 				break;
 			case HolyCMessage.UIREPORT_UPDATE.type:
-				sendReportToControlUI(msg.getData().getString(
-				HolyCMessage.UIREPORT_UPDATE.str_key));
+				sendReportToControlUI(msg.getData().getString(HolyCMessage.UIREPORT_UPDATE.str_key));
+				Log.d(TAG, "report to UI: " + msg.getData().getString(HolyCMessage.UIREPORT_UPDATE.str_key));
 				break;
 			case HolyCMessage.OFCOMM_EVENT.type:
 				Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
