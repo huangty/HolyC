@@ -60,8 +60,7 @@ public class FlowSwitch
 	    /** end of gson test**/
 	    //Record port and entry
 	    OFMatch ofm = new OFMatch();
-	    ofm.loadFromPacket(opie.getPacketData(),
-			       opie.getInPort());
+	    ofm.loadFromPacket(opie.getPacketData(), opie.getInPort());
 	    hostPort.put(HexString.toHexString(ofm.getDataLayerSource()), 
 			 new Short(ofm.getInputPort()));
 

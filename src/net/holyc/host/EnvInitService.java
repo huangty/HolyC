@@ -41,14 +41,14 @@ public class EnvInitService extends Service {//implements Runnable{
 	
 	/** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
-    private boolean wifi_included;
-	private boolean mobile_included;
+    public static boolean wifi_included;
+	public static boolean mobile_included;
 	private boolean isMultipleInterface;
 	private Thread monitorThread = null;
 	/** The interfaces in the host*/
 	private VirtualInterfacePair vIFs = null;
-	private ThreeGInterface threeGIF = null;
-	private WifiInterface wifiIF = null;
+	public static ThreeGInterface threeGIF = null;
+	public static WifiInterface wifiIF = null;
 	private HostInterface wifiGW = null;
 	private HostInterface threeGGW= null;
 	private VirtualSwitch ovs = null;

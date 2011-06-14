@@ -13,11 +13,14 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import net.beaconcontroller.packet.IPv4;
 import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.dispatcher.OFEvent;
@@ -34,6 +37,8 @@ import org.openflow.protocol.OFType;
 import org.openflow.protocol.action.OFAction;
 import org.openflow.protocol.action.OFActionOutput;
 import org.openflow.protocol.factory.BasicFactory;
+import org.openflow.protocol.factory.OFActionFactory;
+import org.openflow.protocol.factory.OFMessageFactory;
 import org.openflow.util.U16;
 
 import com.google.gson.Gson;
@@ -71,8 +76,12 @@ public class OFCommService extends Service{
     
     /** for debug **/
     static HashMap<Integer, Delay> procDelayTable = new HashMap<Integer, Delay>();
-    
-    
+
+    /** Openflow Flow Rule Priority */
+	final short HIGH_PRIORITY = (short)65535;
+	final short MID_PRIORITY = (short) 32768;
+	final short LOW_PRIORITY = (short) 0;
+
     /**
      * Handler of incoming messages from clients.
      */
@@ -331,8 +340,9 @@ public class OFCommService extends Service{
     	    offm.setCommand(OFFlowMod.OFPFC_ADD);
     	    offm.setIdleTimeout((short) 0);
     	    offm.setHardTimeout((short) 0); //make the flow entry permenent    	    
-    	    offm.setFlags((short) 1); //Send flow removed    	    
-    	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	    
+    	    offm.setFlags((short) 1); //Send flow removed
+    	    offm.setPriority(HIGH_PRIORITY);
+    	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	      	    
     	    bb = ByteBuffer.allocate(offm.getLength());
     	    offm.writeTo(bb);
     	    sendOFPacket(socket, bb.array());
@@ -350,6 +360,7 @@ public class OFCommService extends Service{
     	    offm.setIdleTimeout((short) 0);
     	    offm.setHardTimeout((short) 0); //make the flow entry permenent    	    
     	    offm.setFlags((short) 1); //Send flow removed    	    
+    	    offm.setPriority(HIGH_PRIORITY);
     	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	    
     	    bb = ByteBuffer.allocate(offm.getLength());
     	    offm.writeTo(bb);
@@ -369,19 +380,96 @@ public class OFCommService extends Service{
     	    offm.setIdleTimeout((short) 0);
     	    offm.setHardTimeout((short) 0); //make the flow entry permenent    	    
     	    offm.setFlags((short) 1); //Send flow removed    	    
+    	    offm.setPriority(HIGH_PRIORITY);
     	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	    
     	    bb = ByteBuffer.allocate(offm.getLength());
     	    offm.writeTo(bb);
     	    sendOFPacket(socket, bb.array());
+
+    	    List<String> myIPs = Utility.getDeviceIPs();
     	    
-    	   
-    	    
-        	//forward related arp to controller
-        	//forward related tcp to controller
-        	//forward related udp to controller
-        	//forward related icmp to controller
+    	    Iterator<String> it = myIPs.iterator();
+            OFMessageFactory messageFactory = new BasicFactory();
+            OFActionFactory actionFactory = new BasicFactory();
+
+    		while(it.hasNext()){ //for each IP
+    			String ipS = it.next();
+    			int ip = IPv4.toIPv4Address(ipS);
+    	    	Log.d(TAG, "ip #: " + IPv4.fromIPv4Address(ip));
+    	    	//only forward related arp to controller
+    	    	//arp destinated to the host 
+    	    	OFMatch arp_match = new OFMatch()        
+    	    		.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_DST_SHIFT))    	    				
+    	    				.setNetworkDestination(ip)
+    	    				.setDataLayerType((short)0x0806);//arp    	    	
+    	    	OFActionOutput arp_action = new OFActionOutput()
+    	    									.setPort(OFPort.OFPP_CONTROLLER.getValue())
+    	    									.setMaxLength((short)65535);
+    	    	OFFlowMod arp_fm = new OFFlowMod();
+
+    	    	arp_fm.setBufferId(-1)
+		    	    	.setIdleTimeout((short) 0)
+		    	    	.setHardTimeout((short) 0)
+		    	    	.setOutPort((short) OFPort.OFPP_NONE.getValue())		    	    	
+		    	    	.setCommand(OFFlowMod.OFPFC_ADD)
+		    	    	.setMatch(arp_match)            
+		    	    	.setActions(Collections.singletonList((OFAction)arp_action))
+		    	    	.setPriority(MID_PRIORITY)
+		    	    	.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+
+    	    	ByteBuffer arp_bb = ByteBuffer.allocate(arp_fm.getLength());
+    	    	arp_fm.writeTo(arp_bb);    	    	
+    	    	sendOFPacket(socket, arp_bb.array());
+    	    	
+    	    	//arp originated from the host
+    	    	arp_match = new OFMatch()        
+    	    				.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_SRC_SHIFT))    	    				
+    	    				.setNetworkSource(ip)
+    	    				.setDataLayerType((short)0x0806);//arp    	    	
+    	    	arp_action = new OFActionOutput()
+    	    					.setPort(OFPort.OFPP_CONTROLLER.getValue())
+    	    					.setMaxLength((short)65535);
+    	    	arp_fm = new OFFlowMod();
+
+    	    	arp_fm.setBufferId(-1)
+    	    		  .setIdleTimeout((short) 0)
+    	    		  .setHardTimeout((short) 0)
+    	    		  .setOutPort((short) OFPort.OFPP_NONE.getValue())
+    	    		  .setCommand(OFFlowMod.OFPFC_ADD)
+    	    		  .setMatch(arp_match)            
+    	    		  .setActions(Collections.singletonList((OFAction)arp_action))
+    	    		  .setPriority(MID_PRIORITY)
+    	    		  .setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+
+    	    	arp_bb = ByteBuffer.allocate(arp_fm.getLength());    	    	
+    	    	arp_fm.writeTo(arp_bb);    	    	
+    	    	sendOFPacket(socket, arp_bb.array());
+    	    	
+            	//forward related tcp to controller
+            	//forward related udp to controller
+            	//forward related icmp to controller	
+    	    	
+    	    }
         	
-        	//drop all the unrelated traffic (lowest priority )
+        	
+        	//drop all the unrelated traffic (lowest priority)
+    		offm = new OFFlowMod();    	
+    	    ofm = new OFMatch();
+    	    ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE);    	    
+    	    ofm.setDataLayerType((short)0x0806);
+    	    offm.setMatch(ofm);
+    	    offm.setOutPort((short) OFPort.OFPP_NONE.getValue());                              
+    	    offm.setBufferId(-1);
+    	    offm.setCommand(OFFlowMod.OFPFC_ADD);
+    	    offm.setIdleTimeout((short) 0);
+    	    offm.setHardTimeout((short) 0); //make the flow entry permenent    	    
+    	    offm.setFlags((short) 1); //Send flow removed    	    
+    	    offm.setPriority(LOW_PRIORITY);
+    	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); //+OFActionOutput.MINIMUM_LENGTH));    	    
+    	    bb = ByteBuffer.allocate(offm.getLength());
+    	    offm.writeTo(bb);
+    	    sendOFPacket(socket, bb.array());
+
         }
         public void close() {
             Log.d(TAG, "close " + this);

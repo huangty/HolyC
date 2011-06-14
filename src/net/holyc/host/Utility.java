@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -77,6 +78,16 @@ public class Utility {
 		return (resultLines.size() == 0) ? null : resultLines.get(0);
 	}
 
+	public static List<String> getDeviceIPs(){
+		List<String> ips = new ArrayList<String>();
+		if(EnvInitService.wifi_included && EnvInitService.wifiIF != null){
+			ips.add(EnvInitService.wifiIF.getIP());
+		}
+		if(EnvInitService.mobile_included && EnvInitService.threeGIF != null){
+			ips.add(EnvInitService.threeGIF.getIP());
+		}		
+		return ips;
+	}
 	public static ArrayList<String> readLinesFromFile(String filename) {
 		ArrayList<String> lines = new ArrayList<String>();
 		File file = new File(filename);
