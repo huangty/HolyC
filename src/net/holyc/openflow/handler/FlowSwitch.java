@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.google.gson.Gson;
-
 import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFPacketIn;
 import org.openflow.protocol.OFPacketOut;
@@ -18,8 +16,6 @@ import org.openflow.util.HexString;
 import org.openflow.util.U16;
 
 import net.holyc.HolyCIntent;
-import net.holyc.dispatcher.OFPacketInEvent;
-import net.holyc.dispatcher.OFReplyEvent;
 import net.holyc.host.Utility;
 
 import android.content.BroadcastReceiver;
@@ -38,9 +34,7 @@ public class FlowSwitch
     /** Log name
      */
     private String TAG = "HOLYC.FlowSwitch";
-    /** Reference to GSON
-     */
-    Gson gson = new Gson();
+
     /** MAC address and port association
      */
     public static HashMap<String, Short> hostPort = new HashMap<String, Short>();
@@ -48,16 +42,12 @@ public class FlowSwitch
     @Override    
 	public void onReceive(Context context, Intent intent) 
     {
-	if(intent.getAction().equals(HolyCIntent.OFPacketIn_Intent.action)){
-		/** gson test**/
-	    /*OFPacketInEvent opi = gson.fromJson(intent.getStringExtra(HolyCIntent.OFPacketIn_Intent.str_key),
-			      OFPacketInEvent.class);
-	    OFPacketIn opie = opi.getOFPacketIn();*/
+	if(intent.getAction().equals(HolyCIntent.OFPacketIn_Intent.action)){		
 		byte[] ofdata = intent.getByteArrayExtra(HolyCIntent.OFPacketIn_Intent.data_key);
 		int port = intent.getIntExtra(HolyCIntent.OFPacketIn_Intent.port_key, -1);
 		OFPacketIn opie = new OFPacketIn();
 		opie.readFrom(Utility.getByteBuffer(ofdata));
-	    /** end of gson test**/
+	    
 	    //Record port and entry
 	    OFMatch ofm = new OFMatch();
 	    ofm.loadFromPacket(opie.getPacketData(), opie.getInPort());
@@ -77,15 +67,9 @@ public class FlowSwitch
 	    
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
-	    ByteBuffer bb = getResponse(out, opie, ofm, context, cookie);
-	    /** gson test**/
-	    /*OFReplyEvent ofpoe = new OFReplyEvent(opi.getSocketChannelNumber(),
-						  bb.array());
-	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key,
-				gson.toJson(ofpoe, OFReplyEvent.class));*/
+	    ByteBuffer bb = getResponse(out, opie, ofm, context, cookie);	    
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb.array());
-	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);
-	    /** end of gson test**/
+	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);	    
 	    context.sendBroadcast(poutIntent);
 	}
     }    

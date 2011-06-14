@@ -71,20 +71,14 @@ public class Lal extends Service {
 		public void onReceive(Context context, Intent intent) {
 			if (intent.getAction().equals(
 					HolyCIntent.OFFlowRemoved_Intent.action)) {
-				// Flow removed event (to be recorded)
-				/** gson test**/
-				/*String ofre_json = intent
-						.getStringExtra(HolyCIntent.OFFlowRemoved_Intent.str_key);
-				OFFlowRemovedEvent ofre = gson.fromJson(ofre_json,
-						OFFlowRemovedEvent.class);
-				OFMatch ofm = ofre.getOFFlowRemoved().getMatch();*/
+				// Flow removed event (to be recorded)				
 				byte[] ofdata = intent.getByteArrayExtra(HolyCIntent.OFFlowRemoved_Intent.data_key);
 				//int port = intent.getIntExtra(HolyCIntent.OFFlowRemoved_Intent.port_key, -1);
 				OFFlowRemoved ofr = new OFFlowRemoved();
 				ofr.readFrom(Utility.getByteBuffer(ofdata));
 				long cookie = ofr.getCookie();
 				OFMatch ofm = ofr.getMatch();
-				/** end of gson test**/
+				
 				
 				// Get App Name
 				String app_name = null;
@@ -123,12 +117,8 @@ public class Lal extends Service {
 				ContentValues cv = new ContentValues();
 				cv.put("App", app_name);
 				cv.put("Time_Received",
-						((double) System.currentTimeMillis()) / (1000.0));
-				/** gson test**/
-				//ofre.getOFFlowRemoved().setCookie(app_name.hashCode());
-				//OpenFlow.addOFFlowRemoved2CV(cv, ofre.getOFFlowRemoved());
-				OpenFlow.addOFFlowRemoved2CV(cv, ofr);
-				/** end of gson test**/
+						((double) System.currentTimeMillis()) / (1000.0));				
+				OpenFlow.addOFFlowRemoved2CV(cv, ofr);				
 				db.insert(TABLE_NAME, cv);
 			} else if (intent.getAction()
 					.equals(HolyCIntent.LalAppFound.action)) {

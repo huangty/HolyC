@@ -4,8 +4,6 @@ package net.holyc.ofcomm;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -41,7 +39,6 @@ import org.openflow.protocol.factory.OFActionFactory;
 import org.openflow.protocol.factory.OFMessageFactory;
 import org.openflow.util.U16;
 
-import com.google.gson.Gson;
 
 import android.app.NotificationManager;
 import android.app.Service;
@@ -101,18 +98,7 @@ public class OFCommService extends Service{
 		Log.d(TAG, "Send msg on bind: " + bind_port);
 		startOpenflowController();
 		break;
-	    case HolyCMessage.OFREPLY_EVENT.type:
-	    	/** test gson **/
-	    	/*Gson gson = new Gson();
-	    	String json = msg.getData().getString(HolyCMessage.OFREPLY_EVENT.str_key);	    	
-			OFReplyEvent ofpoe;
-			try {
-			    ofpoe =  gson.fromJson(json, OFReplyEvent.class);
-			} catch (ClassCastException ce) {
-			    Log.e(TAG, "Cannot cast event into OFReplyEvent");
-			    break;
-			}
-			int scn = ofpoe.getSocketChannelNumber();*/
+	    case HolyCMessage.OFREPLY_EVENT.type:	    	
 	    	byte[] ofdata = msg.getData().getByteArray(HolyCMessage.OFREPLY_EVENT.data_key);	    	
 			int scn = msg.getData().getInt(HolyCMessage.OFREPLY_EVENT.port_key);
 			/** for debug **/
@@ -145,8 +131,7 @@ public class OFCommService extends Service{
 			    }
 			    /** for debug */
 			    //sendReportToUI("Send OFReply packet = " + ofpoe.getOFMessage().toString());
-			}
-			/** end of test gson **/
+			}			
 			break;
 	    default:
 		super.handleMessage(msg);
@@ -198,7 +183,6 @@ public class OFCommService extends Service{
         }
     }
     public void sendOFEventToDispatchService(Integer remotePort, byte[] ofdata){
-    	//Gson gson = new Gson();
     	for (int i=mClients.size()-1; i>=0; i--) {
             try {
             	Message msg = Message.obtain(null, HolyCMessage.OFCOMM_EVENT.type);
@@ -213,11 +197,8 @@ public class OFCommService extends Service{
             	//Log.d(TAG, "Recevie OFMessage: " + ofe.getOFMessage().toString());
             	//Log.d(TAG, "OFMessage length = " + ofe.getOFMessage().getLength() + "  ofdata length = " + ofdata.length);
             	Bundle data = new Bundle();            	
-            	/** test gson **/
-            	//data.putString(HolyCMessage.OFCOMM_EVENT.str_key, gson.toJson(ofe, OFEvent.class));
             	data.putByteArray(HolyCMessage.OFCOMM_EVENT.data_key, ofdata);
             	data.putInt(HolyCMessage.OFCOMM_EVENT.port_key, remotePort.intValue());
-            	/** end of gson test**/
             	msg.setData(data);
                 mClients.get(i).send(msg);
                 

@@ -2,13 +2,10 @@ package net.holyc.dispatcher;
 
 import java.util.ArrayList;
 
-import com.google.gson.Gson;
-
 import net.holyc.HolyCIntent;
 import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.controlUI;
-import net.holyc.host.AppNameQueryEngine;
 import net.holyc.host.EnvInitService;
 import net.holyc.ofcomm.OFCommService;
 
@@ -62,19 +59,13 @@ public class DispatchService extends Service {
 	BroadcastReceiver mOFReplyReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
-		    	// just acting as a relay from OFHandler to OFComm
-			/** test gson **/
-			/*Gson gson = new Gson();
-			String json = intent
-					.getStringExtra(HolyCIntent.BroadcastOFReply.str_key);*/
+		    // just acting as a relay from OFHandler to OFComm			
 			byte[] ofdata = intent.getByteArrayExtra(HolyCIntent.BroadcastOFReply.data_key);
 			int port = intent.getIntExtra(HolyCIntent.BroadcastOFReply.port_key, -1);
 			Message msg = Message.obtain(null, HolyCMessage.OFREPLY_EVENT.type);
-			Bundle bundle = new Bundle();
-			//bundle.putString(HolyCMessage.OFREPLY_EVENT.str_key, json);
+			Bundle bundle = new Bundle();			
 			bundle.putByteArray(HolyCMessage.OFREPLY_EVENT.data_key, ofdata);
-			bundle.putInt(HolyCMessage.OFREPLY_EVENT.port_key, port);
-			/** end of test gson **/
+			bundle.putInt(HolyCMessage.OFREPLY_EVENT.port_key, port);			
 			
 			msg.setData(bundle);
 			try {
@@ -104,15 +95,11 @@ public class DispatchService extends Service {
 				break;
 			case HolyCMessage.OFCOMM_EVENT.type:
 				Intent broadcastIntent = new Intent(HolyCIntent.BroadcastOFEvent.action);
-				broadcastIntent.setPackage(getPackageName());
-				/** test gson **/
-				//String ofe_json = msg.getData().getString(HolyCMessage.OFCOMM_EVENT.str_key);
-				//broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.str_key, ofe_json);
+				broadcastIntent.setPackage(getPackageName());				
 				byte[] ofdata = msg.getData().getByteArray(HolyCMessage.OFCOMM_EVENT.data_key);
 				int port = msg.getData().getInt(HolyCMessage.OFCOMM_EVENT.port_key);				
 				broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.data_key, ofdata);
-				broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.port_key, port);			
-				/** end of gson test**/
+				broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.port_key, port);							
 				sendBroadcast(broadcastIntent);
 				break;
 			default:
