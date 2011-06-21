@@ -18,6 +18,10 @@ class ConnectionCacheItem {
 		this.uid = uid;
 		this.timestamp = System.currentTimeMillis() / 1000;
 	}
+	
+	boolean expire(int threshold) {
+		return System.currentTimeMillis() / 1000 - this.timestamp >= threshold;
+	}
 }
 
 /**
@@ -32,6 +36,7 @@ public class SimpleAppNameQuery {
 	public static final HashMap<Integer, String> uid2PkgName = new HashMap<Integer, String>();
 	public static final ConcurrentHashMap<String, ConnectionCacheItem> connectionCache = 
 		new ConcurrentHashMap<String, ConnectionCacheItem>();
+	public static Thread monitorThread = null;
 	
 	/**
 	 * Transport ip and port to hex network address
@@ -139,10 +144,41 @@ public class SimpleAppNameQuery {
     	//Log.d(TAG, "uid = " + uid);
     	if (uid < 0) return null;
     	connectionCache.put(toString(remoteIP, remotePort, localPort), new ConnectionCacheItem(uid));
+		if (monitorThread == null || monitorThread.isAlive() == false) {
+			monitorThread = new Thread(new CacheMonitor());
+			monitorThread.start();
+		}
     	if (uid2PkgName.containsKey(uid) == false) {
     		refreshCache(cxt, uid);
     	}
     	return uid2PkgName.get(uid);
 	}
 
+}
+
+class CacheMonitor implements Runnable {
+	static final String TAG = "CacheMonitor";
+	static final int TIMEOUT = 300;
+	static final int INTERVAL = 10*1000;
+
+	@Override
+	public void run() {
+		while (!Thread.currentThread().isInterrupted()) {
+			for (String k : SimpleAppNameQuery.connectionCache.keySet()) {
+				ConnectionCacheItem item = SimpleAppNameQuery.connectionCache.get(k);
+				if (item.expire(TIMEOUT) == true) {
+					Log.d(TAG, "remove " + k + " from Connectoin Cache");
+					SimpleAppNameQuery.connectionCache.remove(k);
+				} 
+			}
+			try {
+				Thread.sleep(INTERVAL);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				Thread.currentThread().interrupt();
+			}
+		}
+		
+	}
+	
 }
