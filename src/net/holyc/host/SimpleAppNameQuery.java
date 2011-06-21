@@ -3,11 +3,22 @@ package net.holyc.host;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.util.Log;
+
+class ConnectionCacheItem {
+	int uid;
+	private Long timestamp;
+	
+	ConnectionCacheItem(int uid) {
+		this.uid = uid;
+		this.timestamp = System.currentTimeMillis() / 1000;
+	}
+}
 
 /**
  * Another class to query app name
@@ -18,7 +29,9 @@ import android.util.Log;
 
 public class SimpleAppNameQuery {
 	public static final String TAG = "SimpleAppNameQuery";
-	public static final HashMap<Integer, String> uid2PkgName = new HashMap<Integer, String>(); 
+	public static final HashMap<Integer, String> uid2PkgName = new HashMap<Integer, String>();
+	public static final ConcurrentHashMap<String, ConnectionCacheItem> connectionCache = 
+		new ConcurrentHashMap<String, ConnectionCacheItem>();
 	
 	/**
 	 * Transport ip and port to hex network address
@@ -44,6 +57,10 @@ public class SimpleAppNameQuery {
 			networkAddr = null;
 		}
 		return networkAddr;
+	}
+	
+	public static String toString(String remoteIP, int remotePort, int localPort) {
+		return localPort + "-" + remoteIP + ":" + remotePort;
 	}
 	
 	public static int getUidFromFile(String localAddr, String remoteAddr, String file) {
@@ -90,10 +107,15 @@ public class SimpleAppNameQuery {
 				if ((uid=getUidFromFile(localAddr, remoteAddr, file)) > 0) break;
 			}
 		}
+		//try cache
+		if (uid < 0) {
+			ConnectionCacheItem item = connectionCache.get(toString(remoteIP, remotePort, localPort));
+			if (item != null) uid = item.uid;
+		}
 		return uid;
 	}
 	
-	public static void refreshCache(Context cxt) {
+	public static void refreshCache(Context cxt, int uid) {
   	  final PackageManager pm = cxt.getPackageManager();
 	  List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
 	  for (int i = 0; i < packages.size(); i++) {
@@ -101,6 +123,9 @@ public class SimpleAppNameQuery {
 		  if (!uid2PkgName.containsKey(appInfo.uid)) {
 			  uid2PkgName.put(appInfo.uid, appInfo.processName);
 		  }
+	  }
+	  if (uid2PkgName.containsKey(uid) == false) {
+		uid2PkgName.put(uid, ""+uid);
 	  }
 	}
 	
@@ -113,11 +138,9 @@ public class SimpleAppNameQuery {
     	int uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
     	//Log.d(TAG, "uid = " + uid);
     	if (uid < 0) return null;
+    	connectionCache.put(toString(remoteIP, remotePort, localPort), new ConnectionCacheItem(uid));
     	if (uid2PkgName.containsKey(uid) == false) {
-    		refreshCache(cxt);
-    	}
-    	if (uid2PkgName.containsKey(uid) == false) {
-    		uid2PkgName.put(uid, ""+uid);
+    		refreshCache(cxt, uid);
     	}
     	return uid2PkgName.get(uid);
 	}

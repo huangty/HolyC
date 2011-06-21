@@ -2,7 +2,6 @@ package edu.stanford.lal;
 
 import java.util.HashMap;
 
-import net.holyc.host.AppNameQueryEngine;
 import net.holyc.host.SimpleAppNameQuery;
 import net.holyc.openflow.handler.FlowSwitch;
 
@@ -11,6 +10,7 @@ import org.openflow.util.U16;
 import org.openflow.util.U8;
 
 import android.content.Context;
+import android.util.Log;
 
 /**
  * Customized L2 learning switch
@@ -56,13 +56,13 @@ public class LalFlowSwitch extends FlowSwitch {
 			/** @TODO: (1) only send request when it's localIP or multicast IP (224.0.0.0 - 239.255.255.255) 
 			 *         (2) keep track of wifi states and 3G states **/			
 			String appName = SimpleAppNameQuery.getPKGNameFromAddr(context, localIP, localPort, remoteIP, remotePort);
-			AppNameQueryEngine.sendQueryRequest(remoteIP, remotePort, localPort);
+			Log.d(TAG, appName+"::"+localPort+"->"+remoteIP+":"+remotePort);
+			//AppNameQueryEngine.sendQueryRequest(remoteIP, remotePort, localPort);
 			if(appName == null){
 				cookie = -1;
 			}else{
 				cookie = appName.hashCode();				
 			}
-			
 		}
 		return cookie;
 	}

@@ -37,10 +37,7 @@ public class AppNameQueryEngine {
      */
     public static boolean isValidQuery(String destIP, int destPort, int srcPort) {
     	boolean valid = true;
-    	if (srcPort <= 3 || srcPort == 111 || srcPort == 137 || 
-    			srcPort == 67 || srcPort == 68 || destPort <= 3 ||
-    			destPort == 53 || destPort == 17500 || destIP == null || 
-    			destIP.equals("0.0.0.0") == true) 
+    	if (srcPort <= 3 || destPort <= 3 || destIP == null || destIP.equals("0.0.0.0") == true) 
     		valid = false;
         return valid;
     }
@@ -49,7 +46,7 @@ public class AppNameQueryEngine {
     	String service = null;
     	switch (remotePort) {
     	case 53:
-    		service = "DNSQuery";
+    		service = "DNS";
     		break;
     	case 17500:
     		service = "CrazzyNet.Trojan";
@@ -59,6 +56,10 @@ public class AppNameQueryEngine {
     		break;
     	case 137:
     		service = "NETBOIS";
+    		break;
+    	case 67:
+    	case 68:
+    		service = "DHCP";
     		break;
     	}
     	return service;
