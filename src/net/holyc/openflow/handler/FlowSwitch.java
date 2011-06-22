@@ -67,7 +67,7 @@ public class FlowSwitch
 	    
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
-	    ByteBuffer bb = getResponse(out, opie, ofm, context, cookie);	    
+	    ByteBuffer bb = getResponse(out, opie, ofm, context, cookie, port);	    
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb.array());
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);	    
 	    context.sendBroadcast(poutIntent);
@@ -75,7 +75,7 @@ public class FlowSwitch
     }    
 
 
-    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, Context context, long cookie)
+    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, Context context, long cookie, int port )
     {
 	OFActionOutput oao = new OFActionOutput();	    
 	oao.setMaxLength((short) 0);     
@@ -100,10 +100,31 @@ public class FlowSwitch
 	    offm.setPriority((short) 32768);
 	    offm.setFlags((short) 1); //Send flow removed
 	    offm.setCookie(cookie);	    
-	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
-	    
+	    offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));	    
 	    bb = ByteBuffer.allocate(offm.getLength());
 	    offm.writeTo(bb);
+	    //Log.d(TAG, "Buffer ID: " + opie.getBufferId());
+	    if(opie.getBufferId() == -1){ 
+	    	//if the switch doesn't buffer the packet
+	    	OFPacketOut opo = new OFPacketOut();		   
+		    opo.setActions(actions);
+		    opo.setInPort(opie.getInPort());
+		    opo.setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
+		    opo.setBufferId(opie.getBufferId());
+		    opo.setPacketData(opie.getPacketData());
+		    int length = OFPacketOut.MINIMUM_LENGTH + opo.getActionsLengthU() + opie.getPacketData().length;		
+		    //opo.setLengthU(length);
+		    //ByteBuffer bb_ofout = ByteBuffer.allocate(opo.getLengthU());
+		    opo.setLength(U16.t(length));
+		    ByteBuffer bb_ofout = ByteBuffer.allocate(opo.getLengthU());
+		    bb_ofout.clear();		    
+		    opo.writeTo(bb_ofout);
+		    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
+		    poutIntent.setPackage(context.getPackageName());
+		    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb_ofout.array());
+		    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);	    
+		    context.sendBroadcast(poutIntent);
+	    }	    
 	}
 	else
 	{
@@ -122,11 +143,11 @@ public class FlowSwitch
 	    if (opie.getBufferId()==-1)
 		opo.setPacketData(opie.getPacketData());
 	    length += opie.getPacketData().length;		
-	    opo.setLengthU(length);
-	    bb = ByteBuffer.allocate(opo.getLength());
+	    //opo.setLengthU(length);
+	    opo.setLength(U16.t(length));
+	    bb = ByteBuffer.allocate(length);
 	    opo.writeTo(bb);
 	}
-
 	return bb;
     }
 

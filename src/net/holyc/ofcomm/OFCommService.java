@@ -112,7 +112,7 @@ public class OFCommService extends Service{
 				bb.put(ofdata);
 				bb.flip();
 				offm.readFrom(bb);				
-				if(procDelayTable.containsKey(offm.getBufferId())){
+				if(offm.getBufferId()!= -1 && procDelayTable.containsKey(offm.getBufferId())){
 					Delay d = procDelayTable.get(offm.getBufferId());
 					Log.d(TAG, "buffer ID:" + offm.getBufferId() + " delay = " + d.getDelay(new Date()));
 					procDelayTable.remove(offm.getBufferId());
@@ -191,7 +191,10 @@ public class OFCommService extends Service{
                 if(ofe.getOFMessage().getType() == OFType.PACKET_IN){                	
                 	Delay d = new Delay(ofe.getOFMessage(), new Date());
                 	OFPacketInEvent opie = new OFPacketInEvent(ofe);
-                	procDelayTable.put(opie.getOFPacketIn().getBufferId(), d);
+                	int bufid = opie.getOFPacketIn().getBufferId();
+                	if(bufid != -1){
+                		procDelayTable.put(bufid, d);
+                	}
                 }
             	//sendReportToUI("Recevie OFMessage: " + ofe.getOFMessage().toString());
             	//Log.d(TAG, "Recevie OFMessage: " + ofe.getOFMessage().toString());
@@ -415,11 +418,11 @@ public class OFCommService extends Service{
         			.setPriority(prioirty)
         			.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
 
-        	ByteBuffer arp_bb = ByteBuffer.allocate(offm.getLength());
-        	offm.writeTo(arp_bb);    	    	
-        	sendOFPacket(socket, arp_bb.array());
+        	ByteBuffer tcp_bb = ByteBuffer.allocate(offm.getLength());
+        	offm.writeTo(tcp_bb);    	    	
+        	sendOFPacket(socket, tcp_bb.array());
 
-        	//arp originated from the host
+        	//tcp originated from the host
         	OFMatch tcp_match_src = new OFMatch()        
         			.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_SRC_SHIFT) & ~OFMatch.OFPFW_NW_PROTO)    	    				
         			.setNetworkSource(host_ip)
@@ -427,9 +430,128 @@ public class OFCommService extends Service{
     	    		.setDataLayerType((short) 0x0800); //ip   
         				    	
         	offm.setMatch(tcp_match_src);        	
-        	arp_bb = ByteBuffer.allocate(offm.getLength());    	    	
-        	offm.writeTo(arp_bb);    	    	
-        	sendOFPacket(socket, arp_bb.array());
+        	tcp_bb = ByteBuffer.allocate(offm.getLength());    	    	
+        	offm.writeTo(tcp_bb);    	    	
+        	sendOFPacket(socket, tcp_bb.array());
+        }
+        
+        public void udpFwdToController(int host_ip, short prioirty, Socket socket){
+        	OFActionOutput action = new OFActionOutput()
+					.setPort(OFPort.OFPP_CONTROLLER.getValue())
+					.setMaxLength((short)65535);  
+        	//udp destinated to the host 
+        	OFMatch udp_match_dst = new OFMatch()        
+    				.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_DST_SHIFT) & ~OFMatch.OFPFW_NW_PROTO )    	    				
+    				.setNetworkDestination(host_ip)
+    				.setNetworkProtocol((byte)0x11) //udp
+    	    		.setDataLayerType((short) 0x0800); //ip
+        	      	
+        	OFFlowMod offm = new OFFlowMod();
+
+        	offm.setBufferId(-1)
+        			.setIdleTimeout((short) 0)
+        			.setHardTimeout((short) 0)
+        			.setOutPort((short) OFPort.OFPP_NONE.getValue())		    	    	
+        			.setCommand(OFFlowMod.OFPFC_ADD)
+        			.setMatch(udp_match_dst)            
+        			.setActions(Collections.singletonList((OFAction)action))
+        			.setPriority(prioirty)
+        			.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+
+        	ByteBuffer udp_bb = ByteBuffer.allocate(offm.getLength());
+        	offm.writeTo(udp_bb);    	    	
+        	sendOFPacket(socket, udp_bb.array());
+
+        	//udp originated from the host
+        	OFMatch udp_match_src = new OFMatch()        
+        			.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_SRC_SHIFT) & ~OFMatch.OFPFW_NW_PROTO)    	    				
+        			.setNetworkSource(host_ip)
+        			.setNetworkProtocol((byte)0x11) //udp
+    	    		.setDataLayerType((short) 0x0800); //ip   
+        				    	
+        	offm.setMatch(udp_match_src);        	
+        	udp_bb = ByteBuffer.allocate(offm.getLength());    	    	
+        	offm.writeTo(udp_bb);    	    	
+        	sendOFPacket(socket, udp_bb.array());
+        	
+        	//broadcast udp
+        	OFMatch udp_match_broadcast = new OFMatch()        
+			.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~OFMatch.OFPFW_DL_DST & ~OFMatch.OFPFW_NW_PROTO)    	    				
+			.setDataLayerDestination("ff:ff:ff:ff:ff:ff") //broadcast
+			.setNetworkProtocol((byte)0x11) //udp
+    		.setDataLayerType((short) 0x0800); //ip
+        	
+        	offm.setMatch(udp_match_broadcast);        	
+        	udp_bb = ByteBuffer.allocate(offm.getLength());    	    	
+        	offm.writeTo(udp_bb);    	    	
+        	sendOFPacket(socket, udp_bb.array());
+        }
+        public void icmpFwdToController(int host_ip, short prioirty, Socket socket){
+        	OFActionOutput action = new OFActionOutput()
+					.setPort(OFPort.OFPP_CONTROLLER.getValue())
+					.setMaxLength((short)65535);  
+        	//icmp destinated to the host 
+        	OFMatch icmp_match_dst = new OFMatch()        
+    				.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_DST_SHIFT) & ~OFMatch.OFPFW_NW_PROTO )    	    				
+    				.setNetworkDestination(host_ip)
+    				.setNetworkProtocol((byte)0x01) //icmp
+    	    		.setDataLayerType((short) 0x0800); //ip
+        	      	
+        	OFFlowMod offm = new OFFlowMod();
+
+        	offm.setBufferId(-1)
+        			.setIdleTimeout((short) 0)
+        			.setHardTimeout((short) 0)
+        			.setOutPort((short) OFPort.OFPP_NONE.getValue())		    	    	
+        			.setCommand(OFFlowMod.OFPFC_ADD)
+        			.setMatch(icmp_match_dst)            
+        			.setActions(Collections.singletonList((OFAction)action))
+        			.setPriority(prioirty)
+        			.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+
+        	ByteBuffer icmp_bb = ByteBuffer.allocate(offm.getLength());
+        	offm.writeTo(icmp_bb);    	    	
+        	sendOFPacket(socket, icmp_bb.array());
+
+        	//udp originated from the host
+        	OFMatch udp_match_src = new OFMatch()        
+        			.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_SRC_SHIFT) & ~OFMatch.OFPFW_NW_PROTO)    	    				
+        			.setNetworkSource(host_ip)
+        			.setNetworkProtocol((byte)0x01) //icmp
+    	    		.setDataLayerType((short) 0x0800); //ip   
+        				    	
+        	offm.setMatch(udp_match_src);        	
+        	icmp_bb = ByteBuffer.allocate(offm.getLength());    	    	
+        	offm.writeTo(icmp_bb);    	    	
+        	sendOFPacket(socket, icmp_bb.array());
+        	        	
+        } 
+        public void dhcpDiscoveryFwdToController(short prioirty, Socket socket){
+        	OFActionOutput action = new OFActionOutput()
+					.setPort(OFPort.OFPP_CONTROLLER.getValue())
+					.setMaxLength((short)65535);  
+        	//Dhcp discovery sent from the host 
+        	OFMatch dhcp_match_dst = new OFMatch()        
+    				.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~OFMatch.OFPFW_NW_PROTO & ~OFMatch.OFPFW_IN_PORT)    	    				
+    				.setInputPort((short)1) //from the host
+    				.setNetworkProtocol((byte)0x11) //udp
+    	    		.setDataLayerType((short) 0x0800); //ip
+        	      	
+        	OFFlowMod offm = new OFFlowMod();
+
+        	offm.setBufferId(-1)
+        			.setIdleTimeout((short) 0)
+        			.setHardTimeout((short) 0)
+        			.setOutPort((short) OFPort.OFPP_NONE.getValue())		    	    	
+        			.setCommand(OFFlowMod.OFPFC_ADD)
+        			.setMatch(dhcp_match_dst)            
+        			.setActions(Collections.singletonList((OFAction)action))
+        			.setPriority(prioirty)
+        			.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+
+        	ByteBuffer udp_bb = ByteBuffer.allocate(offm.getLength());
+        	offm.writeTo(udp_bb);    	    	
+        	sendOFPacket(socket, udp_bb.array());
         }
         
         public void insertDefaultRule(Socket socket){
@@ -441,7 +563,9 @@ public class OFCommService extends Service{
         	
         	dropUnwantedUdp((short) 138, (short) 138, HIGH_PRIORITY, socket); //netbios
         	dropUnwantedUdp((short) -1, (short) 137, HIGH_PRIORITY, socket);  //netbios
-        	dropUnwantedUdp((short) 17500, (short) 17500, HIGH_PRIORITY, socket); //trajan horse         	        	 
+        	dropUnwantedUdp((short) -1, (short) 111, HIGH_PRIORITY, socket);  //sun-remote control
+        	dropUnwantedUdp((short) 17500, (short) 17500, HIGH_PRIORITY, socket); //trajan horse      
+        	dropUnwantedUdp((short) 631, (short) 631, HIGH_PRIORITY, socket); //Internet Printing Protocol
 
     	    List<String> myIPs = Utility.getDeviceIPs();
     	    
@@ -449,6 +573,11 @@ public class OFCommService extends Service{
             OFMessageFactory messageFactory = new BasicFactory();
             OFActionFactory actionFactory = new BasicFactory();
 
+            //forward dhcp discovery (68 -> 67) from inport 1
+            dhcpDiscoveryFwdToController((short)(MID_PRIORITY+2), socket);
+            //drop all other dhcp discovery
+            dropUnwantedUdp((short) 68, (short) 67, (short)(MID_PRIORITY+1), socket); //dhcp discovery from others
+            
     		while(it.hasNext()){ //for each IP
     			String ipS = it.next();
     			int ip = IPv4.toIPv4Address(ipS);
@@ -456,16 +585,20 @@ public class OFCommService extends Service{
     	    	//forward related arp to controller    	    	
     	    	arpFwdToController(ip, MID_PRIORITY, socket);    	    	
             	//forward related tcp to controller
-    	    	tcpFwdToController(ip, MID_PRIORITY, socket);
+    	    	//tcpFwdToController(ip, MID_PRIORITY, socket);
             	//forward related udp to controller
-            	//forward related icmp to controller	
+    	    	udpFwdToController(ip, MID_PRIORITY, socket);
+            	//forward related icmp to controller
+    	    	icmpFwdToController(ip, MID_PRIORITY, socket);
     	    	
     	    }
         	
         	
         	//drop all the unrelated traffic (lowest priority)
     		dropAll((short)0x0806, (byte) 0xFF, LOW_PRIORITY, socket); //arp
-    		dropAll((short)0x0800, (byte) 0x06, LOW_PRIORITY, socket); //ip, tcp
+    		//dropAll((short)0x0800, (byte) 0x06, LOW_PRIORITY, socket); //ip, tcp
+    		dropAll((short)0x0800, (byte) 0x11, LOW_PRIORITY, socket); //ip, udp
+    		dropAll((short)0x0800, (byte) 0x01, LOW_PRIORITY, socket); //ip, icmp
         }
         public void close() {
             Log.d(TAG, "close " + this);

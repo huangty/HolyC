@@ -102,6 +102,7 @@ public class Lal extends Service {
 						outward = 0;
 					}
 					app_name = AppNameQueryEngine.getPKGNameFromAddr(remoteIP, remotePort, localPort);
+					//Log.d(TAG, app_name+":"+localPort+"->"+remoteIP+":"+remotePort);
 					if (outward == 1){
 						Log.d(TAG, app_name+":"+localPort+"->"+remoteIP+":"+remotePort);
 					}else{

@@ -35,10 +35,10 @@ public class AppNameQueryEngine {
     /**
      * Judge if the request connection is valid to lsof  
      */
-    public static boolean isValidQuery(String destIP, int destPort, int srcPort) {
+    public static boolean isValidQuery(String remoteIP, int remotePort, int localPort) {
     	boolean valid = true;
-    	if (srcPort <= 3 || destPort <= 3 || destIP == null || destIP.equals("0.0.0.0") == true) 
-    		valid = false;
+    	if (localPort <= 3 || remotePort <=3 || remoteIP == null || remoteIP.equals("0.0.0.0") == true) 
+    		valid = false;    	
         return valid;
     }
     
@@ -56,11 +56,14 @@ public class AppNameQueryEngine {
     		break;
     	case 137:
     		service = "NETBOIS";
+    		break;    	
+    	case 631:
+    		service = "IPPrint";
     		break;
     	case 67:
     	case 68:
-    		service = "DHCP";
-    		break;
+    		service =  "DHCP";
+    		break;    	
     	}
     	return service;
     }
@@ -77,6 +80,7 @@ public class AppNameQueryEngine {
     
     public static void sendQueryRequest(String remoteIP, int remotePort, int localPort) {    	
     	if (isValidQuery(remoteIP, remotePort, localPort) == false) return;
+    	if(queryServiceByPort(remotePort)!=null) return;
     	AppNameRequest request = new AppNameRequest(remoteIP, remotePort, localPort);
     	int replicaNum = requestMap.getCount(request.toString());
     	if ( replicaNum >= MAX_REPLICA) {

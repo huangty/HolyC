@@ -301,7 +301,7 @@ public class EnvInitService extends Service {//implements Runnable{
         
     public void doOpenflowdInit(){    	    	
     	Utility.runRootCommand("/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 " + 
-    			"--out-of-band --monitor --detach --log-file=/data/local/var/ovs.log", false);
+    			"--out-of-band --monitor --detach --log-file=/sdcard/Android/data/net.holyc/files/ovs.log", false);
     	Log.d(TAG, "Openflowd is running in detached mode");
     	/**
     	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
