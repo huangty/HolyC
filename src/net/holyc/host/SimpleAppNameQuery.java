@@ -140,10 +140,15 @@ public class SimpleAppNameQuery {
     	String knownService = AppNameQueryEngine.queryServiceByPort(remotePort);
     	if (knownService != null) return knownService;
     	
-    	int uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
-    	//Log.d(TAG, "uid = " + uid);
-    	if (uid < 0) return null;
-    	connectionCache.put(toString(remoteIP, remotePort, localPort), new ConnectionCacheItem(uid));
+    	int uid = -1;
+    	if(connectionCache.contains(toString(remoteIP, remotePort, localPort))){
+    		uid = connectionCache.get(toString(remoteIP, remotePort, localPort)).uid;
+    	}else{
+    		uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
+    		//Log.d(TAG, "uid = " + uid);
+    		if (uid < 0) return null;
+    		connectionCache.put(toString(remoteIP, remotePort, localPort), new ConnectionCacheItem(uid));
+    	}
 		if (monitorThread == null || monitorThread.isAlive() == false) {
 			monitorThread = new Thread(new CacheMonitor());
 			monitorThread.start();
