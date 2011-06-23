@@ -125,10 +125,7 @@ public class Lal extends Service {
 				cv.put("App", app_name);
 				cv.put("Time_Received",
 						((double) System.currentTimeMillis()) / (1000.0));				
-				OpenFlow.addOFFlowRemoved2CV(cv, ofr);
-				if(db==null){
-					db = new Database(getApplicationContext());
-				}
+				OpenFlow.addOFFlowRemoved2CV(cv, ofr);				
 				db.insert(TABLE_NAME, cv);
 				
 			} else if (intent.getAction()
