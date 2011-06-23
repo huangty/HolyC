@@ -128,10 +128,7 @@ public class FlowSwitch
 	}
 	else
 	{
-		if(isDHCP){
-			Log.d(TAG, "DHCP and flood");
-		}
-	    //Flood packet
+		//Flood packet
 	    oao.setPort(OFPort.OFPP_FLOOD.getValue()); //Flood port
 	    OFPacketOut opo = new OFPacketOut();
 	    actions.add(oao);
