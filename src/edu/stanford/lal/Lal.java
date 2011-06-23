@@ -69,6 +69,11 @@ public class Lal extends Service {
 	BroadcastReceiver bReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
+			
+			if(db == null){
+				db = new Database(getApplicationContext());
+			}
+			
 			if (intent.getAction().equals(
 					HolyCIntent.OFFlowRemoved_Intent.action)) {
 				// Flow removed event (to be recorded)				
@@ -85,7 +90,8 @@ public class Lal extends Service {
 				if (ofm.getNetworkProtocol() == 0x06
 						|| ofm.getNetworkProtocol() == 0x11) {
 					// it is tcp or udp
-					String remoteIP = "";
+					app_name = appNames.get(new Long(cookie).toString());
+					/*String remoteIP = "";
 					int remotePort = 0;
 					int localPort = 0;
 					int outward = 0;
@@ -107,7 +113,7 @@ public class Lal extends Service {
 						Log.d(TAG, app_name+":"+localPort+"->"+remoteIP+":"+remotePort);
 					}else{
 						Log.d(TAG, remoteIP+":"+remotePort+ "->"+ app_name+":"+localPort);
-					}
+					}*/
 				}else{
 					app_name = "System-NonIP";
 				}
@@ -119,8 +125,12 @@ public class Lal extends Service {
 				cv.put("App", app_name);
 				cv.put("Time_Received",
 						((double) System.currentTimeMillis()) / (1000.0));				
-				OpenFlow.addOFFlowRemoved2CV(cv, ofr);				
+				OpenFlow.addOFFlowRemoved2CV(cv, ofr);
+				if(db==null){
+					db = new Database(getApplicationContext());
+				}
 				db.insert(TABLE_NAME, cv);
+				
 			} else if (intent.getAction()
 					.equals(HolyCIntent.LalAppFound.action)) {
 				// Application name notified
@@ -194,8 +204,7 @@ public class Lal extends Service {
 		IntentFilter qIntentFilter = new IntentFilter();
 		qIntentFilter.addAction(LalMessage.Query.action);
 		registerReceiver(bReceiver, qIntentFilter);
-
-		db = new Database(getApplicationContext());
+		
 	}
 
 	@Override
