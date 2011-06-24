@@ -86,7 +86,7 @@ public abstract class HostInterface {
 	public abstract String searchName();
 	
 	public void removeIP(){		
-   		Utility.runRootCommand("busybox ifconfig " + getName() + " 0.0.0.0" , false);
+   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " 0.0.0.0" , false);
 	}
 	/**
 	 * the super class provides a set of methods to 

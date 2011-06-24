@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import android.app.Activity;
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.util.Log;
 
 /**
 *
@@ -34,15 +35,37 @@ public class ThreeGInterface extends HostInterface {
 	public HostInterface searchGateway() {
 		HostInterface gateway = new ThreeGInterface(context);
 		String devName = getName();
-		String prop = "net." + devName +".gw";
+		String prop = devName.equalsIgnoreCase("ppp0") ? 
+				"net." + devName + ".remote-ip" : "net." + devName + ".gw";
 		String gwIP = Utility.getProp(prop);
+		Log.d(TAG, "3G gwIP is " + gwIP);
 		gateway.setIP(gwIP);
 		if (gwIP != null) {
 			//gateway.setMac(getMacFromIPByArpRequest(gwIP));
-			gateway.setMac(getMacFromIPByPing(gwIP));
+			//gateway.setMac(getMacFromIPByPing(gwIP));
+			gateway.setMac(null);
 		}
 		return gateway;
 	}
+	
+	@Override
+	public String getIP() {
+		String ip = super.getIP();
+		if (ip == null) {
+			String devName = getName();
+			String prop = devName.equalsIgnoreCase("ppp0") ? 
+					"net." + devName + ".local-ip" : "net." + devName + ".ip";
+			ip = Utility.getProp(prop);
+		}
+		return ip;
+	}
+	
+	@Override
+	public String getMask() {
+		String devName = getName();
+		String mask = devName.equalsIgnoreCase("ppp0") ? "255.255.255.255" : super.getMac();
+		return mask;
+	} 
 	
 	@Override
 	public boolean getInterfaceEnable() {
@@ -59,5 +82,6 @@ public class ThreeGInterface extends HostInterface {
         Method m = Utility.getMethodFromClass(cm, "setMobileDataEnabled");
         Utility.runMethodofClass(cm, m, enable);
 	}
+	
 
 }

@@ -115,8 +115,8 @@ public class EnvInitService extends Service {//implements Runnable{
 				   }
 			   }else if(networkInfo.getType() == ConnectivityManager.TYPE_MOBILE){
 				   mobileInfo = networkInfo;
-				   Log.d(TAG, "delete 3G route " + threeGIF.getName());
-				   Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
+				   //Log.d(TAG, "delete 3G route " + threeGIF.getName());
+				   //Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
 			   }else{
 				   Log.d(TAG, "Broadcast Receiver: " + networkInfo.toString());
 			   }
@@ -261,7 +261,9 @@ public class EnvInitService extends Service {//implements Runnable{
     		}else if(mobile_included){
     			vIFs.getVeth1().setIP(threeGIF.getIP(), threeGIF.getMask());
     			vIFs.getVeth1().setMac(threeGIF.getMac());
-    			threeGIF.removeIP();
+    			if (threeGIF.getName().equals("rmnet0")) {
+    				threeGIF.removeIP();
+    			}
     		}else{
     			Log.e(TAG, "no interface is enabled");
     		}
@@ -292,7 +294,17 @@ public class EnvInitService extends Service {//implements Runnable{
     		ovs.addIF("dp0", wifiIF.getName());
     	}
     	if(mobile_included){
-    		ovs.addIF("dp0", threeGIF.getName());
+    		if (threeGIF.getName().equals("ppp0")) {
+    			ArrayList<String> resList = Utility.runRootCommand("/data/local/bin/busybox ip link | grep veth2", true);
+    			if (resList.size() == 0) {
+    				Utility.runRootCommand("/data/local/bin/busybox ip link add type veth", false);
+    				Utility.runRootCommand("/data/local/bin/busybox ifconfig veth2 up", false);
+    				Utility.runRootCommand("/data/local/bin/busybox ifconfig veth3 up", false);
+    				ovs.addIF("dp0", "veth2");
+    			}
+    		} else {
+    			ovs.addIF("dp0", threeGIF.getName());	
+    		}
     	}
     	/** debug messages*/
     	//sendReportToUI("Setup OVS");
@@ -323,14 +335,23 @@ public class EnvInitService extends Service {//implements Runnable{
         		Utility.runRootCommand("/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
         		Log.d(TAG, "Add default gw:" + "route add default gw " + wifiGW.getIP()+ " " + vIFs.getVeth1().getName());
     		}else if(mobile_included){
-        		Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
+    			if (threeGIF.getName().equals("ppp0")) {
+    				Utility.runRootCommand("/data/local/bin/busybox route add -net " 
+    						+ threeGGW.getIP() + " netmask 255.255.255.255 veth1", false);
+    				Utility.runRootCommand("/data/local/bin/busybox route del -net " 
+    						+ threeGGW.getIP() + " netmask 255.255.255.255 ppp0", false);
+    				Utility.runRootCommand("/data/local/bin/busybox route add default dev veth1", false);
+    				Utility.runRootCommand("/data/local/bin/busybox route del default dev ppp0", false);
+    			} else {
+    				Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
+    			}
     		}
     	}
     	Log.d(TAG, "Routing setuped");
     }
     
     public void doEnvCleanup(){    	
-    	Utility.runRootCommand("killall ovs-openflowd", false);
+    	Utility.runRootCommand("killall -9 ovs-openflowd", false);
     	if(wifiIF != null){
     		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + wifiIF.getName(), false);
     	}
@@ -340,6 +361,7 @@ public class EnvInitService extends Service {//implements Runnable{
 		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);
 		Utility.runRootCommand("rmmod openvswitch_mod", false);		
 		Utility.runRootCommand("/data/local/bin/busybox ip link del veth0", false);
+		Utility.runRootCommand("/data/local/bin/busybox ip link del veth2", false);
 		isOVSsetup = false;
 		isOpenflowdSetup = false;
 		sendReportToUI("Clean up the environment");
