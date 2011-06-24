@@ -310,7 +310,7 @@ public class Utility {
 			int dPort = U16.f(ofm.getTransportDestination());
 			int sPort = U16.f(ofm.getTransportSource());
 			if((dPort == 67 || dPort == 68) && (sPort == 67 || sPort == 68)){
-				Log.d(TAG, "found a dhcp packet! " + ofm.toString());
+				//Log.d(TAG, "found a dhcp packet! " + ofm.toString());
 				return true;
 			}
 		}

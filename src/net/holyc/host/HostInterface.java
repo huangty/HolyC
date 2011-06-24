@@ -122,8 +122,8 @@ public abstract class HostInterface {
 	
 	public String getMacFromIPByPing(String IP) {
 		String mac = null;		
-		Utility.runRootCommand("busybox ping " + IP + " -c 1 -w 1", false);
-		ArrayList<String> result = Utility.runRootCommand("arp -a -n | grep " + IP, true);
+		Utility.runRootCommand("/data/local/bin/busybox ping " + IP + " -c 1 -w 1", false);
+		ArrayList<String> result = Utility.runRootCommand("/data/local/bin/busybox arp -a -n | grep " + IP, true);
 		if(result.size() > 0){
 			Iterator<String> rit = result.iterator();
 			//the result only has one line		

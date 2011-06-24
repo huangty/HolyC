@@ -115,8 +115,10 @@ public class EnvInitService extends Service {//implements Runnable{
 				   }
 			   }else if(networkInfo.getType() == ConnectivityManager.TYPE_MOBILE){
 				   mobileInfo = networkInfo;
-				   //Log.d(TAG, "delete 3G route " + threeGIF.getName());
+				   Log.d(TAG, "delete 3G route " + threeGIF.getName());
 				   //Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
+				   Utility.runRootCommand("data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
+				   //TODO: for ppp0, need to reset configure environment
 			   }else{
 				   Log.d(TAG, "Broadcast Receiver: " + networkInfo.toString());
 			   }
@@ -325,8 +327,8 @@ public class EnvInitService extends Service {//implements Runnable{
        
     public void doRoutingInit(){
     	/** remove other default route */		
-		Utility.runRootCommand("ip route del dev "+ wifiIF.getName(), false);
-		Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
+		Utility.runRootCommand("data/local/bin/busybox ip route del dev "+ wifiIF.getName(), false);
+		Utility.runRootCommand("data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
 
     	if(isMultipleInterface){
     		Utility.runRootCommand("/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName(), false);
