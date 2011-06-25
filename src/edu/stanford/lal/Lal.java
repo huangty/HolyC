@@ -206,7 +206,9 @@ public class Lal extends Service {
 
 	@Override
 	public void onDestroy() {
-		db.close();
+		if(db != null){
+			db.close();
+		}
 
 		unregisterReceiver(bReceiver);
 
