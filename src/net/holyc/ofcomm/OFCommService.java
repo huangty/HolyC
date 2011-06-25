@@ -338,12 +338,12 @@ public class OFCommService extends Service{
         	OFFlowMod offm = new OFFlowMod();    	
     	    OFMatch ofm = new OFMatch();    	       	   
     	    ofm.setDataLayerType(dl_type);
-    	    if(nw_proto == 0xFF){ //not need to match on network protocol
+    	    if(dl_type == 0x0806){ //not need to match on network protocol for arp
     	    	ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE); 
     	    }else{
     	    	ofm.setNetworkProtocol(nw_proto);
     	    	ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~OFMatch.OFPFW_NW_PROTO);
-    	    }
+    	    }    	    
     	    offm.setMatch(ofm);
     	    offm.setOutPort((short) OFPort.OFPP_NONE.getValue());                              
     	    offm.setBufferId(-1);
@@ -595,7 +595,7 @@ public class OFCommService extends Service{
         	
         	
         	//drop all the unrelated traffic (lowest priority)
-    		dropAll((short)0x0806, (byte) 0xFF, LOW_PRIORITY, socket); //arp
+    		dropAll((short)0x0806, (byte) 0x00, LOW_PRIORITY, socket); //arp
     		//dropAll((short)0x0800, (byte) 0x06, LOW_PRIORITY, socket); //ip, tcp
     		dropAll((short)0x0800, (byte) 0x11, LOW_PRIORITY, socket); //ip, udp
     		dropAll((short)0x0800, (byte) 0x01, LOW_PRIORITY, socket); //ip, icmp
