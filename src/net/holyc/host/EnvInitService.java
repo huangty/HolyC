@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -117,7 +118,7 @@ public class EnvInitService extends Service {//implements Runnable{
 				   mobileInfo = networkInfo;
 				   Log.d(TAG, "delete 3G route " + threeGIF.getName());
 				   //Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
-				   Utility.runRootCommand("data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
+				   Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
 				   //TODO: for ppp0, need to reset configure environment
 			   }else{
 				   Log.d(TAG, "Broadcast Receiver: " + networkInfo.toString());
@@ -150,6 +151,7 @@ public class EnvInitService extends Service {//implements Runnable{
     	threeGIF = new ThreeGInterface(this);
     	wifiIF = new WifiInterface(this);
     	mConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+    	//WifiManager wm = (WifiManager) getSystemService(Context.WIFI_SERVICE);    	
     	
         wifiInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         mobileInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
@@ -327,8 +329,8 @@ public class EnvInitService extends Service {//implements Runnable{
        
     public void doRoutingInit(){
     	/** remove other default route */		
-		Utility.runRootCommand("data/local/bin/busybox ip route del dev "+ wifiIF.getName(), false);
-		Utility.runRootCommand("data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
+		Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ wifiIF.getName(), false);
+		Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
 
     	if(isMultipleInterface){
     		Utility.runRootCommand("/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName(), false);
