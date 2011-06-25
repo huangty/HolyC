@@ -292,7 +292,7 @@ public class OFCommService extends Service{
         		sendOFPacket(socket, bb.array());
 
         		//insert default rules
-        		//insertDefaultRule(socket);
+        		insertDefaultRule(socket);
         		
         		Integer remotePort = new Integer(socket.getPort());
         		socketMap.put(remotePort, socket);
