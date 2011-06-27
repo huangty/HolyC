@@ -355,7 +355,7 @@ public class EnvInitService extends Service {//implements Runnable{
     }
     
     public void doEnvCleanup(){    	
-    	Utility.runRootCommand("killall -9 ovs-openflowd", false);
+    	Utility.runRootCommand("/data/local/bin/busybox killall -9 ovs-openflowd", false);
     	if(wifiIF != null){
     		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + wifiIF.getName(), false);
     	}
