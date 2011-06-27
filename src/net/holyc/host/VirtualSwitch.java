@@ -26,7 +26,7 @@ class VirtualSwitch{
 	public void loadKernelModule(){		
 		//String result = NativeCallWrapper.getResultByCommand("lsmod | grep openvswitch");
 		String result = "";
-		ArrayList<String> resList = Utility.runRootCommand("lsmod | grep openvswitch", true);
+		ArrayList<String> resList = Utility.runRootCommand("lsmod | /data/local/bin/busybox grep openvswitch", true);
 		if(resList.size() >0){
 			result = resList.get(0);
 		}

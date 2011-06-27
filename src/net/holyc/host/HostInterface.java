@@ -96,21 +96,21 @@ public abstract class HostInterface {
 	 */
 	public String searchIP() {
 		if (name == null) return null;
-		String command = "/data/local/bin/busybox ifconfig " + name + " | grep inet";
+		String command = "/data/local/bin/busybox ifconfig " + name + " | /data/local/bin/busybox grep inet";
 		String token = "addr:";
 		return this.getValueByBusyBox(command, token);
 	}
 	
 	public String searchMask() {
 		if (name == null) return null;
-		String command = " /data/local/bin/busybox ifconfig " + name + " | grep Mask";
+		String command = " /data/local/bin/busybox ifconfig " + name + " | /data/local/bin/busybox grep Mask";
 		String token = "Mask:";
 		return this.getValueByBusyBox(command, token);
 	}
 	
 	public String searchMac() {
 		if (name == null) return null;
-		String command = " /data/local/bin/busybox ifconfig " + name + " | grep HWaddr";
+		String command = " /data/local/bin/busybox ifconfig " + name + " | /data/local/bin/busybox grep HWaddr";
 		String token = "HWaddr ";
 		return this.getValueByBusyBox(command, token);
 	}
@@ -123,7 +123,7 @@ public abstract class HostInterface {
 	public String getMacFromIPByPing(String IP) {
 		String mac = null;		
 		Utility.runRootCommand("/data/local/bin/busybox ping " + IP + " -c 1 -w 1", false);
-		ArrayList<String> result = Utility.runRootCommand("/data/local/bin/busybox arp -a -n | grep " + IP, true);
+		ArrayList<String> result = Utility.runRootCommand("/data/local/bin/busybox arp -a -n | /data/local/bin/busybox grep " + IP, true);
 		if(result.size() > 0){
 			Iterator<String> rit = result.iterator();
 			//the result only has one line		
