@@ -233,6 +233,7 @@ public class OFCommService extends Service{
     }     
     
     private void sendOFPacket(Socket socket, byte[] data ){
+    	if(socket == null){return;}
     	try {
     		OutputStream out = socket.getOutputStream();
     		out.write(data);
@@ -241,6 +242,7 @@ public class OFCommService extends Service{
     		// TODO Auto-generated catch block
     		Integer remotePort = new Integer(socket.getPort());
     		socketMap.remove(remotePort);
+    		socket = null;
     		e.printStackTrace();    		
     	}
     }
