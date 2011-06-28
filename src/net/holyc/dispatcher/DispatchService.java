@@ -70,7 +70,9 @@ public class DispatchService extends Service {
 			msg.setData(bundle);
 			try {
 				//Log.d(TAG, "Send OFReply to OFComm");
-				mOFService.send(msg);
+				if(mOFService!=null){
+					mOFService.send(msg);
+				}
 			} catch (RemoteException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

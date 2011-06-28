@@ -45,8 +45,8 @@ public class EnvInitService extends Service {//implements Runnable{
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
     public static boolean wifi_included;
 	public static boolean mobile_included;
-	public static boolean initialized = false;
-	private boolean isMultipleInterface;
+	public static boolean initializedByDispather = false;
+	private boolean isMultipleInterface = false;
 	private Thread monitorThread = null;
 	/** The interfaces in the host*/
 	private VirtualInterfacePair vIFs = null;
@@ -72,6 +72,7 @@ public class EnvInitService extends Service {//implements Runnable{
                     break;
                 case HolyCMessage.ENV_INIT_UNREGISTER.type:
                     mClients.remove(msg.replyTo);
+                	initializedByDispather = false;
                     break;                                   
                 case HolyCMessage.ENV_INIT_START.type:
             		wifi_included = true;
@@ -82,11 +83,11 @@ public class EnvInitService extends Service {//implements Runnable{
                 	if(msg.arg2 == 0){
                 		mobile_included = false;
                 	}                	
-                	isMultipleInterface = wifi_included & mobile_included;
+                	//isMultipleInterface = wifi_included & mobile_included;
                 	//sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	Log.d(TAG, "Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	doEnvInit();
-                	
+                	initializedByDispather = true;
                 	break;
                 default:
                     super.handleMessage(msg);
@@ -102,8 +103,9 @@ public class EnvInitService extends Service {//implements Runnable{
 		@Override
 		public void onReceive(Context arg0, Intent arg1) {
 			   NetworkInfo networkInfo = (NetworkInfo) arg1.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-			   if(initialized == false){ 
+			   if(initializedByDispather == false){ 
 				   //since the dispatch service has not start the EnvService yet, wait!
+				   Log.d(TAG, "got broadcast intent but should not initialize");
 				   return;
 			   }
 			   if(networkInfo.getType() == ConnectivityManager.TYPE_WIFI){
@@ -211,6 +213,11 @@ public class EnvInitService extends Service {//implements Runnable{
         
         Log.d(TAG, "wifi: " + wifi_included + ", 3g: " + mobile_included);
         
+        if(isMultipleInterface == false){
+        	if(wifi_included == true){
+        		mobile_included = false;
+        	}
+        }
         
         if(wifi_included == false && mobile_included == false){
         	//stopController();
@@ -227,6 +234,8 @@ public class EnvInitService extends Service {//implements Runnable{
         	Log.d(TAG, "Using Both WiFi and Mobile Data Plan");
         	sendReportToUI("Using Both WiFi and Mobile Data Plan");
         }
+        
+       
         
     	if(wifi_included){
     		doWiFiInit();
@@ -246,7 +255,6 @@ public class EnvInitService extends Service {//implements Runnable{
     	doRoutingInit();
     	//startMonitorThread();    	
     	sendReportToUI("Setup the Environment successfully");
-    	initialized = true;
     	/**
     	 * TODO: Notify the statusUI that environment initiation is finished, time to start the Monitor service
     	 */
@@ -439,8 +447,7 @@ public class EnvInitService extends Service {//implements Runnable{
 		}
 		isOVSsetup = false;
 		isOpenflowdSetup = false;
-		sendReportToUI("Clean up the environment");
-		initialized = false;
+		sendReportToUI("Clean up the environment");		
 		//stopMonitorThread();
     }
 	@Override
