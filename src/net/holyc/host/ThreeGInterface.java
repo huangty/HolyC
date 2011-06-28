@@ -51,11 +51,14 @@ public class ThreeGInterface extends HostInterface {
 	@Override
 	public String getIP() {
 		String ip = super.getIP();
+		
 		if (ip == null) {
 			String devName = getName();
 			String prop = devName.equalsIgnoreCase("ppp0") ? 
 					"net." + devName + ".local-ip" : "net." + devName + ".ip";
 			ip = Utility.getProp(prop);
+		}else if(ip.length() > 15){
+			ip = null;
 		}
 		return ip;
 	}
@@ -63,7 +66,7 @@ public class ThreeGInterface extends HostInterface {
 	@Override
 	public String getMask() {
 		String devName = getName();
-		String mask = devName.equalsIgnoreCase("ppp0") ? "255.255.255.255" : super.getMac();
+		String mask = devName.equalsIgnoreCase("ppp0") ? "255.255.255.255" : super.getMask();
 		return mask;
 	} 
 	

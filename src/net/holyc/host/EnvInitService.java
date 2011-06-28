@@ -1,6 +1,7 @@
 package net.holyc.host;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import net.holyc.HolyCMessage;
 import android.app.Service;
@@ -44,6 +45,7 @@ public class EnvInitService extends Service {//implements Runnable{
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
     public static boolean wifi_included;
 	public static boolean mobile_included;
+	public static boolean initialized = false;
 	private boolean isMultipleInterface;
 	private Thread monitorThread = null;
 	/** The interfaces in the host*/
@@ -100,7 +102,10 @@ public class EnvInitService extends Service {//implements Runnable{
 		@Override
 		public void onReceive(Context arg0, Intent arg1) {
 			   NetworkInfo networkInfo = (NetworkInfo) arg1.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-			   
+			   if(initialized == false){ 
+				   //since the dispatch service has not start the EnvService yet, wait!
+				   return;
+			   }
 			   if(networkInfo.getType() == ConnectivityManager.TYPE_WIFI){
 				   wifiInfo = networkInfo;
 				   Log.d(TAG, "Broadcast Receiver WiFi: " + wifiInfo.toString());
@@ -115,10 +120,19 @@ public class EnvInitService extends Service {//implements Runnable{
 					   doEnvCleanup();					   
 				   }
 			   }else if(networkInfo.getType() == ConnectivityManager.TYPE_MOBILE){
-				   mobileInfo = networkInfo;
-				   Log.d(TAG, "delete 3G route " + threeGIF.getName());
-				   //Utility.runRootCommand("ip route del dev "+ threeGIF.getName(), false);
-				   Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
+				   mobileInfo = networkInfo;				   	  
+				   Log.d(TAG, "Broadcast Receiver 3G: " + mobileInfo.toString());
+				   //doEnvInit();
+				   if(mobileInfo.isConnected()){
+					   //Log.d(TAG, "3G is connected");
+					   sendReportToUI("3G: connected");
+					   doEnvInit();
+				   }else if(mobileInfo.isFailover()){
+					   //Log.d(TAG, "3G is failing over ...");
+					   sendReportToUI("3G: failing over ...");
+					   doEnvCleanup();
+				   }
+				   //Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
 				   //TODO: for ppp0, need to reset configure environment
 			   }else{
 				   Log.d(TAG, "Broadcast Receiver: " + networkInfo.toString());
@@ -148,8 +162,14 @@ public class EnvInitService extends Service {//implements Runnable{
     
     
     public void doEnvInit(){
-    	threeGIF = new ThreeGInterface(this);
-    	wifiIF = new WifiInterface(this);
+    	/*if(threeGIF == null){
+    		threeGIF = new ThreeGInterface(this);
+    	}
+    	if(wifiIF == null){
+    		wifiIF = new WifiInterface(this);
+    	}*/
+    	
+    	Log.d(TAG, "ips = " + Utility.getLocalIpAddress());
     	mConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
     	//WifiManager wm = (WifiManager) getSystemService(Context.WIFI_SERVICE);    	
     	
@@ -163,21 +183,49 @@ public class EnvInitService extends Service {//implements Runnable{
 
         if(wifiInfo.isConnected()){
         	wifi_included = true;
+        	if(wifiIF == null){
+        		wifiIF = new WifiInterface(this);
+        	}else{
+        		WifiInterface newWifi = new WifiInterface(this);
+        		if(newWifi.getIP() != null){
+        			wifiIF = newWifi;
+        		}
+        	}
         }else{
         	wifi_included = false;
         }
     	
         if(mobileInfo.isConnected()){
         	mobile_included = true;        
+        	if(threeGIF == null){
+        		threeGIF = new ThreeGInterface(this);
+        	}else{
+        		ThreeGInterface new3g = new ThreeGInterface(this);
+        		if(new3g.getIP() != null){
+        			threeGIF = new3g;
+        		}
+        	}
         }else{
         	mobile_included = false;
         }
+        
+        Log.d(TAG, "wifi: " + wifi_included + ", 3g: " + mobile_included);
+        
         
         if(wifi_included == false && mobile_included == false){
         	//stopController();
         	Log.d(TAG, "NO connection available");
         	sendReportToUI("NO connection available, abort!");
         	return;
+        }else if(wifi_included == true && mobile_included == false){
+        	Log.d(TAG, "Using WiFi");
+        	sendReportToUI("Using WiFi");
+        }else if(wifi_included == false && mobile_included == true){
+        	Log.d(TAG, "Using Mobile Data Plan");
+        	sendReportToUI("Using Mobile Data Plan");
+        }else{
+        	Log.d(TAG, "Using Both WiFi and Mobile Data Plan");
+        	sendReportToUI("Using Both WiFi and Mobile Data Plan");
         }
         
     	if(wifi_included){
@@ -198,6 +246,7 @@ public class EnvInitService extends Service {//implements Runnable{
     	doRoutingInit();
     	//startMonitorThread();    	
     	sendReportToUI("Setup the Environment successfully");
+    	initialized = true;
     	/**
     	 * TODO: Notify the statusUI that environment initiation is finished, time to start the Monitor service
     	 */
@@ -265,9 +314,9 @@ public class EnvInitService extends Service {//implements Runnable{
     		}else if(mobile_included){
     			vIFs.getVeth1().setIP(threeGIF.getIP(), threeGIF.getMask());
     			vIFs.getVeth1().setMac(threeGIF.getMac());
-    			if (threeGIF.getName().equals("rmnet0")) {
+    			/*if (threeGIF.getName().equals("rmnet0")) {
     				threeGIF.removeIP();
-    			}
+    			}*/
     		}else{
     			Log.e(TAG, "no interface is enabled");
     		}
@@ -328,9 +377,13 @@ public class EnvInitService extends Service {//implements Runnable{
     }
        
     public void doRoutingInit(){
-    	/** remove other default route */		
-		Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ wifiIF.getName(), false);
-		Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
+    	/** remove other default route */
+    	if(wifi_included){
+    		Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ wifiIF.getName(), false);
+    	}
+    	if(mobile_included){
+    		Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
+    	}
 
     	if(isMultipleInterface){
     		Utility.runRootCommand("/data/local/bin/busybox route add default dev " + vIFs.getVeth1().getName(), false);
@@ -347,7 +400,18 @@ public class EnvInitService extends Service {//implements Runnable{
     				Utility.runRootCommand("/data/local/bin/busybox route add default dev veth1", false);
     				Utility.runRootCommand("/data/local/bin/busybox route del default dev ppp0", false);
     			} else {
+    				ArrayList<String> routeNet = Utility.runRootCommand("/data/local/bin/busybox route -n | /data/local/bin/busybox grep "+ threeGIF.getName() +" | /data/local/bin/busybox awk '{print $1}'", true);
+    				Iterator<String> it = routeNet.iterator();
+    				while(it.hasNext()){
+    					String net = it.next();
+    					Utility.runRootCommand("/data/local/bin/busybox route del -net " + net + " netmask " + threeGIF.getMask() + " dev " + threeGIF.getName(), false);
+    				}    				
+    				//Utility.runRootCommand("/data/local/bin/busybox route add -net " + threeGIF.getIP() + " netmask " + threeGIF.getMask() + " " + vIFs.getVeth1().getName(), false);
     				Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
+    				String dns1 = Utility.getProp("net."+threeGGW.getName()+".dns1");
+    				String dns2 = Utility.getProp("net."+threeGGW.getName()+".dns2");
+    				Utility.runRootCommand("/data/local/bin/busybox route del -net " + dns1 + " netmask 255.255.255.255 dev " + threeGIF.getName(), false);
+    				Utility.runRootCommand("/data/local/bin/busybox route del -net " + dns2 + " netmask 255.255.255.255 dev " + threeGIF.getName(), false);
     			}
     		}
     	}
@@ -366,9 +430,17 @@ public class EnvInitService extends Service {//implements Runnable{
 		Utility.runRootCommand("rmmod openvswitch_mod", false);		
 		Utility.runRootCommand("/data/local/bin/busybox ip link del veth0", false);
 		Utility.runRootCommand("/data/local/bin/busybox ip link del veth2", false);
+		if(wifi_included){
+			Utility.runRootCommand("/data/local/bin/busybox ifconfig " + wifiIF.getName() + " " + wifiIF.getIP() + " netmask " + wifiIF.getMask(), false);
+			Utility.runRootCommand("/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + wifiIF.getName(), false);
+		}else if(mobile_included){
+			Utility.runRootCommand("/data/local/bin/busybox ifconfig " + threeGIF.getName() + " " + threeGIF.getIP() + " netmask " + threeGIF.getMask(), false);
+			Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGIF.getGateway().getIP()+ " " + threeGIF.getName(), false);
+		}
 		isOVSsetup = false;
 		isOpenflowdSetup = false;
 		sendReportToUI("Clean up the environment");
+		initialized = false;
 		//stopMonitorThread();
     }
 	@Override

@@ -582,6 +582,7 @@ public class OFCommService extends Service{
             
     		while(it.hasNext()){ //for each IP
     			String ipS = it.next();
+    			Log.d(TAG, "ip #: " + ipS);
     			int ip = IPv4.toIPv4Address(ipS);
     	    	Log.d(TAG, "ip #: " + IPv4.fromIPv4Address(ip));
     	    	//forward related arp to controller    	    	
