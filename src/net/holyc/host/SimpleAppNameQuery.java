@@ -121,12 +121,16 @@ public class SimpleAppNameQuery {
 	}
 	
 	public static void refreshCache(Context cxt, int uid) {
-  	  final PackageManager pm = cxt.getPackageManager();
-	  List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-	  for (int i = 0; i < packages.size(); i++) {
-		  ApplicationInfo appInfo = packages.get(i);
-		  if (!uid2PkgName.containsKey(appInfo.uid)) {
-			  uid2PkgName.put(appInfo.uid, appInfo.processName);
+	  if (SystemService.id2Service.containsKey(uid)) {
+		  uid2PkgName.put(uid, SystemService.id2Service.get(uid));
+	  } else {
+	  	  PackageManager pm = cxt.getPackageManager();
+		  List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+		  for (int i = 0; i < packages.size(); i++) {
+			  ApplicationInfo appInfo = packages.get(i);
+			  if (!uid2PkgName.containsKey(appInfo.uid)) {
+				  uid2PkgName.put(appInfo.uid, appInfo.processName);
+			  }
 		  }
 	  }
 	  if (uid2PkgName.containsKey(uid) == false) {
