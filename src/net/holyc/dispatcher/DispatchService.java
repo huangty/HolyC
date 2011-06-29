@@ -143,7 +143,7 @@ public class DispatchService extends Service {
 	@Override
 	public void onCreate() {
 		isRunning = true;
-		mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);				
 		sInstance = this;
 		startForeground(0, null);
 		mIntentFilter = new IntentFilter();
@@ -192,7 +192,8 @@ public class DispatchService extends Service {
 		// Set the icon, scrolling text and timestamp for notification
 		Notification notification = new Notification(R.drawable.icon, text,
 				System.currentTimeMillis());
-
+		notification.flags |= Notification.FLAG_ONGOING_EVENT;
+		notification.flags |= Notification.FLAG_NO_CLEAR;
 		// The PendingIntent to launch our activity if the user selects this
 		// notification
 		PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
