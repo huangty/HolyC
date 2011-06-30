@@ -64,7 +64,7 @@ public class OFCommService extends Service{
     ServerSocketChannel ctlServer = null; 
     Selector selector = null;
     String TAG = "HOLYC.OFCOMM";
-    private Map<Integer, Socket> socketMap = new HashMap<Integer, Socket>();
+    public static Map<Integer, Socket> socketMap = new HashMap<Integer, Socket>();
     AcceptThread mAcceptThread = null;
     /** For showing and hiding our notification. */
     NotificationManager mNM;
@@ -72,12 +72,12 @@ public class OFCommService extends Service{
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();   
     
     /** for debug **/
-    static HashMap<Integer, Delay> procDelayTable = new HashMap<Integer, Delay>();
+    public static HashMap<Integer, Delay> procDelayTable = new HashMap<Integer, Delay>();
 
     /** Openflow Flow Rule Priority */
-	final short HIGH_PRIORITY = (short)65535;
-	final short MID_PRIORITY = (short) 32767;
-	final short LOW_PRIORITY = (short) 0;
+	public static final short HIGH_PRIORITY = (short)65535;
+	public static final short MID_PRIORITY = (short) 32767;
+	public static final short LOW_PRIORITY = (short) 0;
 
     /**
      * Handler of incoming messages from clients.
@@ -271,10 +271,10 @@ public class OFCommService extends Service{
         		try {
         			// This is a blocking call and will only return on a
         			// successful connection or an exception
-        			Log.d(TAG, "waiting for openflow client ...");
+        			//Log.d(TAG, "waiting for openflow client ...");
         			socket = mmServerSocket.accept();
         			socket.setTcpNoDelay(true);
-        			Log.d(TAG, "Client connected!");
+        			Log.d(TAG, "Openflow client connected.");
 
         		} catch (SocketException e) {
         		} catch (IOException e) {
@@ -569,9 +569,7 @@ public class OFCommService extends Service{
         	dropUnwantedUdp((short) 17500, (short) 17500, HIGH_PRIORITY, socket); //trajan horse      
         	dropUnwantedUdp((short) 631, (short) 631, HIGH_PRIORITY, socket); //Internet Printing Protocol
 
-    	    List<String> myIPs = Utility.getDeviceIPs();
     	    
-    	    Iterator<String> it = myIPs.iterator();
             OFMessageFactory messageFactory = new BasicFactory();
             OFActionFactory actionFactory = new BasicFactory();
 
@@ -580,26 +578,28 @@ public class OFCommService extends Service{
             //drop all other dhcp discovery
             dropUnwantedUdp((short) 68, (short) 67, (short)(MID_PRIORITY+1), socket); //dhcp discovery from others
             
+            List<String> myIPs = Utility.getDeviceIPs();
+            Log.d(TAG, "the host has " + myIPs.size() + " ips");
+    	    Iterator<String> it = myIPs.iterator();
     		while(it.hasNext()){ //for each IP
     			String ipS = it.next();
-    			Log.d(TAG, "ip #: " + ipS);
+    			//Log.d(TAG, "ip #: " + ipS);
     			int ip = IPv4.toIPv4Address(ipS);
-    	    	Log.d(TAG, "ip #: " + IPv4.fromIPv4Address(ip));
+    	    	Log.d(TAG, "install rule for ip #: " + IPv4.fromIPv4Address(ip));
     	    	//forward related arp to controller    	    	
     	    	arpFwdToController(ip, MID_PRIORITY, socket);    	    	
             	//forward related tcp to controller
-    	    	//tcpFwdToController(ip, MID_PRIORITY, socket);
+    	    	tcpFwdToController(ip, MID_PRIORITY, socket);
             	//forward related udp to controller
     	    	udpFwdToController(ip, MID_PRIORITY, socket);
             	//forward related icmp to controller
-    	    	icmpFwdToController(ip, MID_PRIORITY, socket);
-    	    	
+    	    	icmpFwdToController(ip, MID_PRIORITY, socket);    	    	
     	    }
         	
         	
         	//drop all the unrelated traffic (lowest priority)
     		dropAll((short)0x0806, (byte) 0x00, LOW_PRIORITY, socket); //arp
-    		//dropAll((short)0x0800, (byte) 0x06, LOW_PRIORITY, socket); //ip, tcp
+    		dropAll((short)0x0800, (byte) 0x06, LOW_PRIORITY, socket); //ip, tcp
     		dropAll((short)0x0800, (byte) 0x11, LOW_PRIORITY, socket); //ip, udp
     		dropAll((short)0x0800, (byte) 0x01, LOW_PRIORITY, socket); //ip, icmp
         }

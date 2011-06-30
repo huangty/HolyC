@@ -67,7 +67,7 @@ public class FlowSwitch
 	    
 	    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 	    poutIntent.setPackage(context.getPackageName());
-	    ByteBuffer bb = getResponse(out, opie, ofm, context, cookie, port);	    
+	    ByteBuffer bb = getResponse(out, opie, ofm, cookie);	    
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb.array());
 	    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);	    
 	    context.sendBroadcast(poutIntent);
@@ -75,14 +75,13 @@ public class FlowSwitch
     }    
 
 
-    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, Context context, long cookie, int port )
+    public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, long cookie )
     {
 	OFActionOutput oao = new OFActionOutput();	    
 	oao.setMaxLength((short) 0);     
 	List<OFAction> actions = new ArrayList<OFAction>();
 	ByteBuffer bb;
 	/** to handle DHCP specially, always broadcast a dhcp packet**/
-	boolean isDHCP = Utility.isDHCP(ofm);
 	
 	if (out != null)
 	{		
@@ -119,11 +118,13 @@ public class FlowSwitch
 		    ByteBuffer bb_ofout = ByteBuffer.allocate(opo.getLengthU());
 		    bb_ofout.clear();		    
 		    opo.writeTo(bb_ofout);
-		    Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
-		    poutIntent.setPackage(context.getPackageName());
-		    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb_ofout.array());
-		    poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);	    
-		    context.sendBroadcast(poutIntent);
+		    
+		    ByteBuffer bb_out = ByteBuffer.allocate(opo.getLengthU() + offm.getLength());
+		    bb_out.clear();
+		    bb_out.put(bb.array());
+		    bb_out.put(bb_ofout.array());
+		    bb_out.flip();
+		    bb = bb_out;
 	    }	    
 	}
 	else

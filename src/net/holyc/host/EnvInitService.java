@@ -1,9 +1,22 @@
 package net.holyc.host;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 
+import org.openflow.protocol.OFFlowMod;
+import org.openflow.protocol.OFMatch;
+import org.openflow.protocol.OFPort;
+import org.openflow.protocol.action.OFAction;
+import org.openflow.protocol.action.OFActionOutput;
+import org.openflow.util.U16;
+
+import net.beaconcontroller.packet.IPv4;
 import net.holyc.HolyCMessage;
+import net.holyc.ofcomm.OFCommService;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -40,7 +53,7 @@ import android.util.Log;
 public class EnvInitService extends Service {//implements Runnable{
 
 	String TAG = "HOLYC.EnvInit";	
-	
+	boolean DEBUG = true;
 	/** Keeps track of all current registered clients. */
     ArrayList<Messenger> mClients = new ArrayList<Messenger>();
     public static boolean wifi_included;
@@ -52,9 +65,10 @@ public class EnvInitService extends Service {//implements Runnable{
 	private VirtualInterfacePair vIFs = null;
 	public static ThreeGInterface threeGIF = null;
 	public static WifiInterface wifiIF = null;
+	public static VirtualSwitch ovs_beforeSwitch = null;
+	public static VirtualSwitch ovs = null;
 	private HostInterface wifiGW = null;
 	private HostInterface threeGGW= null;
-	private VirtualSwitch ovs = null;
 	private ConnectivityManager mConnectivityManager = null; 
     private NetworkInfo wifiInfo = null;
     private NetworkInfo mobileInfo = null;
@@ -86,6 +100,9 @@ public class EnvInitService extends Service {//implements Runnable{
                 	//isMultipleInterface = wifi_included & mobile_included;
                 	//sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	Log.d(TAG, "Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
+                	if(ovs != null){
+                		doEnvCleanup();
+                	}
                 	doEnvInit();
                 	initializedByDispather = true;
                 	break;
@@ -113,13 +130,16 @@ public class EnvInitService extends Service {//implements Runnable{
 				   Log.d(TAG, "Broadcast Receiver WiFi: " + wifiInfo.toString());
 				   if(wifiInfo.isConnected()){ //connected to a different ap
 					   sendReportToUI("WiFi: a new connection");
-					   //doEnvCleanup();
-					   doEnvInit();
-				   }else if (wifiInfo.isConnectedOrConnecting()){ //is connecting
-					   sendReportToUI("WiFi: is connecting ... ");
+					   Log.d(TAG, "WiFi connected, setting up environment");
+					   doEnvInit();					   
+				   }else if(wifiInfo.isConnectedOrConnecting()){
+					   //do nothing
 				   }else{ //currently disconnected
 					   sendReportToUI("WiFi: disconnected from the network");
-					   doEnvCleanup();					   
+					   doWiFiCleanup();
+					   /*set these as false, so that when the next time we do EnvInit, they would reset the rule and sort out OVS interfaces*/
+					   isOpenflowdSetup = false;
+					   isOVSsetup = false;					   				
 				   }
 			   }else if(networkInfo.getType() == ConnectivityManager.TYPE_MOBILE){
 				   mobileInfo = networkInfo;				   	  
@@ -128,16 +148,20 @@ public class EnvInitService extends Service {//implements Runnable{
 				   if(mobileInfo.isConnected()){
 					   //Log.d(TAG, "3G is connected");
 					   sendReportToUI("3G: connected");
-					   doEnvInit();
-				   }else if(mobileInfo.isFailover()){
-					   //Log.d(TAG, "3G is failing over ...");
+					   doEnvInit();					   	   					   
+				   }else if(mobileInfo.isConnectedOrConnecting()){
+					   //do nothing
+				   }else{ 
+					   Log.d(TAG, "3G is disconnected");
 					   sendReportToUI("3G: failing over ...");
-					   doEnvCleanup();
+					   doMobileCleanup();
+					   /*set these as false, so that when the next time we do EnvInit, they would reset the rule and sort out OVS interfaces*/
+					   isOpenflowdSetup = false;
+					   isOVSsetup = false;
 				   }
-				   //Utility.runRootCommand("/data/local/bin/busybox ip route del dev "+ threeGIF.getName(), false);
 				   //TODO: for ppp0, need to reset configure environment
 			   }else{
-				   Log.d(TAG, "Broadcast Receiver: " + networkInfo.toString());
+				   Log.d(TAG, "Broadcast Receiver ELSE: " + networkInfo.toString());
 			   }
 		}    	
     };
@@ -171,7 +195,7 @@ public class EnvInitService extends Service {//implements Runnable{
     		wifiIF = new WifiInterface(this);
     	}*/
     	
-    	Log.d(TAG, "ips = " + Utility.getLocalIpAddress());
+    	Log.d(TAG, "Start initialize Environment for the host with ips = " + Utility.getLocalIpAddress());
     	mConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
     	//WifiManager wm = (WifiManager) getSystemService(Context.WIFI_SERVICE);    	
     	
@@ -179,9 +203,9 @@ public class EnvInitService extends Service {//implements Runnable{
         mobileInfo = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 
         // print info
-        Log.d(TAG, "Init : WiFi Info: " + wifiInfo.toString());
-        Log.d(TAG, "Init : 3G Info:" + mobileInfo.toString());
-        Log.d(TAG, "interfaces in the system " + android.os.Build.DEVICE);
+        //Log.d(TAG, "Init : WiFi Info: " + wifiInfo.toString());
+        //Log.d(TAG, "Init : 3G Info:" + mobileInfo.toString());
+        //Log.d(TAG, "interfaces in the system " + android.os.Build.DEVICE);
 
         if(wifiInfo.isConnected()){
         	wifi_included = true;
@@ -241,9 +265,17 @@ public class EnvInitService extends Service {//implements Runnable{
     		doWiFiInit();
     	}
     	if(mobile_included){
-    		doMobileInit();
+    		doMobileInit();    		
+    	}
+    	
+    	if((wifi_included && wifiIF.getIP() == null) || (mobile_included && threeGIF.getIP() == null) ){
+    		Log.d(TAG, "NO IP on interface");
+        	sendReportToUI("NO IP on interface, abort!");
+        	return;
     	}
     	doVethInit();
+    	//doOVSInit();
+    	//doOpenflowdInit();
     	if(isOVSsetup == false){
     		doOVSInit();
     		isOVSsetup = true;
@@ -350,6 +382,7 @@ public class EnvInitService extends Service {//implements Runnable{
     	 * */
     	ovs = new VirtualSwitch();
     	ovs.addDP("dp0");
+    	ovs.addIF("dp0", "dp0");
     	ovs.addIF("dp0", vIFs.getVeth0().getName());
     	if(wifi_included){
     		ovs.addIF("dp0", wifiIF.getName());
@@ -369,19 +402,22 @@ public class EnvInitService extends Service {//implements Runnable{
     	}
     	/** debug messages*/
     	//sendReportToUI("Setup OVS");
+    	if(DEBUG){
+	    	Iterator<String> it = ovs.dptable.get("dp0").iterator();
+	    	while(it.hasNext()){
+	    		String name = it.next();
+	    		int port = ovs.dptable.get("dp0").indexOf(name);
+	    		Log.d(TAG, "port #" + port + ": " + name);
+	    	}
+    	}
     	Log.d(TAG, "OVS setuped");
     }         
         
     public void doOpenflowdInit(){    	    	
+    	Utility.runRootCommand("killall -9 ovs-openflowd", false);    			
     	Utility.runRootCommand("/data/local/bin/ovs-openflowd "+ ovs.getDP(0) +" tcp:127.0.0.1 " + 
     			"--out-of-band --monitor --detach --log-file=/sdcard/Android/data/net.holyc/files/ovs.log", false);
-    	Log.d(TAG, "Openflowd is running in detached mode");
-    	/**
-    	 * @TODO: How to retrieve the output of openflowd? (do we want to have it in logcat?)
-    	 */
-    	/** debug messages*/
-    	//sendReportToUI("Please Setup Openflowd By Hand, go to adb shell; /data/local/bin/ovs-openflowd dp0 tcp:127.0.0.1 --out-of-band");
-    	//sendReportToUI("Openflowd is running in detached mode");
+    	Log.d(TAG, "Openflowd is running in detached mode");    	
     }
        
     public void doRoutingInit(){
@@ -412,6 +448,7 @@ public class EnvInitService extends Service {//implements Runnable{
     				Iterator<String> it = routeNet.iterator();
     				while(it.hasNext()){
     					String net = it.next();
+    					threeGIF.addNet(net);
     					Utility.runRootCommand("/data/local/bin/busybox route del -net " + net + " netmask " + threeGIF.getMask() + " dev " + threeGIF.getName(), false);
     				}    				
     				//Utility.runRootCommand("/data/local/bin/busybox route add -net " + threeGIF.getIP() + " netmask " + threeGIF.getMask() + " " + vIFs.getVeth1().getName(), false);
@@ -425,28 +462,107 @@ public class EnvInitService extends Service {//implements Runnable{
     	}
     	Log.d(TAG, "Routing setuped");
     }
-    
-    public void doEnvCleanup(){    	
-    	Utility.runRootCommand("/data/local/bin/busybox killall -9 ovs-openflowd", false);
-    	if(wifiIF != null){
-    		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + wifiIF.getName(), false);
+    public void uninstallRulesWithIP(String IP){
+    	int host_ip = IPv4.toIPv4Address(IP);
+    	OFActionOutput arp_action = new OFActionOutput()
+		.setPort(OFPort.OFPP_CONTROLLER.getValue())
+		.setMaxLength((short)65535);  
+		//remove rules for forwarding arp destinated to the host IP 
+		OFMatch arp_match = new OFMatch()        
+				.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE & ~(63 << OFMatch.OFPFW_NW_DST_SHIFT))    	    				
+				.setNetworkDestination(host_ip)
+				.setDataLayerType((short)0x0806);//arp    	    	
+		      	
+		OFFlowMod arp_fm = new OFFlowMod();
+		
+		arp_fm.setBufferId(-1)
+				.setIdleTimeout((short) 0)
+				.setHardTimeout((short) 0)
+				.setOutPort((short) OFPort.OFPP_NONE.getValue())		    	    	
+				.setCommand(OFFlowMod.OFPFC_DELETE)
+				.setMatch(arp_match)            
+				.setActions(Collections.singletonList((OFAction)arp_action))
+				.setPriority(OFCommService.MID_PRIORITY)
+				.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+		
+		ByteBuffer arp_bb = ByteBuffer.allocate(arp_fm.getLength());
+		arp_fm.writeTo(arp_bb);
+		
+		
+		//sendOFPacket(socket, arp_bb.array());
+    }
+    public void doWiFiCleanup(){
+    	Log.d(TAG, "make wifi out of ovs setup .... ");
+    	if(wifi_included){
+    		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + wifiIF.getName(), false);    		
     	}
+    	/* give the ip back to the original interfaces*/
+    	if(wifi_included){
+			if(wifiInfo != null && wifiInfo.isConnected()){
+				Utility.runRootCommand("/data/local/bin/busybox ifconfig " + wifiIF.getName() + " " + wifiIF.getIP() + " netmask " + wifiIF.getMask(), false);
+				Utility.runRootCommand("/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + wifiIF.getName(), false);
+			}
+		}    	
+    	//TODO: clear flow rules relates to wifi 
+    	//uninstallRulesWithIP(wifiIF.getIP());
+    	wifiIF = null;
+    	wifi_included = false;
+    }
+    public void doMobileCleanup(){
+    	Log.d(TAG, "make mobile out of ovs setup .... ");
+    	if(mobile_included){
+    		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + threeGIF.getName(), false);
+    	}
+    	/* give the ip back to the original interfaces*/
+    	if(mobile_included){
+			if(mobileInfo != null && mobileInfo.isConnected()){
+				Log.d(TAG, "add routing back into host routing table");
+				Utility.runRootCommand("/data/local/bin/busybox ifconfig " + threeGIF.getName() + " " + threeGIF.getIP() + " netmask " + threeGIF.getMask(), false);			
+				ArrayList<String> routeNets = threeGIF.getNets();
+				Iterator<String> it = routeNets.iterator();
+				while(it.hasNext()){
+					String net = it.next();
+					Utility.runRootCommand("/data/local/bin/busybox route add -net " + net + " netmask " + threeGIF.getMask() + " dev " + threeGIF.getName(), false);
+				}
+				threeGIF.clearNets();
+				Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGIF.getGateway().getIP()+ " " + threeGIF.getName(), false);
+			}
+		}
+    	//TODO: clear flow rules relates to mobile interface
+    	threeGIF = null;
+    	mobile_included = false;
+    }
+    
+    public void doEnvCleanup(){    
+    	Log.d(TAG, "start cleaning the environment .... ");
+    	Utility.runRootCommand("/data/local/bin/busybox killall -9 ovs-openflowd", false);
+    	doWiFiCleanup();
+    	doMobileCleanup();    	
     	if(vIFs != null){
     		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-if dp0 " + vIFs.getVeth0().getName(), false);
     	}
-		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);
+		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp dp0", false);		
 		Utility.runRootCommand("rmmod openvswitch_mod", false);		
 		Utility.runRootCommand("/data/local/bin/busybox ip link del veth0", false);
-		Utility.runRootCommand("/data/local/bin/busybox ip link del veth2", false);
-		if(wifi_included){
-			Utility.runRootCommand("/data/local/bin/busybox ifconfig " + wifiIF.getName() + " " + wifiIF.getIP() + " netmask " + wifiIF.getMask(), false);
-			Utility.runRootCommand("/data/local/bin/busybox route add default gw " + wifiGW.getIP()+ " " + wifiIF.getName(), false);
-		}else if(mobile_included){
-			Utility.runRootCommand("/data/local/bin/busybox ifconfig " + threeGIF.getName() + " " + threeGIF.getIP() + " netmask " + threeGIF.getMask(), false);
-			Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGIF.getGateway().getIP()+ " " + threeGIF.getName(), false);
+		if(mobile_included && threeGIF!= null && threeGIF.getName().equals("ppp0")){
+			Utility.runRootCommand("/data/local/bin/busybox ip link del veth2", false);
+		}			
+		Iterator<Socket> it = OFCommService.socketMap.values().iterator();
+		while(it.hasNext()){
+			Socket socket = it.next();		
+			try {
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}			
 		}
+		OFCommService.socketMap.clear();
+		OFCommService.procDelayTable.clear();
+		ovs_beforeSwitch = ovs;
+		ovs = null;
 		isOVSsetup = false;
 		isOpenflowdSetup = false;
+		Log.d(TAG, "finished environment cleanup");
 		sendReportToUI("Clean up the environment");		
 		//stopMonitorThread();
     }

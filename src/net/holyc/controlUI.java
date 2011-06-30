@@ -197,7 +197,7 @@ public class controlUI extends Activity{
 	        switch (msg.what) {
 	            case HolyCMessage.DISPATCH_REPORT.type:
 					mBuffer.append(msg.getData().getString(HolyCMessage.DISPATCH_REPORT.str_key)+"\n");
-					Log.d(TAG, "get report from dispatch service: " + msg.getData().getString(HolyCMessage.DISPATCH_REPORT.str_key));
+					//Log.d(TAG, "get report from dispatch service: " + msg.getData().getString(HolyCMessage.DISPATCH_REPORT.str_key));
 					doRedraw();
 	                break;
 	            default:

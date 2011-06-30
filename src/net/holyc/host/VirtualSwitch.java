@@ -16,11 +16,11 @@ import android.util.Log;
  * @author Te-Yuan Huang (huangty@stanford.edu)
  */
 
-class VirtualSwitch{	
+public class VirtualSwitch{	
 	String TAG = "HOLYC.VirtualSwitch";
-	private static HashMap<String, LinkedList<String>> dptable;
+	public HashMap<String, ArrayList<String>> dptable;
 	VirtualSwitch(){		
-		dptable = new HashMap<String, LinkedList<String>>();
+		dptable = new HashMap<String, ArrayList<String>>();
 		loadKernelModule();
 	}
 	public void loadKernelModule(){		
@@ -38,6 +38,7 @@ class VirtualSwitch{
 		}
 	}
 	public void addDP(String dp){
+		Utility.runRootCommand("/data/local/bin/ovs-dpctl del-dp "+ dp , false);
 		if(!dptable.containsKey(dp)){			
 	   		Utility.runRootCommand("/data/local/bin/ovs-dpctl add-dp "+ dp , false);
 			Log.d(TAG, "OVS add-dp " + dp);
@@ -46,12 +47,12 @@ class VirtualSwitch{
 			Log.d(TAG, "no need to add dp0, since it's already there");
 			return;
 		}
-		dptable.put(dp, new LinkedList<String>());		
+		dptable.put(dp, new ArrayList<String>());		
 	}
 	public void addIF(String dp, String intf){
 		if(dptable.containsKey(dp)){
 			Utility.runRootCommand("/data/local/bin/ovs-dpctl add-if " + dp + " " + intf , false);
-			dptable.get(dp).add(intf);
+			dptable.get(dp).add(intf);			
 		}else{
 			Log.e(TAG, "datapatch not exists");
 		}
