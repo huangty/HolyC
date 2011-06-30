@@ -6,6 +6,7 @@ import java.util.Vector;
 import net.holyc.HolyCIntent;
 import net.holyc.dispatcher.OFFlowRemovedEvent;
 import net.holyc.host.AppNameQueryEngine;
+import net.holyc.host.EnvInitService;
 import net.holyc.host.Utility;
 
 import org.openflow.protocol.OFFlowRemoved;
@@ -83,7 +84,15 @@ public class Lal extends Service {
 				ofr.readFrom(Utility.getByteBuffer(ofdata));
 				long cookie = ofr.getCookie();
 				OFMatch ofm = ofr.getMatch();
-				
+				short ovs_inport = ofm.getInputPort();
+				String input_interface;
+				if(EnvInitService.ovs != null){					
+					input_interface = EnvInitService.ovs.dptable.get("dp0").get(ovs_inport);
+				}else if(EnvInitService.ovs_beforeSwitch != null){
+					input_interface = EnvInitService.ovs_beforeSwitch.dptable.get("dp0").get(ovs_inport);
+				}else{
+					input_interface = "unknown";
+				}
 				
 				// Get App Name
 				String app_name = null;
@@ -124,7 +133,8 @@ public class Lal extends Service {
 				ContentValues cv = new ContentValues();
 				cv.put("App", app_name);
 				cv.put("Time_Received",
-						((double) System.currentTimeMillis()) / (1000.0));				
+						((double) System.currentTimeMillis()) / (1000.0));		
+				cv.put("Interface", input_interface);				
 				OpenFlow.addOFFlowRemoved2CV(cv, ofr);				
 				db.insert(TABLE_NAME, cv);
 				

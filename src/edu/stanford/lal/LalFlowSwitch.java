@@ -54,8 +54,6 @@ public class LalFlowSwitch extends FlowSwitch {
 				localIP = ipToString(ofm.getNetworkDestination());
 				localPort = U16.f(ofm.getTransportDestination());
 			}
-			/** @TODO: (1) only send request when it's localIP or multicast IP (224.0.0.0 - 239.255.255.255) 
-			 *         (2) keep track of wifi states and 3G states **/			
 			String appName = SimpleAppNameQuery.getPKGNameFromAddr(context, localIP, localPort, remoteIP, remotePort);
 			Log.d(TAG, appName+"::"+localPort+"->"+remoteIP+":"+remotePort);
 			//AppNameQueryEngine.sendQueryRequest(remoteIP, remotePort, localPort);					

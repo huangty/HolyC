@@ -77,7 +77,7 @@ public class LalPermBasedFlowSwitch extends LalFlowSwitch {
 		// Send response
 		Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
 		poutIntent.setPackage(context.getPackageName());
-		ByteBuffer bb = getResponse(out, opie, ofm, context, -1, -1);
+		ByteBuffer bb = getResponse(out, opie, ofm, -1);
 		OFReplyEvent ofpoe = new OFReplyEvent(socketChannelNumber, 
 				bb.array());
 		poutIntent.putExtra(HolyCIntent.BroadcastOFReply.str_key,
