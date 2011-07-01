@@ -2,6 +2,7 @@ package net.holyc.host;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 
 import android.app.Activity;
 import android.content.Context;
@@ -16,10 +17,21 @@ import android.util.Log;
 
 public class ThreeGInterface extends HostInterface {
 	private Context context = null;
+	private ArrayList<String> routeNets;
 	String TAG = "HOLYC.3GInterface";
 	
 	public ThreeGInterface(Context context) {
 		this.context = context;
+		routeNets = new ArrayList<String>();
+	}
+	public void addNet(String net){
+		routeNets.add(net);
+	}
+	public ArrayList<String> getNets(){
+		return routeNets;
+	}
+	public void clearNets(){
+		routeNets.clear();
 	}
 	@Override
     public String searchName() {
