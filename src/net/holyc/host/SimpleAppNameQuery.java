@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.text.format.Time;
 import android.util.Log;
 
 class ConnectionCacheItem {
@@ -37,6 +38,7 @@ public class SimpleAppNameQuery {
 	public static final ConcurrentHashMap<String, ConnectionCacheItem> connectionCache = 
 		new ConcurrentHashMap<String, ConnectionCacheItem>();
 	public static Thread monitorThread = null;
+	public static String debugInfo = "";
 	
 	/**
 	 * Transport ip and port to hex network address
@@ -72,11 +74,16 @@ public class SimpleAppNameQuery {
 		ArrayList<String> lines = Utility.readLinesFromFile(file);
 		int uid = -1;
 		//Log.d(TAG, "query: "+localAddr+"->"+remoteAddr+"::"+file);
+		debugInfo += "query: " + localAddr + "->" + remoteAddr + "::" + file + "\n";
 		for (String line : lines) {
+			debugInfo += line + "\n";
 			try {
 				String[] items = line.split(" +");
 				if (items[1].equalsIgnoreCase(localAddr) && items[2].equalsIgnoreCase(remoteAddr)) {
+					debugInfo += "parse " + items[7];
 					uid = Integer.parseInt(items[7]);
+					debugInfo += " to " + uid + "\n";
+					break;
 				}
 			} catch (Exception e) {
 				Log.d(TAG, "Parsing line error: " + e.getMessage());
@@ -100,7 +107,7 @@ public class SimpleAppNameQuery {
 		String remoteAddr = toHexNetworkAddr(remoteIP, remotePort);
 		int uid = -1;
 		for (String file : ipv4files) {
-			if ((uid=getUidFromFile(localAddr, remoteAddr, file)) > 0) break;
+			if ((uid=getUidFromFile(localAddr, remoteAddr, file)) >= 0) break;
 		}
 		if (uid < 0) {
 			localAddr = "0000000000000000FFFF0000" + localAddr;
@@ -109,7 +116,7 @@ public class SimpleAppNameQuery {
 			else
 				remoteAddr = "0000000000000000FFFF0000" + remoteAddr;
 			for (String file : ipv6files) {
-				if ((uid=getUidFromFile(localAddr, remoteAddr, file)) > 0) break;
+				if ((uid=getUidFromFile(localAddr, remoteAddr, file)) >= 0) break;
 			}
 		}
 		//try cache
@@ -145,13 +152,30 @@ public class SimpleAppNameQuery {
     	if (knownService != null) return knownService;
     	
     	int uid = -1;
-    	if(connectionCache.contains(toString(remoteIP, remotePort, localPort))){
-    		uid = connectionCache.get(toString(remoteIP, remotePort, localPort)).uid;
-    	}else{
-    		uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
-    		//Log.d(TAG, "uid = " + uid);
-    		if (uid < 0) return null;
-    		connectionCache.put(toString(remoteIP, remotePort, localPort), new ConnectionCacheItem(uid));
+    	String networkAddr = toString(remoteIP, remotePort, localPort);
+    	if (connectionCache.contains(networkAddr)) {
+    		uid = connectionCache.get(networkAddr).uid;
+    	} else {
+    		 debugInfo = "";
+    		 for (int i = 0; i < 3; i++) {
+        		 uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
+         		 Log.d(TAG, "uid = " + uid);
+        		 if (uid >= 0) {
+        			 break;
+        		 } else {
+        			 try {
+						Thread.sleep(5);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+         			 Log.d(TAG, "============================query("+i+"):"+networkAddr+"=======================================\n");
+         			 Log.d(TAG, debugInfo);
+         			 Log.d(TAG, "===============================================================================================\n");
+         		 }
+    		 }
+    		 if (uid < 0) return null;
+    		 connectionCache.put(networkAddr, new ConnectionCacheItem(uid));
     	}
 		if (monitorThread == null || monitorThread.isAlive() == false) {
 			monitorThread = new Thread(new CacheMonitor());
