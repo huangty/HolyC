@@ -2,8 +2,6 @@ package net.holyc;
 
 import java.util.List;
 
-import edu.stanford.lal.LalPermTester;
-
 import net.holyc.dispatcher.DispatchService;
 import net.holyc.host.Utility;
 import android.app.Activity;

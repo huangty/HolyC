@@ -50,10 +50,9 @@
 	<action android:name="holyc.intent.broadcast.ERROR"/>   
       </intent-filter>   
     </receiver>    
-    <!-- <receiver android:name="edu.stanford.lal.LalPermBasedFlowSwitch"> -->
-    <receiver android:name="edu.stanford.lal.LalFlowSwitch">
+    <receiver android:name=".openflow.handler.FlowSwitch">
       <intent-filter>   
-	<action android:name="holyc.intent.broadcast.PACKETIN"/>   
+		<action android:name="holyc.intent.broadcast.PACKETIN"/>   
       </intent-filter>   
     </receiver>   
 

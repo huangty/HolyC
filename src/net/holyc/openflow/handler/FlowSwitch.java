@@ -53,6 +53,7 @@ public class FlowSwitch
 	    ofm.loadFromPacket(opie.getPacketData(), opie.getInPort());
 	    hostPort.put(HexString.toHexString(ofm.getDataLayerSource()), 
 			 new Short(ofm.getInputPort()));
+	    //Log.d(TAG, "got an ofm at flowswitch:" + ofm.toString());
 
 	    //Find outport if any
 	    Short out;

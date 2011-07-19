@@ -9,7 +9,6 @@ import net.holyc.controlUI;
 import net.holyc.host.EnvInitService;
 import net.holyc.ofcomm.OFCommService;
 
-import edu.stanford.lal.Lal;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -210,13 +209,11 @@ public class DispatchService extends Service {
 	}
 
 	private void doBindServices() {
-	        doBindOFService();
+        doBindOFService();
 		doBindEnvService();
-		doStartLal();
 	}
 
-	private void doUnBindServices() {
-	        doStopLal();
+	private void doUnBindServices() {	        
 		doUnbindOFService();
 		doUnbindEnvService();
 	}
@@ -230,17 +227,7 @@ public class DispatchService extends Service {
 		bindService(intent, mOFConnection, Context.BIND_AUTO_CREATE);
 		mIsOFBound = true;
 
-	}
-
-	void doStartLal() {
-		Intent intent = new Intent(this, Lal.class);
-		startService(intent);
-	}
-
-	void doStopLal() {
-		Intent intent = new Intent(this, Lal.class);
-		stopService(intent);
-	}
+	}	
 
 	void doUnbindOFService() {
 		if (mIsOFBound) {
