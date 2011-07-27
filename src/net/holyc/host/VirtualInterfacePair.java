@@ -10,7 +10,7 @@ import android.util.Log;
 * 
 * @author Te-Yuan Huang (huangty@stanford.edu)
 */
-class VirtualInterfacePair{
+public class VirtualInterfacePair{
 	private Context context = null;
 	private VirtualInterface veth0 = null;
 	private VirtualInterface veth1 = null;

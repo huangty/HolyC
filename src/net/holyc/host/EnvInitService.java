@@ -59,14 +59,14 @@ public class EnvInitService extends Service {//implements Runnable{
     public static boolean wifi_included;
 	public static boolean mobile_included;
 	public static boolean initializedByDispather = false;
-	private boolean isMultipleInterface = false;
-	private Thread monitorThread = null;
+	public static boolean isMultipleInterface = true;
 	/** The interfaces in the host*/
-	private VirtualInterfacePair vIFs = null;
+	public static VirtualInterfacePair vIFs = null;
 	public static ThreeGInterface threeGIF = null;
 	public static WifiInterface wifiIF = null;
 	public static VirtualSwitch ovs_beforeSwitch = null;
 	public static VirtualSwitch ovs = null;
+	public static HostInterface vethGW = null;
 	private HostInterface wifiGW = null;
 	private HostInterface threeGGW= null;
 	private ConnectivityManager mConnectivityManager = null; 
@@ -91,15 +91,6 @@ public class EnvInitService extends Service {//implements Runnable{
                 case HolyCMessage.ENV_INIT_START.type:
             		wifi_included = true;
             		mobile_included = true;
-                	if(msg.arg1 == 0){
-                		wifi_included = false;
-                	}                	
-                	if(msg.arg2 == 0){
-                		mobile_included = false;
-                	}                	
-                	//isMultipleInterface = wifi_included & mobile_included;
-                	//sendReportToUI("Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
-                	Log.d(TAG, "Initiating the environment with WiFi: " + wifi_included + " and 3G: " + mobile_included);
                 	if(ovs != null){
                 		doEnvCleanup();
                 	}
@@ -188,13 +179,6 @@ public class EnvInitService extends Service {//implements Runnable{
     
     
     public void doEnvInit(){
-    	/*if(threeGIF == null){
-    		threeGIF = new ThreeGInterface(this);
-    	}
-    	if(wifiIF == null){
-    		wifiIF = new WifiInterface(this);
-    	}*/
-    	
     	Log.d(TAG, "Start initialize Environment for the host with ips = " + Utility.getLocalIpAddress());
     	mConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
     	//WifiManager wm = (WifiManager) getSystemService(Context.WIFI_SERVICE);    	
@@ -336,12 +320,15 @@ public class EnvInitService extends Service {//implements Runnable{
     	 *  2. set the IP address and mask  */
     	
     	vIFs = new VirtualInterfacePair();    
-    	if(isMultipleInterface){ 
+    	
+    	if(isMultipleInterface && wifi_included && mobile_included){ 
     		//need to set IP to veth1 only when it's multiple interfaces
 	    	if( !wifiIF.getIP().startsWith("192.168") && !threeGIF.getIP().startsWith("192.168")){
 	    		vIFs.setIP("veth1", "192.168.0.2", "255.255.255.0");
+	    		//vethGW.setIP("192.168.0.1");
 	    	}else if(!wifiIF.getIP().startsWith("10.38") && !threeGIF.getIP().startsWith("10.38")){
 	    		vIFs.setIP("veth1", "10.38.0.2", "255.255.255.0");
+	    		//vethGW.setIP("10.38.0.1");
 	    	}else{
 	    		Log.e(TAG, "Couldn't find an IP to initilize virtual interface");
 	    	}
@@ -351,9 +338,11 @@ public class EnvInitService extends Service {//implements Runnable{
     			vIFs.getVeth1().setIP(wifiIF.getIP(), wifiIF.getMask());
     			vIFs.getVeth1().setMac(wifiIF.getMac());    			
     			wifiIF.removeIP();
+    			vethGW = wifiIF.getGateway();
     		}else if(mobile_included){
     			vIFs.getVeth1().setIP(threeGIF.getIP(), threeGIF.getMask());
     			vIFs.getVeth1().setMac(threeGIF.getMac());
+    			vethGW = threeGIF.getGateway();
     			/*if (threeGIF.getName().equals("rmnet0")) {
     				threeGIF.removeIP();
     			}*/
@@ -438,21 +427,21 @@ public class EnvInitService extends Service {//implements Runnable{
     		}else if(mobile_included){
     			if (threeGIF.getName().equals("ppp0")) {
     				Utility.runRootCommand("/data/local/bin/busybox route add -net " 
-    						+ threeGGW.getIP() + " netmask 255.255.255.255 veth1", false);
-    				Utility.runRootCommand("/data/local/bin/busybox route del -net " 
-    						+ threeGGW.getIP() + " netmask 255.255.255.255 ppp0", false);
+    						+ threeGGW.getIP() + " netmask 255.255.255.255 "+ vIFs.getVeth1().getName(), false);
     				Utility.runRootCommand("/data/local/bin/busybox route add default dev veth1", false);
     				Utility.runRootCommand("/data/local/bin/busybox route del default dev ppp0", false);
+    				Utility.runRootCommand("/data/local/bin/busybox route del -net " 
+    						+ threeGGW.getIP() + " netmask 255.255.255.255 ppp0", false);
     			} else {
+    				//Utility.runRootCommand("/data/local/bin/busybox route add -net " + threeGIF.getIP() + " netmask " + threeGIF.getMask() + " " + vIFs.getVeth1().getName(), false);
+    				Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
     				ArrayList<String> routeNet = Utility.runRootCommand("/data/local/bin/busybox route -n | /data/local/bin/busybox grep "+ threeGIF.getName() +" | /data/local/bin/busybox awk '{print $1}'", true);
     				Iterator<String> it = routeNet.iterator();
     				while(it.hasNext()){
     					String net = it.next();
     					threeGIF.addNet(net);
     					Utility.runRootCommand("/data/local/bin/busybox route del -net " + net + " netmask " + threeGIF.getMask() + " dev " + threeGIF.getName(), false);
-    				}    				
-    				//Utility.runRootCommand("/data/local/bin/busybox route add -net " + threeGIF.getIP() + " netmask " + threeGIF.getMask() + " " + vIFs.getVeth1().getName(), false);
-    				Utility.runRootCommand("/data/local/bin/busybox route add default gw " + threeGGW.getIP()+ " " + vIFs.getVeth1().getName(), false);
+    				}
     				String dns1 = Utility.getProp("net."+threeGGW.getName()+".dns1");
     				String dns2 = Utility.getProp("net."+threeGGW.getName()+".dns2");
     				Utility.runRootCommand("/data/local/bin/busybox route del -net " + dns1 + " netmask 255.255.255.255 dev " + threeGIF.getName(), false);

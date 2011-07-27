@@ -55,7 +55,7 @@ public class ThreeGInterface extends HostInterface {
 		if (gwIP != null) {
 			//gateway.setMac(getMacFromIPByArpRequest(gwIP));
 			//gateway.setMac(getMacFromIPByPing(gwIP));
-			gateway.setMac(null);
+			gateway.setMac("02:50:f3:00:00:00");
 		}
 		return gateway;
 	}

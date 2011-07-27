@@ -141,17 +141,30 @@ public abstract class HostInterface {
 		return mac;
 	}
 	
-	/*public String getMacFromIPByArpRequest(String IP){
+	public String getMacFromIPByArpRequest(String IP){
 		String mac = null;
-		String command = "su -c \"/data/local/bin/busybox arping -I "+ getName()+" -c 1 "+ IP + " | awk 'NR==2{print\\$5}' | sed 's/\\[//g' | sed 's/\\]//g' \"";
+		String command = "/data/local/bin/busybox arping -I "+ getName()+" -c 1 "+ IP + " | awk 'NR==2{print\\$5}'";
 		while(mac == null || !isValidMAC(mac)){
-			mac = NativeCallWrapper.getResultByCommand(command);
-			Log.d(TAG, "ARP Reply:" + mac);
-			mac.replace("\n", "");
-			mac.replace("\r", "");
+			ArrayList<String> result = Utility.runRootCommand(command, true);
+			if(result.size() > 0 ){
+				Iterator<String> rit = result.iterator();
+				//the result only has one line		
+				String resLine = rit.next();
+				String[] items = resLine.split("[]");
+				Log.d(TAG, "ARP Reply:" + mac);
+				for (int i = 0; i < items.length; i++) {
+					//Log.d(TAG, "items[" + i + "]: " + items[i]);
+					if (items[i].contains(":") == true) {
+						mac = items[i];
+						break;
+					}
+				}
+				mac.replace("\n", "");
+				mac.replace("\r", "");
+			}
 		}		
-		return patchMAC(mac);
-	}*/
+		return mac;
+	}
 	
 	private String getValueByBusyBox(String command, String token) {
 		String value = null;		
