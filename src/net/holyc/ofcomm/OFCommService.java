@@ -17,12 +17,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import net.beaconcontroller.packet.Ethernet;
 import net.beaconcontroller.packet.IPv4;
 import net.holyc.HolyCMessage;
 import net.holyc.R;
 import net.holyc.dispatcher.OFEvent;
 import net.holyc.dispatcher.OFPacketInEvent;
 import net.holyc.dispatcher.OFReplyEvent;
+import net.holyc.host.EnvInitService;
 import net.holyc.host.Utility;
 
 import org.openflow.protocol.OFFlowMod;
@@ -32,6 +34,8 @@ import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFType;
 import org.openflow.protocol.action.OFAction;
+import org.openflow.protocol.action.OFActionDataLayerDestination;
+import org.openflow.protocol.action.OFActionNetworkLayerDestination;
 import org.openflow.protocol.action.OFActionOutput;
 import org.openflow.protocol.factory.BasicFactory;
 import org.openflow.protocol.factory.OFActionFactory;
@@ -380,14 +384,14 @@ public class OFCommService extends Service {
 			offm.setIdleTimeout((short) 0);
 			offm.setHardTimeout((short) 0); // make the flow entry permenent
 			offm.setFlags((short) 1); // Send flow removed
-			offm.setPriority(LOW_PRIORITY);
+			offm.setPriority(priority);
 			offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH)); // +OFActionOutput.MINIMUM_LENGTH));
 			ByteBuffer bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(bb);
 			sendOFPacket(socket, bb.array());
 		}
 
-		public void arpFwdToController(int host_ip, short prioirty,
+		public void arpFwdToController(int host_ip, short priority,
 				Socket socket) {
 			OFActionOutput arp_action = new OFActionOutput().setPort(
 					OFPort.OFPP_CONTROLLER.getValue()).setMaxLength(
@@ -410,7 +414,7 @@ public class OFCommService extends Service {
 					.setMatch(arp_match)
 					.setActions(
 							Collections.singletonList((OFAction) arp_action))
-					.setPriority(prioirty)
+					.setPriority(priority)
 					.setLength(
 							U16.t(OFFlowMod.MINIMUM_LENGTH
 									+ OFActionOutput.MINIMUM_LENGTH));
@@ -430,8 +434,40 @@ public class OFCommService extends Service {
 			arp_fm.writeTo(arp_bb);
 			sendOFPacket(socket, arp_bb.array());
 		}
+		
+		public void fwdArpVethToController(short priority, Socket socket) {
+			OFActionOutput arp_action = new OFActionOutput().setPort(
+					OFPort.OFPP_CONTROLLER.getValue()).setMaxLength(
+					(short) 65535);
+			// arp destinated to the host
+			OFMatch arp_match = new OFMatch()
+					.setWildcards(
+							OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE
+									& ~OFMatch.OFPFW_IN_PORT )
+					.setInputPort((short) 1) //from virtual interface
+					.setDataLayerType((short) 0x0806);// arp
 
-		public void tcpFwdToController(int host_ip, short prioirty,
+			OFFlowMod arp_fm = new OFFlowMod();
+
+			arp_fm.setBufferId(-1)
+					.setIdleTimeout((short) 0)
+					.setHardTimeout((short) 0)
+					.setOutPort((short) OFPort.OFPP_NONE.getValue())
+					.setCommand(OFFlowMod.OFPFC_ADD)
+					.setMatch(arp_match)
+					.setActions(
+							Collections.singletonList((OFAction) arp_action))
+					.setPriority(priority)
+					.setLength(
+							U16.t(OFFlowMod.MINIMUM_LENGTH
+									+ OFActionOutput.MINIMUM_LENGTH));
+
+			ByteBuffer arp_bb = ByteBuffer.allocate(arp_fm.getLength());
+			arp_fm.writeTo(arp_bb);
+			sendOFPacket(socket, arp_bb.array());			
+		}
+		
+		public void tcpFwdToController(int host_ip, short priority,
 				Socket socket) {
 			OFActionOutput action = new OFActionOutput().setPort(
 					OFPort.OFPP_CONTROLLER.getValue()).setMaxLength(
@@ -455,7 +491,7 @@ public class OFCommService extends Service {
 					.setCommand(OFFlowMod.OFPFC_ADD)
 					.setMatch(tcp_match_dst)
 					.setActions(Collections.singletonList((OFAction) action))
-					.setPriority(prioirty)
+					.setPriority(priority)
 					.setLength(
 							U16.t(OFFlowMod.MINIMUM_LENGTH
 									+ OFActionOutput.MINIMUM_LENGTH));
@@ -479,7 +515,7 @@ public class OFCommService extends Service {
 			sendOFPacket(socket, tcp_bb.array());
 		}
 
-		public void udpFwdToController(int host_ip, short prioirty,
+		public void udpFwdToController(int host_ip, short priority,
 				Socket socket) {
 			OFActionOutput action = new OFActionOutput().setPort(
 					OFPort.OFPP_CONTROLLER.getValue()).setMaxLength(
@@ -503,7 +539,7 @@ public class OFCommService extends Service {
 					.setCommand(OFFlowMod.OFPFC_ADD)
 					.setMatch(udp_match_dst)
 					.setActions(Collections.singletonList((OFAction) action))
-					.setPriority(prioirty)
+					.setPriority(priority)
 					.setLength(
 							U16.t(OFFlowMod.MINIMUM_LENGTH
 									+ OFActionOutput.MINIMUM_LENGTH));
@@ -542,7 +578,7 @@ public class OFCommService extends Service {
 			sendOFPacket(socket, udp_bb.array());
 		}
 
-		public void icmpFwdToController(int host_ip, short prioirty,
+		public void icmpFwdToController(int host_ip, short priority,
 				Socket socket) {
 			OFActionOutput action = new OFActionOutput().setPort(
 					OFPort.OFPP_CONTROLLER.getValue()).setMaxLength(
@@ -566,7 +602,7 @@ public class OFCommService extends Service {
 					.setCommand(OFFlowMod.OFPFC_ADD)
 					.setMatch(icmp_match_dst)
 					.setActions(Collections.singletonList((OFAction) action))
-					.setPriority(prioirty)
+					.setPriority(priority)
 					.setLength(
 							U16.t(OFFlowMod.MINIMUM_LENGTH
 									+ OFActionOutput.MINIMUM_LENGTH));
@@ -591,7 +627,7 @@ public class OFCommService extends Service {
 
 		}
 
-		public void dhcpDiscoveryFwdToController(short prioirty, Socket socket) {
+		public void dhcpDiscoveryFwdToController(short priority, Socket socket) {
 			OFActionOutput action = new OFActionOutput().setPort(
 					OFPort.OFPP_CONTROLLER.getValue()).setMaxLength(
 					(short) 65535);
@@ -614,7 +650,7 @@ public class OFCommService extends Service {
 					.setCommand(OFFlowMod.OFPFC_ADD)
 					.setMatch(dhcp_match_dst)
 					.setActions(Collections.singletonList((OFAction) action))
-					.setPriority(prioirty)
+					.setPriority(priority)
 					.setLength(
 							U16.t(OFFlowMod.MINIMUM_LENGTH
 									+ OFActionOutput.MINIMUM_LENGTH));
@@ -624,6 +660,47 @@ public class OFCommService extends Service {
 			sendOFPacket(socket, udp_bb.array());
 		}
 
+		public void fwdPktToVeth(short inport, short priority, Socket socket){
+			OFActionOutput output_action = new OFActionOutput()
+					.setPort((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.vIFs.getVeth0().getName()))					
+					.setMaxLength((short) 65535);
+			
+			byte[] mac_veth = Ethernet.toMACAddress(EnvInitService.vIFs.getVeth1().getMac());
+			OFActionDataLayerDestination mod_dl_dst = new OFActionDataLayerDestination();
+			mod_dl_dst.setDataLayerAddress(mac_veth);
+			
+			OFActionNetworkLayerDestination mod_nw_dst = new OFActionNetworkLayerDestination();
+			mod_nw_dst.setNetworkAddress(IPv4.toIPv4Address(EnvInitService.vIFs.getVeth1().getIP()));
+			
+			List<OFAction> actions = new ArrayList<OFAction>();
+			actions.add(mod_dl_dst);
+			actions.add(mod_nw_dst);
+			actions.add(output_action);
+						
+			OFMatch ofm = new OFMatch()
+					.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_IN_PORT)
+					.setInputPort((short) inport);					
+
+			OFFlowMod offm = new OFFlowMod();
+
+			offm.setBufferId(-1)
+					.setIdleTimeout((short) 0)
+					.setHardTimeout((short) 0)
+					.setOutPort((short) OFPort.OFPP_NONE.getValue())
+					.setCommand(OFFlowMod.OFPFC_ADD)
+					.setMatch(ofm)
+					.setActions(actions)
+					.setPriority(priority)
+					.setLength(
+							U16.t(OFFlowMod.MINIMUM_LENGTH
+									+ OFActionOutput.MINIMUM_LENGTH+OFActionDataLayerDestination.MINIMUM_LENGTH
+									+OFActionNetworkLayerDestination.MINIMUM_LENGTH));
+
+			ByteBuffer udp_bb = ByteBuffer.allocate(offm.getLength());
+			offm.writeTo(udp_bb);
+			sendOFPacket(socket, udp_bb.array());
+		}
+		
 		public void insertDefaultRule(Socket socket) {
 			/**
 			 * drop malicious traffic udp srcPort 138 and dstPort 138 udp
@@ -649,6 +726,19 @@ public class OFCommService extends Service {
 			dropUnwantedUdp((short) 68, (short) 67, (short) (MID_PRIORITY + 1),
 					socket); // dhcp discovery from others
 
+			if(EnvInitService.isMultipleInterface && EnvInitService.mobile_included && EnvInitService.wifi_included){
+				fwdArpVethToController( (short)(MID_PRIORITY+1), socket);
+				fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName()), (short)(MID_PRIORITY+1), socket);
+				fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName()), (short)(MID_PRIORITY+1), socket);
+				/* TODO:
+				 /data/local/bin/ovs-ofctl add-flow dp0 in_port=1,tcp,priority=60000,idle_timeout=0,hard_timeout=0,actions=mod_dl_src:$MAC_WIFI,mod_nw_src:$IP_WIFI,mod_dl_dst:$MAC_WIFI_GW,output:2
+				 /data/local/bin/ovs-ofctl add-flow dp0 in_port=1,idle_timeout=0,hard_timeout=0,actions=mod_dl_src:$MAC_MOBILE,mod_nw_src:$IP_MOBILE,mod_dl_dst:$MAC_MOBILE_GW,output:3
+ 				 /data/local/bin/ovs-ofctl add-flow dp0 in_port=2,idle_timeout=0,hard_timeout=0,actions=mod_dl_dst:$MAC_VETH,mod_nw_dst:$IP_VETH,output:1
+				 /data/local/bin/ovs-ofctl add-flow dp0 in_port=3,idle_timeout=0,hard_timeout=0,actions=mod_dl_dst:$MAC_VETH,mod_nw_dst:$IP_VETH,output:1
+			    */				
+			}
+			
+			
 			List<String> myIPs = Utility.getDeviceIPs();
 			Log.d(TAG, "the host has " + myIPs.size() + " ips");
 			Iterator<String> it = myIPs.iterator();
@@ -666,15 +756,14 @@ public class OFCommService extends Service {
 				// forward related icmp to controller
 				icmpFwdToController(ip, MID_PRIORITY, socket);
 			}
+			
+			
 
 			// drop all the unrelated traffic (lowest priority)
 			dropAll((short) 0x0806, (byte) 0x00, LOW_PRIORITY, socket); // arp
-			dropAll((short) 0x0800, (byte) 0x06, LOW_PRIORITY, socket); // ip,
-																		// tcp
-			dropAll((short) 0x0800, (byte) 0x11, LOW_PRIORITY, socket); // ip,
-																		// udp
-			dropAll((short) 0x0800, (byte) 0x01, LOW_PRIORITY, socket); // ip,
-																		// icmp
+			dropAll((short) 0x0800, (byte) 0x06, LOW_PRIORITY, socket); // ip, tcp
+			dropAll((short) 0x0800, (byte) 0x11, LOW_PRIORITY, socket); // ip, udp
+			//dropAll((short) 0x0800, (byte) 0x01, LOW_PRIORITY, socket); // ip, icmp
 		}
 
 		public void close() {
