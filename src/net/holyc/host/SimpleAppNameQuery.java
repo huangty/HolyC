@@ -26,6 +26,46 @@ class ConnectionCacheItem {
 }
 
 /**
+ * Skype call generates so many flows that slow down holy greatly
+ * There is a discipline: most of the flows have the same local port
+ * which is the listening port of skype.
+ * So we use it to quick flow->appname lookup by cache skype listening port
+ * @author leo
+ * 
+ */
+class SkypeInfo {
+	public static final String TAG = "SkypeInfo";
+	int listenPort;
+	String dataDir;
+	String pkgName;
+	int uid;
+	
+	SkypeInfo() {
+		listenPort = -1;
+		dataDir = null;
+		pkgName = null;
+		uid = -1;
+	}
+	
+	public void getListenPort() {
+		if (dataDir == null) return;
+		String filePath = dataDir + "/files/shared.xml";
+		//Log.d(TAG, "read " + filePath);
+		ArrayList<String> lines = Utility.readLinesFromFile(filePath);
+		for (String line : lines) {
+			if (line.startsWith("<ListeningPort>")) {
+				//Log.d(TAG, "find " + line);
+				int pos = line.indexOf('<', 15);
+				if (pos > 15) {
+					String strListenPort =  line.substring(15, pos);
+					this.listenPort = Integer.parseInt(strListenPort);
+				}
+			}
+		}
+	}
+}
+
+/**
  * Another class to query app name
  * it doesn't call lsof, instead directly
  * read files such as /proc/net/tcp, tcp6..
@@ -37,6 +77,7 @@ public class SimpleAppNameQuery {
 	public static final HashMap<Integer, String> uid2PkgName = new HashMap<Integer, String>();
 	public static final ConcurrentHashMap<String, ConnectionCacheItem> connectionCache = 
 		new ConcurrentHashMap<String, ConnectionCacheItem>();
+	public static final SkypeInfo skypeInfo = new SkypeInfo();
 	public static Thread monitorThread = null;
 	public static String debugInfo = "";
 	
@@ -74,15 +115,15 @@ public class SimpleAppNameQuery {
 		ArrayList<String> lines = Utility.readLinesFromFile(file);
 		int uid = -1;
 		//Log.d(TAG, "query: "+localAddr+"->"+remoteAddr+"::"+file);
-		debugInfo += "query: " + localAddr + "->" + remoteAddr + "::" + file + "\n";
+		//debugInfo += "query: " + localAddr + "->" + remoteAddr + "::" + file + "\n";
 		for (String line : lines) {
-			debugInfo += line + "\n";
+			//debugInfo += line + "\n";
 			try {
 				String[] items = line.split(" +");
 				if (items[1].equalsIgnoreCase(localAddr) && items[2].equalsIgnoreCase(remoteAddr)) {
-					debugInfo += "parse " + items[7];
+					//debugInfo += "parse " + items[7];
 					uid = Integer.parseInt(items[7]);
-					debugInfo += " to " + uid + "\n";
+					//debugInfo += " to " + uid + "\n";
 					break;
 				}
 			} catch (Exception e) {
@@ -138,6 +179,14 @@ public class SimpleAppNameQuery {
 			  if (!uid2PkgName.containsKey(appInfo.uid)) {
 				  uid2PkgName.put(appInfo.uid, appInfo.processName);
 			  }
+			  //update skype info
+			  if (appInfo.processName.contains("com.skype")) {
+				  skypeInfo.dataDir = appInfo.dataDir;
+				  skypeInfo.pkgName = appInfo.processName;
+				  skypeInfo.uid = appInfo.uid;
+				  skypeInfo.getListenPort();
+				  //Log.d(TAG, "skype listen port is" + skypeInfo.listenPort);
+			  }
 		  }
 	  }
 	  if (uid2PkgName.containsKey(uid) == false) {
@@ -150,33 +199,19 @@ public class SimpleAppNameQuery {
     	if (AppNameQueryEngine.isValidQuery(remoteIP, remotePort, localPort) == false) return null;
     	String knownService = AppNameQueryEngine.queryServiceByPort(remotePort);
     	if (knownService != null) return knownService;
-    	
+    	//check if it is skype
+    	if (localPort == skypeInfo.listenPort) return skypeInfo.pkgName;
     	int uid = -1;
     	String networkAddr = toString(remoteIP, remotePort, localPort);
     	if (connectionCache.contains(networkAddr)) {
     		uid = connectionCache.get(networkAddr).uid;
     	} else {
     		 debugInfo = "";
-    		 for (int i = 0; i < 3; i++) {
-        		 uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
-         		 Log.d(TAG, "uid = " + uid);
-        		 if (uid >= 0) {
-        			 break;
-        		 } else {
-        			 try {
-						Thread.sleep(5);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-         			 Log.d(TAG, "============================query("+i+"):"+networkAddr+"=======================================\n");
-         			 Log.d(TAG, debugInfo);
-         			 Log.d(TAG, "===============================================================================================\n");
-         		 }
-    		 }
-    		 if (uid < 0) return null;
-    		 connectionCache.put(networkAddr, new ConnectionCacheItem(uid));
-    	}
+    		 uid = getConnectionUid(localIP, localPort, remoteIP, remotePort);
+     	}
+  	    if (uid < 0) return null;
+		 connectionCache.put(networkAddr, new ConnectionCacheItem(uid));
+
 		if (monitorThread == null || monitorThread.isAlive() == false) {
 			monitorThread = new Thread(new CacheMonitor());
 			monitorThread.start();
