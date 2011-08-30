@@ -38,7 +38,32 @@
 			    android:layout_height="wrap_content"
 				android:text="To Bind"
 				android:layout_weight="50"/>
-		</TableRow>			
+		</TableRow>				
+	</TableLayout>
+	<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+		    android:layout_width="fill_parent"
+		    android:layout_height="wrap_content"
+		    android:layout_alignParentBottom="true">  	
+		<TableRow 
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:weightSum="100">	
+			<CheckBox android:id="@+id/wifi_cb"
+				android:text="WiFi"				
+				android:layout_height="wrap_content"
+				android:layout_weight="30"
+			/>
+			<CheckBox android:id="@+id/wimax_cb"
+			 	android:text="WiMAX"			 	
+			 	android:layout_height="wrap_content"
+			 	android:layout_weight="30"			 
+			/>
+			<CheckBox android:id="@+id/threeg_cb"
+			 	android:text="3G"
+			 	android:layout_height="wrap_content"
+			 	android:layout_weight="30"			 
+			/>
+		</TableRow>
 	</TableLayout>	
 	<ScrollView android:id="@+id/dispatch_scrollview" 
 		android:layout_width="fill_parent"

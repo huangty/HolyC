@@ -51,6 +51,7 @@
       </intent-filter>   
     </receiver>    
     <receiver android:name=".dispatcher.OFMultipleInterfaceRoundRobin">
+    <!--  <receiver android:name=".openflow.handler.FlowSwitch"> -->
       <intent-filter>   
 		<action android:name="holyc.intent.broadcast.PACKETIN"/>   
       </intent-filter>   

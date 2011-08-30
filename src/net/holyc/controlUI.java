@@ -3,6 +3,7 @@ package net.holyc;
 import java.util.List;
 
 import net.holyc.dispatcher.DispatchService;
+import net.holyc.host.EnvInitService;
 import net.holyc.host.Utility;
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -20,6 +21,8 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,6 +34,9 @@ public class controlUI extends Activity{
 	private StringBuffer mBuffer = new StringBuffer();
 	private ToggleButton button_starter;
 	private ToggleButton button_binder;	
+	public static CheckBox checkbox_wifi;
+	public static CheckBox checkbox_wimax;
+	public static CheckBox checkbox_3g;
 	private TextView tview_dispatcher_report;
 	private ScrollView sview_dispatcher_report;
 	boolean mDispatchIsBound = false;
@@ -65,6 +71,16 @@ public class controlUI extends Activity{
     	button_binder.setTextOn(getText(R.string.dispatcher_binded));
     	button_starter.setTextOff(getText(R.string.dispatcher_stopped));
     	button_starter.setTextOn(getText(R.string.dispatcher_started));
+    	checkbox_wifi = (CheckBox) findViewById(R.id.wifi_cb);        	
+    	checkbox_wimax = (CheckBox) findViewById(R.id.wimax_cb);    	
+    	checkbox_3g = (CheckBox) findViewById(R.id.threeg_cb);
+    	checkbox_wifi.setChecked(true);
+    	checkbox_wimax.setChecked(true);
+    	checkbox_3g.setChecked(false);
+    	checkbox_wifi.setClickable(false);
+    	checkbox_wimax.setClickable(false);
+    	checkbox_3g.setClickable(false);
+    	
     	if( mDispatchIsBound ){
     		button_binder.setChecked(true);
     	}else{
@@ -82,6 +98,12 @@ public class controlUI extends Activity{
     private void setListeners(){
     	button_starter.setOnClickListener(startDispatchService);
     	button_binder.setOnClickListener(bindDispatchService);
+    	checkbox_wifi.setOnCheckedChangeListener(interfaceListener);
+    	checkbox_wifi.setTag(new String("wifi"));
+    	checkbox_wimax.setOnCheckedChangeListener(interfaceListener);
+    	checkbox_wimax.setTag(new String("wimax"));
+    	checkbox_3g.setOnCheckedChangeListener(interfaceListener);
+    	checkbox_3g.setTag(new String("3g"));
     }
     private boolean isDispatchServiceRunning(){
     	boolean isRunning = false;
@@ -106,7 +128,25 @@ public class controlUI extends Activity{
     	doRedraw();
     	return isRunning;
     }
-    
+    private CompoundButton.OnCheckedChangeListener interfaceListener = new CompoundButton.OnCheckedChangeListener(){
+		@Override
+		public void onCheckedChanged(CompoundButton buttonView,
+				boolean isChecked) {			
+			String netinf = (String) buttonView.getTag();
+			if(netinf.equals("wifi")){
+				EnvInitService.wifi_included = isChecked;
+				checkbox_wifi.setChecked(isChecked);
+				Log.d(TAG, "wifi is " + isChecked);
+			}else if(netinf.equals("wimax")){
+				EnvInitService.wimax_included = isChecked;
+				checkbox_wimax.setChecked(isChecked);
+				Log.d(TAG, "wimax is " + isChecked);
+			}else if(netinf.equals("3g")){
+				EnvInitService.mobile_included = isChecked;
+				checkbox_3g.setChecked(isChecked);
+			}				
+		}    	
+    };
     private Button.OnClickListener bindDispatchService = new Button.OnClickListener(){
     	public void onClick(View v){
     		if(((ToggleButton)v).isChecked()){    		
