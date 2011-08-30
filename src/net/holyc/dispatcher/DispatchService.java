@@ -103,6 +103,10 @@ public class DispatchService extends Service {
 				broadcastIntent.putExtra(HolyCIntent.BroadcastOFEvent.port_key, port);							
 				sendBroadcast(broadcastIntent);
 				break;
+			case HolyCMessage.ENV_INIT_FINISH.type:
+				Log.d(TAG, "since Env is finished, now start OF services");
+				doBindOFService();
+				break;
 			default:
 				super.handleMessage(msg);
 			}
@@ -209,7 +213,7 @@ public class DispatchService extends Service {
 	}
 
 	private void doBindServices() {
-        doBindOFService();
+        //doBindOFService(); //won't start this until Env finish setup
 		doBindEnvService();
 	}
 

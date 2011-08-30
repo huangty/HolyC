@@ -177,5 +177,13 @@ public class HolyCMessage
     public class OFCOMM_START_OPENFLOWD
     {
 	public static final int type = MAX_MSG_TYPE+19;
-    }      
+    }
+    
+    /**
+     * @see EnvInitService
+     */
+    public class ENV_INIT_FINISH
+    {
+	public static final int type = MAX_MSG_TYPE+20;
+    }
 }
