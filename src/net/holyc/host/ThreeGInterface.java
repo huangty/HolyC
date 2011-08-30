@@ -19,6 +19,8 @@ public class ThreeGInterface extends HostInterface {
 	private Context context = null;
 	private ArrayList<String> routeNets;
 	String TAG = "HOLYC.3GInterface";
+	public VirtualInterface veth2 = null;
+	public VirtualInterface veth3 = null;
 	
 	public ThreeGInterface(Context context) {
 		this.context = context;
@@ -32,6 +34,10 @@ public class ThreeGInterface extends HostInterface {
 	}
 	public void clearNets(){
 		routeNets.clear();
+	}
+	public boolean isPointToPoint(){
+		ArrayList<String> resultLines = Utility.runRootCommand("busybox ip link | busybox grep "+ getName()+ " | busybox grep POINTOPOINT ", true);
+		return (resultLines.size() == 0) ? false : true;
 	}
 	@Override
     public String searchName() {

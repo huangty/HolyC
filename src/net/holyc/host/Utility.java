@@ -79,6 +79,7 @@ public class Utility {
 
 	public static String getProp(String name) {
 		ArrayList<String> resultLines = runRootCommand("getprop " + name, true);
+		//Log.d(TAG, "command run: getprop " + name + "and result = " + resultLines.get(0));
 		return (resultLines.size() == 0) ? null : resultLines.get(0);
 	}
 
@@ -90,6 +91,9 @@ public class Utility {
 		if(EnvInitService.mobile_included && EnvInitService.threeGIF != null){
 			ips.add(EnvInitService.threeGIF.getIP());
 		}				
+		if(EnvInitService.wimax_included && EnvInitService.wimaxIF != null){
+			ips.add(EnvInitService.wimaxIF.getIP());
+		}
 		return ips;				
 	}
 	

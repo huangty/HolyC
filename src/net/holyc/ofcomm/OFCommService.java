@@ -27,7 +27,9 @@ import net.holyc.dispatcher.OFReplyEvent;
 import net.holyc.host.EnvInitService;
 import net.holyc.host.Utility;
 
+import org.openflow.protocol.OFFeaturesRequest;
 import org.openflow.protocol.OFFlowMod;
+import org.openflow.protocol.OFGetConfigRequest;
 import org.openflow.protocol.OFHello;
 import org.openflow.protocol.OFMatch;
 import org.openflow.protocol.OFMessage;
@@ -314,7 +316,18 @@ public class OFCommService extends Service {
 				ByteBuffer bb = ByteBuffer.allocate(ofh.getLength());
 				ofh.writeTo(bb);
 				sendOFPacket(socket, bb.array());
-
+				
+				//immediately send an OF feature request
+				OFFeaturesRequest offr = new OFFeaturesRequest();
+				ByteBuffer bbfr = ByteBuffer.allocate(offr.getLength());
+				offr.writeTo(bbfr);
+				sendOFPacket(socket, bbfr.array());
+				
+				OFGetConfigRequest ofgcr = new OFGetConfigRequest();
+				ByteBuffer bbgcr = ByteBuffer.allocate(ofgcr.getLength());
+				ofgcr.writeTo(bbgcr);
+				sendOFPacket(socket, bbgcr.array());
+				
 				// insert default rules
 				insertDefaultRule(socket);
 
@@ -627,12 +640,12 @@ public class OFCommService extends Service {
 
 		}
 
-		public void dhcpDiscoveryFwdToController(short priority, Socket socket) {
+		public void hostTrafficFwdToController(short priority, Socket socket) {
 			OFActionOutput action = new OFActionOutput().setPort(
 					OFPort.OFPP_CONTROLLER.getValue()).setMaxLength(
 					(short) 65535);
-			// Dhcp discovery sent from the host
-			OFMatch dhcp_match_dst = new OFMatch()
+			// udp sent from the host
+			OFMatch udp_match_dst = new OFMatch()
 					.setWildcards(
 							OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE
 									& ~OFMatch.OFPFW_NW_PROTO
@@ -648,7 +661,7 @@ public class OFCommService extends Service {
 					.setHardTimeout((short) 0)
 					.setOutPort((short) OFPort.OFPP_NONE.getValue())
 					.setCommand(OFFlowMod.OFPFC_ADD)
-					.setMatch(dhcp_match_dst)
+					.setMatch(udp_match_dst)
 					.setActions(Collections.singletonList((OFAction) action))
 					.setPriority(priority)
 					.setLength(
@@ -658,6 +671,34 @@ public class OFCommService extends Service {
 			ByteBuffer udp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(udp_bb);
 			sendOFPacket(socket, udp_bb.array());
+			
+			//tcp sent from the host 
+			OFMatch tcp_match_dst = new OFMatch()
+					.setWildcards(
+							OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE
+							& ~OFMatch.OFPFW_NW_PROTO
+							& ~OFMatch.OFPFW_IN_PORT)
+					.setInputPort((short) 1) // from the host
+					.setNetworkProtocol((byte) 0x06) // tcp
+					.setDataLayerType((short) 0x0800); // ip
+			
+			OFFlowMod tcp_offm = new OFFlowMod();
+
+			tcp_offm.setBufferId(-1)
+					.setIdleTimeout((short) 0)
+					.setHardTimeout((short) 0)
+					.setOutPort((short) OFPort.OFPP_NONE.getValue())
+					.setCommand(OFFlowMod.OFPFC_ADD)
+					.setMatch(tcp_match_dst)
+					.setActions(Collections.singletonList((OFAction) action))
+					.setPriority(priority)
+					.setLength(
+							U16.t(OFFlowMod.MINIMUM_LENGTH
+									+ OFActionOutput.MINIMUM_LENGTH));
+
+			ByteBuffer tcp_bb = ByteBuffer.allocate(offm.getLength());
+			tcp_offm.writeTo(tcp_bb);
+			sendOFPacket(socket, tcp_bb.array());
 		}
 
 		public void fwdPktToVeth(short inport, short priority, Socket socket){
@@ -720,16 +761,31 @@ public class OFCommService extends Service {
 			OFMessageFactory messageFactory = new BasicFactory();
 			OFActionFactory actionFactory = new BasicFactory();
 
-			// forward dhcp discovery (68 -> 67) from inport 1
-			dhcpDiscoveryFwdToController((short) (MID_PRIORITY + 2), socket);
+			
+			//hostTrafficFwdToController((short) (MID_PRIORITY + 2), socket);
+			
 			// drop all other dhcp discovery
 			dropUnwantedUdp((short) 68, (short) 67, (short) (MID_PRIORITY + 1),
 					socket); // dhcp discovery from others
 
-			if(EnvInitService.isMultipleInterface && EnvInitService.mobile_included && EnvInitService.wifi_included){
+			if(EnvInitService.isMultipleInterface){
 				fwdArpVethToController( (short)(MID_PRIORITY+1), socket);
-				fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName()), (short)(MID_PRIORITY+1), socket);
-				fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName()), (short)(MID_PRIORITY+1), socket);
+				//data/local/bin/ovs-ofctl add-flow dp0 in_port=2,idle_timeout=0,hard_timeout=0,actions=mod_dl_dst:$MAC_VETH,mod_nw_dst:$IP_VETH,output:1
+				/*if(EnvInitService.wifi_included){
+					fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName()), (short)(MID_PRIORITY+1), socket);
+				}
+				//data/local/bin/ovs-ofctl add-flow dp0 in_port=3,idle_timeout=0,hard_timeout=0,actions=mod_dl_dst:$MAC_VETH,mod_nw_dst:$IP_VETH,output:1
+				if(EnvInitService.mobile_included){
+					if(EnvInitService.threeGIF.isPointToPoint()){
+						fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.veth2.getName()), (short)(MID_PRIORITY+1), socket);
+					}else{
+						fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName()), (short)(MID_PRIORITY+1), socket);
+					}
+				}
+				//data/local/bin/ovs-ofctl add-flow dp0 in_port=4,idle_timeout=0,hard_timeout=0,actions=mod_dl_dst:$MAC_VETH,mod_nw_dst:$IP_VETH,output:1
+				if(EnvInitService.wimax_included){
+					fwdPktToVeth((short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName()), (short)(MID_PRIORITY+1), socket);
+				}*/
 				/* TODO:
 				 /data/local/bin/ovs-ofctl add-flow dp0 in_port=1,tcp,priority=60000,idle_timeout=0,hard_timeout=0,actions=mod_dl_src:$MAC_WIFI,mod_nw_src:$IP_WIFI,mod_dl_dst:$MAC_WIFI_GW,output:2
 				 /data/local/bin/ovs-ofctl add-flow dp0 in_port=1,idle_timeout=0,hard_timeout=0,actions=mod_dl_src:$MAC_MOBILE,mod_nw_src:$IP_MOBILE,mod_dl_dst:$MAC_MOBILE_GW,output:3
@@ -739,7 +795,7 @@ public class OFCommService extends Service {
 			}
 			
 			
-			List<String> myIPs = Utility.getDeviceIPs();
+			/*List<String> myIPs = Utility.getDeviceIPs();
 			Log.d(TAG, "the host has " + myIPs.size() + " ips");
 			Iterator<String> it = myIPs.iterator();
 			while (it.hasNext()) { // for each IP
@@ -755,14 +811,14 @@ public class OFCommService extends Service {
 				udpFwdToController(ip, MID_PRIORITY, socket);
 				// forward related icmp to controller
 				icmpFwdToController(ip, MID_PRIORITY, socket);
-			}
+			}*/
 			
 			
 
 			// drop all the unrelated traffic (lowest priority)
 			dropAll((short) 0x0806, (byte) 0x00, LOW_PRIORITY, socket); // arp
-			dropAll((short) 0x0800, (byte) 0x06, LOW_PRIORITY, socket); // ip, tcp
-			dropAll((short) 0x0800, (byte) 0x11, LOW_PRIORITY, socket); // ip, udp
+			//dropAll((short) 0x0800, (byte) 0x06, LOW_PRIORITY, socket); // ip, tcp
+			//dropAll((short) 0x0800, (byte) 0x11, LOW_PRIORITY, socket); // ip, udp
 			//dropAll((short) 0x0800, (byte) 0x01, LOW_PRIORITY, socket); // ip, icmp
 		}
 

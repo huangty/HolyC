@@ -80,9 +80,11 @@ public class FlowSwitch extends BroadcastReceiver {
 			}else{
 				bb = getResponse(out, opie, ofm, cookie);
 			}
-			poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb.array());
-			poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);
-			context.sendBroadcast(poutIntent);
+			if(bb!=null){
+				poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb.array());
+				poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, port);
+				context.sendBroadcast(poutIntent);
+			}
 		}
 	}
 	

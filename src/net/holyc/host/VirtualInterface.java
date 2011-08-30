@@ -42,7 +42,7 @@ public class VirtualInterface extends HostInterface {
 	}
 	
 	public void setIP(String ip, String mask){
-   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " " + ip + " netmask " + mask, false);
+   		Utility.runRootCommand("/data/local/bin/busybox ifconfig " + getName() + " " + ip + " netmask " + mask + " mtu 1400", false);
 		hasIP = true;
 		setIP(ip);		
 	}

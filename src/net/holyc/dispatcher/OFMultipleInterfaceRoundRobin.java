@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFMatch;
@@ -26,16 +27,28 @@ import net.beaconcontroller.packet.ARP;
 import net.beaconcontroller.packet.Ethernet;
 import net.beaconcontroller.packet.IPv4;
 import net.holyc.HolyCIntent;
+import net.holyc.controlUI;
 import net.holyc.host.EnvInitService;
 import net.holyc.openflow.handler.FlowSwitch;
 
 public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 	private String TAG = "HOLYC.OFMultipleInterfacePolicy";
-	private static short round_robin_out_port = 2; //starts from wifi
+	private static short round_robin_out_port = 2;
+	private static int wifi_flow_count = 0;
+	private static int wimax_flow_count = 0;
+	private static int threeg_flow_count = 0;
+	private static Random rnd_generator = new Random();
+	
+	
 	
 	public ByteBuffer getResponse(Short out, OFPacketIn opie, OFMatch ofm, long cookie) {
-		
+				
 		ByteBuffer bb = null;
+		
+		/*ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_DL_TYPE
+				& ~(63 << OFMatch.OFPFW_NW_DST_SHIFT) & ~(63 << OFMatch.OFPFW_NW_SRC_SHIFT)
+				& ~OFMatch.OFPFW_NW_PROTO & ~OFMatch.OFPFW_IN_PORT & ~OFMatch.OFPFW_DL_DST & ~OFMatch.OFPFW_DL_SRC);*/
+		//ofm.setWildcards(ofm.getWildcards() | OFMatch.OFPFW_TP_DST | OFMatch.OFPFW_TP_SRC);
 				
 		if (out != null) {
 			// Form flow_mod
@@ -86,7 +99,98 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 				bb = bb_out;
 			}
 		} else {
-			//for packets don't know the destination, round-robin to select destination
+			if(ofm.getInputPort() != (short) 1){ //if coming from interfaces, then has to go to the host
+				round_robin_out_port = 1;
+				return null; //by pass this situation for now, too many noises in wifi
+			}
+			//for packets don't know the destination, round-robin to select destination		
+			//selection WIFI:WIMAX = 1:1
+			/*if( ofm.getTransportDestination() == (short) 80
+					&& EnvInitService.wifiIF!=null && EnvInitService.wimaxIF!=null && EnvInitService.mobile_included == false){ //http/DNS request
+				if(EnvInitService.wifi_included && (wifi_flow_count == 0 || (wimax_flow_count != 0 && wifi_flow_count <= wimax_flow_count * 1))){				
+					Log.d(TAG, "allocate one HTTP flow to wifi!");
+					if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+						wifi_flow_count += 1;
+					}
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+				}else if(EnvInitService.wimax_included){
+					Log.d(TAG, "allocate one HTTP flow to wimax!");
+					if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+						wimax_flow_count +=1;
+					}
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName());
+				}else{
+					Log.d(TAG, "default: allocate one HTTP flow to wifi!");
+					if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+						wifi_flow_count += 1;
+					}
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+				}
+				if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+					Log.d(TAG, "flow count: wifi = " + wifi_flow_count + " wimax = " + wimax_flow_count);
+				}
+			}else if( ofm.getTransportDestination() == (short) 80
+					&& EnvInitService.wifiIF!=null && EnvInitService.wimaxIF!=null){ //http/DNS request
+				//WIFI:WIMAX:3G = 1:1:1
+				if(EnvInitService.wifi_included && (wifi_flow_count == 0 || 
+						((!EnvInitService.wimax_included || wifi_flow_count <= wimax_flow_count * 1) && 
+						 (!EnvInitService.mobile_included || wifi_flow_count <= threeg_flow_count *1)) )){				
+					Log.d(TAG, "allocate one HTTP flow to wifi!");
+					if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+						wifi_flow_count += 1;
+					}
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+				}else if(EnvInitService.wimax_included && (wimax_flow_count ==0 || 
+						(wimax_flow_count <= wifi_flow_count * 1 && wimax_flow_count <= threeg_flow_count * 1))){
+					Log.d(TAG, "allocate one HTTP flow to wimax!");
+					if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+						wimax_flow_count +=1;
+					}
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName());
+				}else if(EnvInitService.mobile_included ){
+					Log.d(TAG, "allocate one HTTP flow to 3g!");
+					if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+						threeg_flow_count += 1;
+					}
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+				}
+				if(EnvInitService.wifi_included && EnvInitService.wimax_included){
+					Log.d(TAG, "flow count: wifi = " + wifi_flow_count + " wimax = " + wimax_flow_count);
+				}
+			}else{
+				//WIFI only or WIMAX only 
+				if(EnvInitService.wifiIF!=null){
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+				}else if(EnvInitService.wimaxIF!=null){
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName());
+				}else{
+					//3G only 
+					if(EnvInitService.threeGIF.isPointToPoint()){
+						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.veth2.getName());
+					}else{
+						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName());
+					}
+					
+				}				
+			}*/
+			{						
+				//round robin wifi<->wimax<->3g
+				if(EnvInitService.wifi_included && round_robin_out_port == (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName())){
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName());
+				}else if(EnvInitService.wimax_included && round_robin_out_port == (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName())){				
+					if(EnvInitService.threeGIF.isPointToPoint()){
+						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.veth2.getName());					
+					}else{
+						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName());
+					}
+				}else if(EnvInitService.mobile_included){
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+				}else{
+					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+				}
+			}
+			
+			
 			if(EnvInitService.ovs == null){
 				Log.d(TAG, "the environment is still setting up, sorry, no forward!");
 				return null;
@@ -98,30 +202,42 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 			byte[] interface_mac = null;
 			byte[] gw_mac = null;
 			int interface_ip = 0;
-			if(round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName())){
+			if(EnvInitService.wifiIF!= null && round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName())){
 				Log.d(TAG, "round_robin to wifi!");				
 				interface_mac = Ethernet.toMACAddress(EnvInitService.wifiIF.getMac());				
 				interface_ip = IPv4.toIPv4Address(EnvInitService.wifiIF.getIP());
 				gw_mac = Ethernet.toMACAddress(EnvInitService.wifiIF.getGateway().getMac());
-			}else if(round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName())){
-				Log.d(TAG, "round_robin to mobile!");
-				interface_mac = Ethernet.toMACAddress(EnvInitService.threeGIF.getMac());
-				interface_ip = IPv4.toIPv4Address(EnvInitService.threeGIF.getIP());
-				gw_mac = Ethernet.toMACAddress(EnvInitService.threeGIF.getGateway().getMac());
+			}else if(EnvInitService.threeGIF!=null && round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName()) ||
+					round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.veth2.getName()) ){
+				Log.d(TAG, "round_robin to 3G!");
+				if(EnvInitService.threeGIF.isPointToPoint()){
+					interface_mac = Ethernet.toMACAddress(EnvInitService.threeGIF.veth2.getMac());
+					interface_ip = IPv4.toIPv4Address(EnvInitService.threeGIF.veth2.getIP());
+					gw_mac = Ethernet.toMACAddress(EnvInitService.threeGIF.getGateway().getMac());
+				}else{
+					interface_mac = Ethernet.toMACAddress(EnvInitService.threeGIF.getMac());
+					interface_ip = IPv4.toIPv4Address(EnvInitService.threeGIF.getIP());
+					gw_mac = Ethernet.toMACAddress(EnvInitService.threeGIF.getGateway().getMac());
+				}
+			}else if(EnvInitService.wimaxIF!=null && round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName())){
+				Log.d(TAG, "round_robin to wimax!");				
+				interface_mac = Ethernet.toMACAddress(EnvInitService.wimaxIF.getMac());
+				interface_ip = IPv4.toIPv4Address(EnvInitService.wimaxIF.getIP());
+				gw_mac = Ethernet.toMACAddress(EnvInitService.wimaxIF.getGateway().getMac());
 			}else{
 				Log.d(TAG, "WARNING: no ip/mac for the sending interface");
 			}
 			OFActionDataLayerSource mod_dl_src = new OFActionDataLayerSource();
 			mod_dl_src.setDataLayerAddress(interface_mac);			
-			Log.d(TAG, "mod_dl_src = " + mod_dl_src.toString() + " | " + interface_mac);
+			//Log.d(TAG, "mod_dl_src = " + mod_dl_src.getDataLayerAddress() + " | " + interface_mac);
 			
 			OFActionDataLayerDestination mod_dl_dst = new OFActionDataLayerDestination();
 			mod_dl_dst.setDataLayerAddress(gw_mac);			
-			Log.d(TAG, "mod_dl_dst = " + mod_dl_dst.toString() + " | " + gw_mac);
+			//Log.d(TAG, "mod_dl_dst = " + mod_dl_dst.toString() + " | " + gw_mac);
 			
 			OFActionNetworkLayerSource mod_nw_src = new OFActionNetworkLayerSource();
 			mod_nw_src.setNetworkAddress(interface_ip);
-			Log.d(TAG, "mod_nw_src = " + mod_dl_src.toString() + " | " + interface_ip);			
+			//Log.d(TAG, "mod_nw_src = " + mod_dl_src.toString() + " | " + interface_ip );			
 			
 			OFActionOutput oao = new OFActionOutput();
 			oao.setMaxLength((short) 0);
@@ -131,9 +247,7 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 			actions.add(mod_dl_src);
 			actions.add(mod_dl_dst);
 			actions.add(mod_nw_src);
-			actions.add(oao);
-			
-			
+			actions.add(oao);						
 			
 			
 			//Also insert Flow-Mod rule like the below
@@ -154,7 +268,56 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 			ByteBuffer bb_ofm = ByteBuffer.allocate(offm.getLength());					
 			offm.writeTo(bb_ofm);
 			
-			bb = bb_ofm;
+			ByteBuffer bb_rev_ofm = null;
+			OFFlowMod rev_offm = null;
+			if(ofm.getInputPort() == (short) 1){
+				OFActionDataLayerDestination mod_dl_dst_to_veth = new OFActionDataLayerDestination();
+				mod_dl_dst_to_veth.setDataLayerAddress(Ethernet.toMACAddress(EnvInitService.vIFs.getVeth1().getMac()));
+				OFActionNetworkLayerDestination mod_nw_dst_to_veth = new OFActionNetworkLayerDestination();
+				mod_nw_dst_to_veth.setNetworkAddress(IPv4.toIPv4Address(EnvInitService.vIFs.getVeth1().getIP()));
+				OFActionOutput oao_to_veth = new OFActionOutput();
+				oao_to_veth.setMaxLength((short) 0);
+				oao_to_veth.setPort((short) 1); //to veth
+				
+				List<OFAction> rev_actions = new ArrayList<OFAction>();			
+				rev_actions.add(mod_dl_dst_to_veth);			
+				rev_actions.add(mod_nw_dst_to_veth);			
+				rev_actions.add(oao_to_veth);
+				
+				OFMatch rev_ofm = new OFMatch();
+				rev_ofm.setWildcards(OFMatch.OFPFW_ALL & ~OFMatch.OFPFW_IN_PORT & ~OFMatch.OFPFW_DL_TYPE);
+				rev_ofm.setDataLayerType(ofm.getDataLayerType());
+				if(ofm.getDataLayerType() == 0x0800 ){ //ip
+					//rev_ofm.setNetworkDestination(ofm.getNetworkSource());
+					rev_ofm.setNetworkSource(ofm.getNetworkDestination());
+					rev_ofm.setWildcards(rev_ofm.getWildcards() &  ~(63 << OFMatch.OFPFW_NW_SRC_SHIFT));
+					if (ofm.getNetworkProtocol() == 0x06 || ofm.getNetworkProtocol() == 0x11) { //tcp or udp
+						rev_ofm.setNetworkProtocol(ofm.getNetworkProtocol());
+						rev_ofm.setTransportDestination(ofm.getTransportSource());
+						rev_ofm.setTransportSource(ofm.getTransportDestination());
+						rev_ofm.setWildcards(rev_ofm.getWildcards() & ~OFMatch.OFPFW_NW_PROTO & ~OFMatch.OFPFW_TP_SRC & ~OFMatch.OFPFW_TP_DST);
+					}
+				}			
+							
+				rev_ofm.setInputPort((short) round_robin_out_port);
+				
+				//reverse route
+				rev_offm = new OFFlowMod();
+				rev_offm.setActions(rev_actions);
+				rev_offm.setMatch(rev_ofm);
+				rev_offm.setOutPort((short) OFPort.OFPP_NONE.getValue());
+				rev_offm.setBufferId(-1);
+				rev_offm.setCommand(OFFlowMod.OFPFC_ADD);
+				rev_offm.setIdleTimeout((short) 5);
+				rev_offm.setHardTimeout((short) 0);
+				rev_offm.setPriority((short) 32768);
+				rev_offm.setFlags((short) 1); // Send flow removed
+				rev_offm.setCookie(cookie);
+				rev_offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH + OFActionOutput.MINIMUM_LENGTH 
+						 + OFActionDataLayerDestination.MINIMUM_LENGTH +OFActionNetworkLayerDestination.MINIMUM_LENGTH));
+				bb_rev_ofm = ByteBuffer.allocate(rev_offm.getLength());					
+				rev_offm.writeTo(bb_rev_ofm);						
+			}
 			
 			if(opie.getBufferId() == -1){
 				OFPacketOut opo = new OFPacketOut();
@@ -164,27 +327,39 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 				opo.setBufferId(opie.getBufferId());
 				int length = OFPacketOut.MINIMUM_LENGTH + opo.getActionsLength();			
 				opo.setPacketData(opie.getPacketData());
-				length += opie.getPacketData().length;
-						
+				length += opie.getPacketData().length;						
 				//opo.setLengthU(length);
 				opo.setLength(U16.t(length));
-				Log.d(TAG, "Packetout = " + opo.toString());
+				//Log.d(TAG, "Packetout = " + opo.toString());
 				ByteBuffer bb_opo = ByteBuffer.allocate(opo.getLength());
 				bb_opo.clear();
 				opo.writeTo(bb_opo);
-				bb = ByteBuffer.allocate(opo.getLengthU() + offm.getLength());			
+				if(rev_offm != null){
+					bb = ByteBuffer.allocate(opo.getLengthU() + offm.getLength() + rev_offm.getLength());
+				}else{
+					bb = ByteBuffer.allocate(opo.getLengthU() + offm.getLength());
+				}
 				bb.clear();
 				bb.put(bb_ofm.array());
+				if(rev_offm!=null){
+					bb.put(bb_rev_ofm.array());
+				}
 				bb.put(bb_opo.array());
 				bb.flip();
-			}
-						
-			
-			if(round_robin_out_port == 2){
-				round_robin_out_port = 3;
 			}else{
-				round_robin_out_port = 2;
+				if(rev_offm != null){
+					bb = ByteBuffer.allocate(offm.getLengthU() + rev_offm.getLength());
+				}else{
+					bb = ByteBuffer.allocate(offm.getLengthU());
+				}
+				bb.clear();
+				bb.put(bb_ofm.array());
+				if(rev_offm != null){
+					bb.put(bb_rev_ofm.array());
+				}
+				bb.flip();
 			}
+												
 		}
 		
 		return bb;
@@ -233,6 +408,24 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 	    }else if (ofm.getInputPort()== EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName())){
 	    	//not sure if we need to handle the arp request comes from wifi 
 	    	Log.d(TAG, "got arp request from wifi interface");
+	    	Log.d(TAG, "reply arp request for wifi");
+	    	byte[] mac_wifi = Ethernet.toMACAddress(EnvInitService.wifiIF.getMac());
+	    	int ip_wifi = ofm.getNetworkDestination();
+	    	byte[] mac_dst = ofm.getDataLayerSource();
+	    	int ip_dst = ofm.getNetworkSource();
+	    	
+	    	packet_serialized = genARPReply(mac_wifi, ip_wifi, mac_dst, ip_dst);
+	    	OFPacketOut ofp_out = new OFPacketOut()
+			.setActions(Arrays.asList(new OFAction[] {new OFActionOutput().setPort(ofm.getInputPort())}))
+			.setActionsLength((short) OFActionOutput.MINIMUM_LENGTH)
+			.setBufferId(-1)
+			.setInPort(OFPort.OFPP_NONE)	                			
+			.setPacketData(packet_serialized);
+	    	int length = OFPacketOut.MINIMUM_LENGTH+ ofp_out.getActionsLengthU() + ofp_out.getPacketData().length;
+	    	ofp_out.setLength(U16.t(length));
+        	bb = ByteBuffer.allocate(ofp_out.getLength());
+        	ofp_out.writeTo(bb);
+        	
 	    }else if (ofm.getInputPort()== EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName())){
 	    	Log.d(TAG, "got arp request from 3G interface");
 	    }
