@@ -12,7 +12,7 @@
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
   <application android:icon="@drawable/icon" android:label="@string/app_name">
-    <activity android:name=".controlUI"
+    <activity android:name="controlUI"
               android:label="@string/control_UI"
               android:configChanges="keyboardHidden|orientation"
               android:screenOrientation="portrait"
@@ -45,17 +45,21 @@
 	<action android:name="holyc.intent.broadcast.ECHOREQ"/>   
       </intent-filter>   
     </receiver>
-     <receiver android:name=".openflow.handler.ErrorHandler">   
+    <receiver android:name=".openflow.handler.ErrorHandler">   
       <intent-filter>   
 	<action android:name="holyc.intent.broadcast.ERROR"/>   
       </intent-filter>   
     </receiver>    
-    <receiver android:name=".dispatcher.OFMultipleInterfaceRoundRobin">
+    <receiver android:name=".openflow.handler.OFMultipleInterfaceRoundRobin">
     <!--  <receiver android:name=".openflow.handler.FlowSwitch"> -->
       <intent-filter>   
 		<action android:name="holyc.intent.broadcast.PACKETIN"/>   
       </intent-filter>   
     </receiver>   
-
+	<receiver android:name=".peer.handler.PeerCoordinator">   
+      <intent-filter>   
+		<action android:name="holyc.intent.broadcast.STATSREPLY"/>   
+      </intent-filter>   
+    </receiver>
   </application>
 </manifest>

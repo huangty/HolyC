@@ -1,8 +1,22 @@
 package net.holyc;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.openflow.protocol.OFFlowMod;
+import org.openflow.protocol.OFMatch;
+import org.openflow.protocol.OFPort;
+import org.openflow.protocol.OFStatisticsRequest;
+import org.openflow.protocol.action.OFAction;
+import org.openflow.protocol.action.OFActionOutput;
+import org.openflow.protocol.statistics.OFFlowStatisticsRequest;
+import org.openflow.protocol.statistics.OFStatistics;
+import org.openflow.protocol.statistics.OFStatisticsType;
+import org.openflow.util.U16;
+
 import net.holyc.dispatcher.DispatchService;
+import net.holyc.openflow.handler.OFMultipleInterfaceRoundRobin;
 import net.holyc.host.EnvInitService;
 import net.holyc.host.Utility;
 import android.app.Activity;
@@ -37,8 +51,10 @@ public class controlUI extends Activity{
 	public static CheckBox checkbox_wifi;
 	public static CheckBox checkbox_wimax;
 	public static CheckBox checkbox_3g;
+	public static String interface_just_disabled ="";
+	public static String interface_just_enabled = "";
 	private TextView tview_dispatcher_report;
-	private ScrollView sview_dispatcher_report;
+	private ScrollView sview_dispatcher_report;	
 	boolean mDispatchIsBound = false;
 	Messenger mDispatchService = null;
 	/** Handler for messages passed to show on the screen */
@@ -54,6 +70,7 @@ public class controlUI extends Activity{
         setContentView(R.layout.control);
         findViews();
         setListeners();      
+        
         //Log.d(TAG, "start Testeer");
         //startService(new Intent(this, LalPermTester.class));
     }
@@ -136,7 +153,7 @@ public class controlUI extends Activity{
 			if(netinf.equals("wifi")){
 				EnvInitService.wifi_included = isChecked;
 				checkbox_wifi.setChecked(isChecked);
-				Log.d(TAG, "wifi is " + isChecked);
+				Log.d(TAG, "wifi is " + isChecked);				
 			}else if(netinf.equals("wimax")){
 				EnvInitService.wimax_included = isChecked;
 				checkbox_wimax.setChecked(isChecked);
@@ -145,6 +162,20 @@ public class controlUI extends Activity{
 				EnvInitService.mobile_included = isChecked;
 				checkbox_3g.setChecked(isChecked);
 			}				
+			OFMultipleInterfaceRoundRobin.wifi_flow_count=0;
+			OFMultipleInterfaceRoundRobin.wimax_flow_count=0;
+			OFMultipleInterfaceRoundRobin.threeg_flow_count=0;
+			
+			if(isChecked){
+				sendOFStatReq();
+				controlUI.interface_just_enabled =  netinf;
+				Log.d(TAG, "send OFStatRequest");
+			}else{
+				controlUI.interface_just_disabled = netinf;
+			}
+			//Log.d(TAG, "ALL FLOW COUNT GOES BACK TO ZERO!!! and send OFStatRequest");
+						
+			
 		}    	
     };
     private Button.OnClickListener bindDispatchService = new Button.OnClickListener(){
@@ -167,7 +198,45 @@ public class controlUI extends Activity{
     		}
     	}
     };
+    public void sendOFStatReq(){
+    	if(!mDispatchIsBound){							
+			Log.d(TAG, "Turn on the binding, since we need to send some messages to the ovs");				
+			doBindDispatchService(true);
+		}
+		Message msg = Message.obtain(null, HolyCMessage.OFCOMM_SEND_REQUEST_UI.type);
+        msg.replyTo = mMessenger;
+        OFStatisticsRequest ofsr = new OFStatisticsRequest();
+		ofsr.setStatisticType(OFStatisticsType.FLOW);
+				
+		OFFlowStatisticsRequest offsr = new OFFlowStatisticsRequest();
+        offsr.setTableId((byte)0xff);        
+        OFMatch ofm = new OFMatch();
+        ofm.setWildcards(OFMatch.OFPFW_ALL);
+        offsr.setMatch(ofm);        
+        offsr.setOutPort(OFPort.OFPP_NONE.getValue());
+        
+        List<OFStatistics> statistics = new ArrayList<OFStatistics>();
+        statistics.add(offsr);
+        ofsr.setStatistics(statistics);
+        ofsr.setLengthU(U16.t(OFStatisticsRequest.MINIMUM_LENGTH + offsr.getLength()));
+        
+		ByteBuffer bb = ByteBuffer.allocate(ofsr.getLengthU());
+		ofsr.writeTo(bb);
+		Bundle data = new Bundle();
+		data.putByteArray(HolyCMessage.OFCOMM_SEND_REQUEST_UI.data_key, bb.array());
+		msg.setData(data);
+		sendMessageToDispatchService(msg);
+    }
     
+    public void sendMessageToDispatchService(Message msg){
+    	if(mDispatchService != null){
+	    	try {
+	    		mDispatchService.send(msg);
+	    	}catch(RemoteException e) {}
+    	}else{
+    		doBindDispatchService(true);
+    	}
+    }
     private ComponentName doStartDispatchService(){
     	ComponentName c = startService(new Intent(this, DispatchService.class));
     	button_starter.setChecked(true);
@@ -263,5 +332,7 @@ public class controlUI extends Activity{
 	    	mDispatchService = null;
 	        Toast.makeText(controlUI.this, R.string.dispatcher_unbinded, Toast.LENGTH_SHORT).show();
 	    }
+	    
+	    
 	};
 }

@@ -76,6 +76,17 @@ public class HolyCIntent{
 	public static final String data_key = "OFFLOWRM_DATA";
 	public static final String port_key = "OFFLOWRM_PORT";
     }
+    
+    /** Intent to deliver OpenFlow flow removed event
+    *
+    * @see OFFlowRemovedEvent
+    */
+   public class OFStatsReply_Intent{
+	public static final String action = "holyc.intent.broadcast.STATSREPLY";
+	public static final String str_key = "OFFLOWSR";	
+	public static final String data_key = "OFFLOWSR_DATA";
+	public static final String port_key = "OFFLOWSR_PORT";
+   }
 
     /** Intent to send/reply to arbitrary OpenFlow message
      */
@@ -106,4 +117,6 @@ public class HolyCIntent{
     	public static final String action = "holyc.intent.broadcast.LALPERMRESPONSE";
     	public static final String str_key = "LAL_PERM_RESPONSE";	
     }
+    
+    
 }

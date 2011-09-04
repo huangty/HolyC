@@ -260,6 +260,7 @@ public class EnvInitService extends Service {//implements Runnable{
         }else{
         	wimax_included = false;
         }
+        
         controlUI.checkbox_wifi.setClickable(wifi_included);
         controlUI.checkbox_wifi.setChecked(wifi_included);
         controlUI.checkbox_wimax.setClickable(wimax_included);

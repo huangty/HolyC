@@ -186,4 +186,19 @@ public class HolyCMessage
     {
 	public static final int type = MAX_MSG_TYPE+20;
     }
+    
+    /**
+     * @see DispatchService
+     */
+    public class OFCOMM_SEND_REQUEST_UI
+    {
+    	public static final int type = MAX_MSG_TYPE+21;
+    	public static final String data_key = "OF_REQUEST";
+    }
+    
+    /*public class OFCOMM_SEND_REQUEST_OFSERVICE
+    {
+    	public static final int type = MAX_MSG_TYPE+22;
+    	public static final String data_key = "OF_REQUEST";
+    }*/
 }

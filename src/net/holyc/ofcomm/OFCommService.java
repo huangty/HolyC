@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +70,7 @@ public class OFCommService extends Service {
 	Selector selector = null;
 	String TAG = "HOLYC.OFCOMM";
 	public static Map<Integer, Socket> socketMap = new HashMap<Integer, Socket>();
+	public static List<OFMatch> defaultRules = new LinkedList<OFMatch>();
 	AcceptThread mAcceptThread = null;
 	/** For showing and hiding our notification. */
 	NotificationManager mNM;
@@ -102,13 +104,25 @@ public class OFCommService extends Service {
 				Log.d(TAG, "Send msg on bind: " + bind_port);
 				startOpenflowController();
 				break;
+				
+			case HolyCMessage.OFCOMM_SEND_REQUEST_UI.type:
+				Log.d(TAG, "got an OF request at OFCommService, sending to the switch now");
+				byte[] of_req_data = msg.getData().getByteArray(HolyCMessage.OFCOMM_SEND_REQUEST_UI.data_key);
+				Iterator<Socket> its = socketMap.values().iterator();
+				while(its.hasNext()){
+					Socket socket = (Socket)its.next();
+					if (socket != null) {
+						sendOFPacket(socket, of_req_data);
+					}
+				}
+				break;
 			case HolyCMessage.OFREPLY_EVENT.type:
 				byte[] ofdata = msg.getData().getByteArray(
 						HolyCMessage.OFREPLY_EVENT.data_key);
 				int scn = msg.getData().getInt(
 						HolyCMessage.OFREPLY_EVENT.port_key);
 				/** for debug **/
-				OFMessage ofm = new OFMessage();
+				/*OFMessage ofm = new OFMessage();
 				ofm.readFrom(Utility.getByteBuffer(ofdata));
 				if (ofm.getType() == OFType.FLOW_MOD) {
 					OFFlowMod offm = new OFFlowMod();
@@ -125,7 +139,7 @@ public class OFCommService extends Service {
 								+ " delay = " + d.getDelay(new Date()));
 						procDelayTable.remove(offm.getBufferId());
 					}
-				}
+				}*/
 				// Log.d(TAG,
 				// "Send OFReply through socket channel with Remote Port "+scn);
 				if (!socketMap.containsKey(new Integer(scn))) {
@@ -375,6 +389,7 @@ public class OFCommService extends Service {
 			bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(bb);
 			sendOFPacket(socket, bb.array());
+			defaultRules.add(ofm.clone());
 		}
 
 		public void dropAll(short dl_type, byte nw_proto, short priority,
@@ -402,6 +417,7 @@ public class OFCommService extends Service {
 			ByteBuffer bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(bb);
 			sendOFPacket(socket, bb.array());
+			defaultRules.add(ofm.clone());
 		}
 
 		public void arpFwdToController(int host_ip, short priority,
@@ -435,7 +451,7 @@ public class OFCommService extends Service {
 			ByteBuffer arp_bb = ByteBuffer.allocate(arp_fm.getLength());
 			arp_fm.writeTo(arp_bb);
 			sendOFPacket(socket, arp_bb.array());
-
+			defaultRules.add(arp_match.clone());
 			// arp originated from the host
 			arp_match = new OFMatch()
 					.setWildcards(
@@ -446,6 +462,7 @@ public class OFCommService extends Service {
 			arp_bb = ByteBuffer.allocate(arp_fm.getLength());
 			arp_fm.writeTo(arp_bb);
 			sendOFPacket(socket, arp_bb.array());
+			defaultRules.add(arp_match.clone());
 		}
 		
 		public void fwdArpVethToController(short priority, Socket socket) {
@@ -477,7 +494,8 @@ public class OFCommService extends Service {
 
 			ByteBuffer arp_bb = ByteBuffer.allocate(arp_fm.getLength());
 			arp_fm.writeTo(arp_bb);
-			sendOFPacket(socket, arp_bb.array());			
+			sendOFPacket(socket, arp_bb.array());
+			defaultRules.add(arp_match.clone());
 		}
 		
 		public void tcpFwdToController(int host_ip, short priority,
@@ -512,7 +530,7 @@ public class OFCommService extends Service {
 			ByteBuffer tcp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(tcp_bb);
 			sendOFPacket(socket, tcp_bb.array());
-
+			defaultRules.add(tcp_match_dst.clone());
 			// tcp originated from the host
 			OFMatch tcp_match_src = new OFMatch()
 					.setWildcards(
@@ -526,6 +544,7 @@ public class OFCommService extends Service {
 			tcp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(tcp_bb);
 			sendOFPacket(socket, tcp_bb.array());
+			defaultRules.add(tcp_match_src.clone());
 		}
 
 		public void udpFwdToController(int host_ip, short priority,
@@ -560,7 +579,7 @@ public class OFCommService extends Service {
 			ByteBuffer udp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(udp_bb);
 			sendOFPacket(socket, udp_bb.array());
-
+			defaultRules.add(udp_match_dst.clone());
 			// udp originated from the host
 			OFMatch udp_match_src = new OFMatch()
 					.setWildcards(
@@ -574,7 +593,7 @@ public class OFCommService extends Service {
 			udp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(udp_bb);
 			sendOFPacket(socket, udp_bb.array());
-
+			defaultRules.add(udp_match_src.clone());
 			// broadcast udp
 			OFMatch udp_match_broadcast = new OFMatch()
 					.setWildcards(
@@ -589,6 +608,7 @@ public class OFCommService extends Service {
 			udp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(udp_bb);
 			sendOFPacket(socket, udp_bb.array());
+			defaultRules.add(udp_match_broadcast.clone());
 		}
 
 		public void icmpFwdToController(int host_ip, short priority,
@@ -623,7 +643,7 @@ public class OFCommService extends Service {
 			ByteBuffer icmp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(icmp_bb);
 			sendOFPacket(socket, icmp_bb.array());
-
+			defaultRules.add(icmp_match_dst.clone());
 			// udp originated from the host
 			OFMatch udp_match_src = new OFMatch()
 					.setWildcards(
@@ -637,7 +657,7 @@ public class OFCommService extends Service {
 			icmp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(icmp_bb);
 			sendOFPacket(socket, icmp_bb.array());
-
+			defaultRules.add(udp_match_src.clone());
 		}
 
 		public void hostTrafficFwdToController(short priority, Socket socket) {
@@ -671,7 +691,7 @@ public class OFCommService extends Service {
 			ByteBuffer udp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(udp_bb);
 			sendOFPacket(socket, udp_bb.array());
-			
+			defaultRules.add(udp_match_dst.clone());
 			//tcp sent from the host 
 			OFMatch tcp_match_dst = new OFMatch()
 					.setWildcards(
@@ -699,6 +719,7 @@ public class OFCommService extends Service {
 			ByteBuffer tcp_bb = ByteBuffer.allocate(offm.getLength());
 			tcp_offm.writeTo(tcp_bb);
 			sendOFPacket(socket, tcp_bb.array());
+			defaultRules.add(tcp_match_dst.clone());
 		}
 
 		public void fwdPktToVeth(short inport, short priority, Socket socket){
@@ -740,6 +761,7 @@ public class OFCommService extends Service {
 			ByteBuffer udp_bb = ByteBuffer.allocate(offm.getLength());
 			offm.writeTo(udp_bb);
 			sendOFPacket(socket, udp_bb.array());
+			defaultRules.add(ofm.clone());
 		}
 		
 		public void insertDefaultRule(Socket socket) {

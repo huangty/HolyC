@@ -107,6 +107,27 @@ public class DispatchService extends Service {
 				Log.d(TAG, "since Env is finished, now start OF services");
 				doBindOFService();
 				break;
+			case HolyCMessage.OFCOMM_SEND_REQUEST_UI.type:
+				Log.d(TAG, "got an OF request from UI, forward to OFService");
+				if(!mIsOFBound){
+					sendReportToControlUI("OF Service not setup yet, please wait");
+				}else{
+					try {
+						Message ofmsg = new Message();
+						ofmsg.copyFrom(msg);
+						
+							/*Message.obtain(null, HolyCMessage.OFCOMM_SEND_REQUEST_OFSERVICE.type);
+						Bundle data = new Bundle();
+						data.putByteArray(HolyCMessage.OFCOMM_SEND_REQUEST_OFSERVICE.data_key, 
+								msg.getData().getByteArray(HolyCMessage.OFCOMM_SEND_REQUEST_UI.data_key));
+						ofmsg.setData();*/
+						
+						mOFService.send(ofmsg);
+					} catch (RemoteException e) {
+						e.printStackTrace();
+					}
+				}				
+				break;
 			default:
 				super.handleMessage(msg);
 			}

@@ -1,8 +1,15 @@
 package net.holyc.dispatcher;
 
 
+import java.util.Iterator;
+
+import org.openflow.protocol.OFFeaturesReply;
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.OFError;
+import org.openflow.protocol.OFStatisticsReply;
+import org.openflow.protocol.statistics.OFStatistics;
+import org.openflow.protocol.statistics.OFStatisticsType;
+import org.openflow.protocol.statistics.OFTableStatistics;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -87,6 +94,12 @@ public class OFDispatch extends BroadcastReceiver {
 				oe.readFrom(Utility.getByteBuffer(ofdata));
 				Log.d(TAG, "Error!!! Error type " + oe.getErrorType()+
 				      " code " + oe.getErrorCode());
+				break;
+			case STATS_REPLY:
+				r = new Result();
+				r.action = HolyCIntent.OFStatsReply_Intent.action;				
+				r.key = HolyCIntent.OFStatsReply_Intent.data_key;
+				r.port_key = HolyCIntent.OFStatsReply_Intent.port_key;	
 				break;
 			}
 
