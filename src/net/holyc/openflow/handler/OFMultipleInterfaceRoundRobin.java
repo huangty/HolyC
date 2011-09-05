@@ -129,7 +129,7 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 					Log.d(TAG, "flow count: wifi = " + wifi_flow_count + " wimax = " + wimax_flow_count);
 				}
 			}else*/ 
-			if( ofm.getTransportDestination() == (short) 80
+			if( (ofm.getTransportDestination() == (short) 80 || ofm.getNetworkProtocol() == 0x11)  //http or udp
 					&& EnvInitService.wifiIF!=null && EnvInitService.wimaxIF!=null){ //http/DNS request
 				//WIFI:WIMAX:3G = 1:1:1
 				if(EnvInitService.wifi_included && (wifi_flow_count == 0 || 
@@ -155,9 +155,14 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName());
 					}
 				}else{
-					Log.d(TAG, "default: allocate one HTTP flow to wifi!");
-					wifi_flow_count += 1;					
-					round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+					if(controlUI.interface_just_disabled.equals("wifi")){
+						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+					}else if(controlUI.interface_just_disabled.equals("wimax")){
+						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wimaxIF.getName());
+					}else{
+						Log.d(TAG, "default: allocate one HTTP flow to wifi!");									
+						round_robin_out_port = (short)EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.wifiIF.getName());
+					}
 				}				
 				Log.d(TAG, "flow count: wifi = " + wifi_flow_count + " wimax = " + wimax_flow_count + " 3g = " + threeg_flow_count);				
 			}else{

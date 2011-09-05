@@ -12,7 +12,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import net.beaconcontroller.packet.Ethernet;
+import net.beaconcontroller.packet.UDP;
 import net.beaconcontroller.packet.IPv4;
+import net.beaconcontroller.packet.Data;
+
 import net.holyc.HolyCIntent;
 import net.holyc.controlUI;
 import net.holyc.host.EnvInitService;
@@ -28,6 +31,7 @@ import org.openflow.protocol.OFStatisticsRequest;
 import org.openflow.protocol.action.OFAction;
 import org.openflow.protocol.action.OFActionDataLayerDestination;
 import org.openflow.protocol.action.OFActionDataLayerSource;
+import org.openflow.protocol.action.OFActionNetworkLayerDestination;
 import org.openflow.protocol.action.OFActionNetworkLayerSource;
 import org.openflow.protocol.action.OFActionOutput;
 import org.openflow.protocol.factory.BasicFactory;
@@ -75,27 +79,34 @@ public class PeerCoordinator extends BroadcastReceiver {
 					genDefaultOFMatchString();
 				}
 				
-				if(controlUI.interface_just_disabled.equals("") || controlUI.interface_just_enabled.equals("")){
+				if(controlUI.interface_just_disabled.equals("")){
 					Log.d(TAG, "WARNING!!! Cannot determine ips");
 					return;
 				}
 				String ip_prev = findIPfromInterface(controlUI.interface_just_disabled);				
 				ip_prevList.add(ip_prev);
-				String ip_new = findIPfromInterface(controlUI.interface_just_enabled);
-				ip_newList.add(ip_new);
-				List<OFAction> new_actions = genOFNewAction(controlUI.interface_just_enabled);
-				Log.d(TAG, "ip_prev ( "+ controlUI.interface_just_disabled + "): " + ip_prev +"ip_new ("+controlUI.interface_just_enabled+"):" + ip_new);
-						
-								
+				String ip_new = "";
+				List<OFAction> new_actions = null;
+				ByteBuffer bb = null;
+				int bb_length = 0;
+				
+				if(controlUI.interface_just_enabled.equals("")){
+					//trigger to just send the udp packets
+					//Log.d(TAG, "ip_prev ( "+ controlUI.interface_just_disabled + "): " + ip_prev +"ip_new ("+controlUI.interface_just_enabled+"):" + ip_new);
+					
+				}else{
+					ip_new = findIPfromInterface(controlUI.interface_just_enabled);
+					ip_newList.add(ip_new);
+					new_actions = genOFNewAction(controlUI.interface_just_enabled);
+				}
+				
 				Iterator<OFStatistics> its = ofsr.getStatistics().iterator();							
 				while(its.hasNext()){
 					OFFlowStatisticsReply ofs = (OFFlowStatisticsReply) its.next();
-					OFMatch ofm = ofs.getMatch();					
+					OFMatch ofm = ofs.getMatch();
 					List<OFAction> actions = ofs.getActions();
-					boolean isDefault = false;
-					if(default_rule_match_string.contains(ofm.toString())){
-						isDefault = true;
-					}else{
+
+					if(!default_rule_match_string.contains(ofm.toString())){					
 						Log.d(TAG, "this match is not default=> " + ofm.toString());
 						//the flow rules added by Packet-In
 						String src_ip = IPv4.fromIPv4Address(ofm.getNetworkSource());
@@ -105,40 +116,75 @@ public class PeerCoordinator extends BroadcastReceiver {
 							if(!ip_notifyList.contains(src_ip)){
 								ip_notifyList.add(src_ip);
 							}						
-							//From another host -> me, no need to change flow table
-							
-						}else if(!dst_ip.equals("0.0.0.0") && !isMyIP(dst_ip)){
-							if(!ip_notifyList.contains(dst_ip)){
-								ip_notifyList.add(dst_ip);
-							}
-							/*From me -> another host, need to change the action! */
-							
-							/*if it's single interfaces, then we will need to change ofm source to the next interface ip*/
-							if(ip_prev.equals(EnvInitService.vIFs.getVeth1().getIP())){
-								ofm.setNetworkSource(IPv4.toIPv4Address(ip_new));
-							}
-																					
+							//From another host -> me, need to update the rule							
+							ofm.setInputPort(findOVSPortfromInterface(controlUI.interface_just_enabled));
+							//insert reverse rule
 							OFFlowMod offm = new OFFlowMod();
-							offm.setActions(new_actions);							 
+							offm.setActions(actions);							 
 							offm.setMatch(ofm);
 							offm.setOutPort((short) OFPort.OFPP_NONE.getValue());
 							offm.setBufferId(-1);
-							offm.setCommand(OFFlowMod.OFPFC_MODIFY);
+							offm.setCommand(OFFlowMod.OFPFC_ADD);
 							offm.setIdleTimeout((short) 5);
 							offm.setHardTimeout((short) 0);
 							offm.setPriority((short) 32768);
-							offm.setFlags((short) 1); // Send flow removed							
+							offm.setFlags((short) 1); // Send flow removed	
+							
 							offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH + OFActionOutput.MINIMUM_LENGTH 
-									+OFActionDataLayerSource.MINIMUM_LENGTH + OFActionDataLayerDestination.MINIMUM_LENGTH +OFActionNetworkLayerSource.MINIMUM_LENGTH));
+									+ OFActionDataLayerDestination.MINIMUM_LENGTH +OFActionNetworkLayerSource.MINIMUM_LENGTH));
 							ByteBuffer bb_ofm = ByteBuffer.allocate(offm.getLength());					
 							offm.writeTo(bb_ofm);
 							
-							Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
-							poutIntent.setPackage(context.getPackageName());
-							poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb_ofm.array());
-							poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, ofport);
-							context.sendBroadcast(poutIntent);
-							Log.d(TAG, "send out OF flow mod = " + offm.toString());
+							ByteBuffer bb_tmp = ByteBuffer.allocate(bb_length + offm.getLength());
+							bb_tmp.clear();
+							if(bb != null){
+								bb_tmp.put(bb.array());									
+							}
+							bb_tmp.put(bb_ofm.array());
+							bb_tmp.flip();
+							bb = bb_tmp;
+							bb_length = bb_length + offm.getLength();
+							
+							
+						}else if(!dst_ip.equals("0.0.0.0") && !isMyIP(dst_ip)){
+							if(!ip_notifyList.contains(dst_ip)){
+								ip_notifyList.add(dst_ip);								
+							}
+							if(!controlUI.interface_just_enabled.equals("")){
+								/*From me -> another host, need to change the action! */														
+								/*if it's single interfaces, then we will need to change ofm source to the next interface ip*/
+								if(ip_prev.equals(EnvInitService.vIFs.getVeth1().getIP())){
+									ofm.setNetworkSource(IPv4.toIPv4Address(ip_new));
+								}
+																						
+								OFFlowMod offm = new OFFlowMod();
+								offm.setActions(new_actions);							 
+								offm.setMatch(ofm);
+								offm.setOutPort((short) OFPort.OFPP_NONE.getValue());
+								offm.setBufferId(-1);
+								offm.setCommand(OFFlowMod.OFPFC_MODIFY);
+								offm.setIdleTimeout((short) 5);
+								offm.setHardTimeout((short) 0);
+								offm.setPriority((short) 32768);
+								offm.setFlags((short) 1); // Send flow removed							
+								offm.setLength(U16.t(OFFlowMod.MINIMUM_LENGTH + OFActionOutput.MINIMUM_LENGTH 
+										+OFActionDataLayerSource.MINIMUM_LENGTH + OFActionDataLayerDestination.MINIMUM_LENGTH +OFActionNetworkLayerSource.MINIMUM_LENGTH));
+								ByteBuffer bb_ofm = ByteBuffer.allocate(offm.getLength());					
+								offm.writeTo(bb_ofm);
+								//Log.d(TAG, "send out OF flow mod = " + offm.toString());
+								
+								
+								
+								ByteBuffer bb_tmp = ByteBuffer.allocate(bb_length + offm.getLength());
+								bb_tmp.clear();
+								if(bb != null){
+									bb_tmp.put(bb.array());									
+								}
+								bb_tmp.put(bb_ofm.array());
+								bb_tmp.flip();
+								bb = bb_tmp;
+								bb_length = bb_length + offm.getLength();
+							}
 
 						}																														
 					}
@@ -146,46 +192,74 @@ public class PeerCoordinator extends BroadcastReceiver {
 					//Log.d(TAG, "Default:"+ isDefault +" ofmatch = " + ofm.toString());
 				}//end of interate all the rules
 				//TODO: Send UDP Notification Message
-				Iterator<String> itn = ip_notifyList.iterator();
-				while(itn.hasNext()){
-					String notifiee_ip = itn.next();
-					String wifi_ip = "171.64.66.58";
-					if(controlUI.interface_just_disabled.equals("wifi")){
-						ip_prev = wifi_ip;
+				if(controlUI.interface_just_enabled.equals("")){
+					Iterator<String> itn = ip_notifyList.iterator();
+					while(itn.hasNext()){
+						String notifiee_ip = itn.next();
+						String wifi_ip = "172.24.74.56";
+						if(controlUI.interface_just_disabled.equals("wifi")){
+							ip_prev = wifi_ip;
+							ip_newList.add(findIPfromInterface("wimax"));						
+						}else if(controlUI.interface_just_disabled.equals("wimax")){
+							ip_newList.add(wifi_ip);
+						}					
+						/*if(controlUI.interface_just_enabled.equals("wifi")){
+							ip_new = wifi_ip;
+						}*/
+						sendNotifyPacket(notifiee_ip, ip_prev, ip_newList, new_actions);
 					}
-					if(controlUI.interface_just_enabled.equals("wifi")){
-						ip_new = wifi_ip;
-					}
-					sendNotifyPacket(notifiee_ip, ip_prev, ip_new);
 				}
+				
+				if(bb!=null){
+					Intent poutIntent = new Intent(HolyCIntent.BroadcastOFReply.action);
+					poutIntent.setPackage(context.getPackageName());
+					poutIntent.putExtra(HolyCIntent.BroadcastOFReply.data_key, bb.array());
+					poutIntent.putExtra(HolyCIntent.BroadcastOFReply.port_key, ofport);
+					context.sendBroadcast(poutIntent);
+				}
+				
 			}	
 		}		
 	}//end onReceive	
-	private void sendNotifyPacket(String dst_ip, String ip_prev, String ip_new){
+	private void sendNotifyPacket(String dst_ip, String ip_prev, List<String> ip_newList, List<OFAction> actions){
+		String msg = "{\"ip_prev\":[\""+ ip_prev + "\"], \"ip_new\":[";
+		int list_count = 0;
+		Iterator<String> its = ip_newList.iterator();
+		while(its.hasNext()){
+			String ip_new = its.next();
+			if(list_count == 0){
+				msg = msg + "\""+ip_new+"\"";
+			}else{
+				msg = msg + ",\""+ip_new+"\"";
+			}
+			list_count++;
+		}
+		msg = msg + "]}";
+		Log.d(TAG, "Send out udp msg = " + msg);
 		/*OFPacketOut opo = new OFPacketOut();
 		opo.setActions(actions);
 		opo.setInPort((short)1); //make it from the host
 		opo.setActionsLength(U16.t(OFActionOutput.MINIMUM_LENGTH+OFActionDataLayerSource.MINIMUM_LENGTH + 
 				OFActionDataLayerDestination.MINIMUM_LENGTH +OFActionNetworkLayerSource.MINIMUM_LENGTH) );
 		opo.setBufferId(-1);
-		int length = OFPacketOut.MINIMUM_LENGTH + opo.getActionsLength();*/
+		int length = OFPacketOut.MINIMUM_LENGTH + opo.getActionsLength();
 		
-		/*Generate Notification Message*/
-		String msg = "{\"ip_prev\":[\""+ ip_prev + "\"], \"ip_new\":[\""+ip_new+"\"]}";
-		Log.d(TAG, "Send out udp msg = " + msg);
-		/*Generate UDP Packet*/
-		DatagramSocket socket = null;
-		try {
-			socket = new DatagramSocket();
-			DatagramPacket packet = new DatagramPacket(msg.getBytes(), msg.length(), InetAddress.getByAddress(IPv4.toIPv4AddressBytes(dst_ip)), 2605);
-			socket.send(packet);			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		if(socket!=null){
-			socket.close();
-		}
+		//Generate Notification Message
+		
+		UDP udp_packet = new UDP();
+		udp_packet.setDestinationPort((short) 2605);
+		udp_packet.setSourcePort((short) 12345);
+		udp_packet.setChecksum((short) 0);
+		Data payload = new Data();
+		payload.setData(msg.getBytes());
+		udp_packet.setPayload(payload);
+		IPv4 ip_packet = new IPv4();
+		ip_packet.setDestinationAddress(dst_ip);
+		ip_packet.setSourceAddress(EnvInitService.vIFs.getVeth1().getIP());
+		ip_packet.setChecksum(checksum);
+		ip_packet.setPayload(udp_packet);*/
+		
+		
 		/*opo.setPacketData(opie.getPacketData());
 		length += opie.getPacketData().length;						
 		//opo.setLengthU(length);
@@ -193,7 +267,21 @@ public class PeerCoordinator extends BroadcastReceiver {
 		//Log.d(TAG, "Packetout = " + opo.toString());
 		ByteBuffer bb_opo = ByteBuffer.allocate(opo.getLength());
 		bb_opo.clear();
-		opo.writeTo(bb_opo);*/
+		opo.writeTo(bb_opo);*/		
+		
+		/*Generate UDP Packet*/
+		DatagramSocket socket = null;
+		try {
+			socket = new DatagramSocket();
+			DatagramPacket packet = new DatagramPacket(msg.getBytes(), msg.length(), InetAddress.getByAddress(IPv4.toIPv4AddressBytes(dst_ip)), 2605);			
+			socket.send(packet);						
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(socket!=null){
+			socket.close();
+		}
 		
 		return;
 	}

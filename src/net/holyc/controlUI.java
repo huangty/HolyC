@@ -169,10 +169,13 @@ public class controlUI extends Activity{
 			if(isChecked){
 				sendOFStatReq();
 				controlUI.interface_just_enabled =  netinf;
-				Log.d(TAG, "send OFStatRequest");
+				
 			}else{
+				sendOFStatReq();
 				controlUI.interface_just_disabled = netinf;
+				controlUI.interface_just_enabled =  "";
 			}
+			Log.d(TAG, "send OFStatRequest");
 			//Log.d(TAG, "ALL FLOW COUNT GOES BACK TO ZERO!!! and send OFStatRequest");
 						
 			
