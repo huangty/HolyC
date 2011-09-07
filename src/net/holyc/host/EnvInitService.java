@@ -267,6 +267,10 @@ public class EnvInitService extends Service {//implements Runnable{
         controlUI.checkbox_wimax.setChecked(wimax_included);
         controlUI.checkbox_3g.setClickable(mobile_included);
         controlUI.checkbox_3g.setChecked(mobile_included);
+        controlUI.checkbox_fwdMB.setClickable(true);
+        controlUI.checkbox_notifyMB.setClickable(true);
+        controlUI.checkbox_fwdMB.setChecked(false);
+        controlUI.checkbox_notifyMB.setChecked(false);
         
         Log.d(TAG, "wifi: " + wifi_included + ", 3g: " + mobile_included + ", wimax: " + wimax_included);
         

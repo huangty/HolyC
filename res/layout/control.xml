@@ -64,7 +64,47 @@
 			 	android:layout_weight="30"			 
 			/>
 		</TableRow>
+	</TableLayout>
+	<View
+		android:layout_width="fill_parent"
+		android:layout_height="2dip"
+		android:background="#FFBFBFBF" 
+		/>
+		
+	<View
+		android:layout_width="fill_parent"
+		android:layout_height="10dip"
+		/>
+	<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+		    android:layout_width="fill_parent"
+		    android:layout_height="wrap_content"
+		    android:layout_alignParentBottom="true">  	
+		<TableRow 
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:weightSum="100">	
+			<CheckBox android:id="@+id/msg_mb_cb"
+				android:text="Notify Middle Box and Peer"				
+				android:layout_height="wrap_content"
+				android:layout_weight="50"
+			/>
+			<CheckBox android:id="@+id/fwd_mb_cb"
+			 	android:text="Forward Message to Middle Box"			 	
+			 	android:layout_height="wrap_content"
+			 	android:layout_weight="50"			 
+			/>			
+		</TableRow>
 	</TableLayout>	
+	<View
+		android:layout_width="fill_parent"
+		android:layout_height="2dip"
+		android:background="#FFBFBFBF" 
+		/>
+		
+	<View
+		android:layout_width="fill_parent"
+		android:layout_height="10dip"
+		/>
 	<ScrollView android:id="@+id/dispatch_scrollview" 
 		android:layout_width="fill_parent"
 		android:layout_height="fill_parent"

@@ -53,6 +53,8 @@ public class controlUI extends Activity{
 	public static CheckBox checkbox_3g;
 	public static String interface_just_disabled ="";
 	public static String interface_just_enabled = "";
+	public static CheckBox checkbox_notifyMB;
+	public static CheckBox checkbox_fwdMB;	
 	private TextView tview_dispatcher_report;
 	private ScrollView sview_dispatcher_report;	
 	boolean mDispatchIsBound = false;
@@ -91,12 +93,20 @@ public class controlUI extends Activity{
     	checkbox_wifi = (CheckBox) findViewById(R.id.wifi_cb);        	
     	checkbox_wimax = (CheckBox) findViewById(R.id.wimax_cb);    	
     	checkbox_3g = (CheckBox) findViewById(R.id.threeg_cb);
-    	checkbox_wifi.setChecked(true);
-    	checkbox_wimax.setChecked(true);
+    	checkbox_notifyMB = (CheckBox) findViewById(R.id.msg_mb_cb);
+    	checkbox_fwdMB = (CheckBox) findViewById(R.id.fwd_mb_cb);	
+
+    	checkbox_wifi.setChecked(false);
+    	checkbox_wimax.setChecked(false);
     	checkbox_3g.setChecked(false);
+    	checkbox_notifyMB.setChecked(false);
+    	checkbox_fwdMB.setChecked(false);
+    	
     	checkbox_wifi.setClickable(false);
     	checkbox_wimax.setClickable(false);
     	checkbox_3g.setClickable(false);
+    	checkbox_notifyMB.setClickable(false);
+    	checkbox_fwdMB.setClickable(false);    	    	
     	
     	if( mDispatchIsBound ){
     		button_binder.setChecked(true);
@@ -121,6 +131,11 @@ public class controlUI extends Activity{
     	checkbox_wimax.setTag(new String("wimax"));
     	checkbox_3g.setOnCheckedChangeListener(interfaceListener);
     	checkbox_3g.setTag(new String("3g"));
+    	
+    	checkbox_fwdMB.setOnCheckedChangeListener(middleboxListener);
+    	checkbox_fwdMB.setTag("fwdTraffic");    	
+    	checkbox_notifyMB.setOnCheckedChangeListener(middleboxListener);
+        checkbox_notifyMB.setTag("notify");
     }
     private boolean isDispatchServiceRunning(){
     	boolean isRunning = false;
@@ -179,6 +194,35 @@ public class controlUI extends Activity{
 			//Log.d(TAG, "ALL FLOW COUNT GOES BACK TO ZERO!!! and send OFStatRequest");
 						
 			
+		}    	
+    };
+    private CompoundButton.OnCheckedChangeListener middleboxListener = new CompoundButton.OnCheckedChangeListener(){
+		@Override
+		public void onCheckedChanged(CompoundButton buttonView,
+				boolean isChecked) {			
+			
+			String action = (String) buttonView.getTag();
+			if(isChecked){				
+				if(action.equals("notify")){
+					sendOFStatReq();					
+					checkbox_notifyMB.setChecked(isChecked);
+					Log.d(TAG, "going to notify the middle box and the server");				
+				}else if(action.equals("fwdTraffic")){
+					sendOFStatReq();
+					checkbox_fwdMB.setChecked(isChecked);
+					Log.d(TAG, "going to forward the traffic to middle box " + isChecked);
+				}			
+			}else{
+				if(action.equals("notify")){
+					checkbox_notifyMB.setChecked(isChecked);
+				}else if(action.equals("fwdTraffic")){
+					checkbox_fwdMB.setChecked(isChecked);
+				}
+			}
+							
+						
+			
+			Log.d(TAG, "send OFStatRequest");											
 		}    	
     };
     private Button.OnClickListener bindDispatchService = new Button.OnClickListener(){
