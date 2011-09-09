@@ -17,6 +17,7 @@ import org.openflow.util.U16;
 
 import net.holyc.dispatcher.DispatchService;
 import net.holyc.openflow.handler.OFMultipleInterfaceRoundRobin;
+import net.holyc.sensors.handler.SensorHintService;
 import net.holyc.host.EnvInitService;
 import net.holyc.host.Utility;
 import android.app.Activity;
@@ -54,7 +55,8 @@ public class controlUI extends Activity{
 	public static String interface_just_disabled ="";
 	public static String interface_just_enabled = "";
 	public static CheckBox checkbox_notifyMB;
-	public static CheckBox checkbox_fwdMB;	
+	public static CheckBox checkbox_fwdMB;
+	public static CheckBox checkbox_sensor;
 	private TextView tview_dispatcher_report;
 	private ScrollView sview_dispatcher_report;	
 	boolean mDispatchIsBound = false;
@@ -95,18 +97,22 @@ public class controlUI extends Activity{
     	checkbox_3g = (CheckBox) findViewById(R.id.threeg_cb);
     	checkbox_notifyMB = (CheckBox) findViewById(R.id.msg_mb_cb);
     	checkbox_fwdMB = (CheckBox) findViewById(R.id.fwd_mb_cb);	
+    	checkbox_sensor = (CheckBox) findViewById(R.id.sensor_cb);
 
     	checkbox_wifi.setChecked(false);
     	checkbox_wimax.setChecked(false);
     	checkbox_3g.setChecked(false);
     	checkbox_notifyMB.setChecked(false);
     	checkbox_fwdMB.setChecked(false);
+    	checkbox_sensor.setChecked(false);
     	
+    	/*will be enabled after the environment is setup*/
     	checkbox_wifi.setClickable(false);
     	checkbox_wimax.setClickable(false);
     	checkbox_3g.setClickable(false);
     	checkbox_notifyMB.setClickable(false);
-    	checkbox_fwdMB.setClickable(false);    	    	
+    	checkbox_fwdMB.setClickable(false);
+    	checkbox_sensor.setClickable(false);
     	
     	if( mDispatchIsBound ){
     		button_binder.setChecked(true);
@@ -136,6 +142,9 @@ public class controlUI extends Activity{
     	checkbox_fwdMB.setTag("fwdTraffic");    	
     	checkbox_notifyMB.setOnCheckedChangeListener(middleboxListener);
         checkbox_notifyMB.setTag("notify");
+        
+        checkbox_sensor.setOnCheckedChangeListener(sensorboxListener);
+        checkbox_sensor.setTag("sensorService");
     }
     private boolean isDispatchServiceRunning(){
     	boolean isRunning = false;
@@ -218,13 +227,29 @@ public class controlUI extends Activity{
 				}else if(action.equals("fwdTraffic")){
 					checkbox_fwdMB.setChecked(isChecked);
 				}
-			}
-							
-						
-			
+			}																
 			Log.d(TAG, "send OFStatRequest");											
 		}    	
     };
+    
+    private CompoundButton.OnCheckedChangeListener sensorboxListener = new CompoundButton.OnCheckedChangeListener(){
+		@Override
+		public void onCheckedChanged(CompoundButton buttonView,
+				boolean isChecked) {			
+			
+			String tag = (String) buttonView.getTag();
+			if(tag.equals("sensorService")){
+				if(isChecked){				
+					doStartSensorHintService();
+					Log.d(TAG, "start sensor service");
+				}else{
+					doStopSensorHintService();
+					Log.d(TAG, "stop sensor service");
+				}
+			}																													
+		}    	
+    };
+    
     private Button.OnClickListener bindDispatchService = new Button.OnClickListener(){
     	public void onClick(View v){
     		if(((ToggleButton)v).isChecked()){    		
@@ -333,6 +358,18 @@ public class controlUI extends Activity{
 	    }
 	}
 
+	private ComponentName doStartSensorHintService(){
+    	ComponentName c = startService(new Intent(this, SensorHintService.class));	    		    	
+    	mBuffer.append("SensorHintService is running ... \n");
+    	doRedraw();	    	
+
+    	return c;
+    }
+    private void doStopSensorHintService(){
+    	stopService(new Intent(this, SensorHintService.class));	    		    
+    	mBuffer.append("SensorHintService is NOT running ... \n");
+    	doRedraw();	    	
+    }
     private void doRedraw(){
     	tview_dispatcher_report.setText(mBuffer.toString());
     	sview_dispatcher_report.scrollTo(0, tview_dispatcher_report.getHeight());    	
