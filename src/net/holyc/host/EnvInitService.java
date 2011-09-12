@@ -272,7 +272,6 @@ public class EnvInitService extends Service {//implements Runnable{
         controlUI.checkbox_fwdMB.setChecked(false);
         controlUI.checkbox_notifyMB.setChecked(false);
         controlUI.checkbox_sensor.setClickable(true);
-        controlUI.checkbox_sensor.setChecked(true);
         
         Log.d(TAG, "wifi: " + wifi_included + ", 3g: " + mobile_included + ", wimax: " + wimax_included);
         

@@ -199,7 +199,7 @@ public class controlUI extends Activity{
 				controlUI.interface_just_disabled = netinf;
 				controlUI.interface_just_enabled =  "";
 			}
-			Log.d(TAG, "send OFStatRequest");
+			Log.d(TAG, "INSIDE interface Listener AND send OFStatRequest");
 			//Log.d(TAG, "ALL FLOW COUNT GOES BACK TO ZERO!!! and send OFStatRequest");
 						
 			
@@ -358,17 +358,35 @@ public class controlUI extends Activity{
 	    }
 	}
 
-	private ComponentName doStartSensorHintService(){
-    	ComponentName c = startService(new Intent(this, SensorHintService.class));	    		    	
+	private void doStartSensorHintService(){
+    	/*ComponentName c = startService(new Intent(this, SensorHintService.class));	    		    	
     	mBuffer.append("SensorHintService is running ... \n");
     	doRedraw();	    	
 
-    	return c;
+    	return c;*/
+		
+		if(!mDispatchIsBound){							
+			Log.d(TAG, "Turn on the binding, since we need to send some messages to dispatch service");				
+			doBindDispatchService(true);
+		}
+		Message msg = Message.obtain(null, HolyCMessage.SENSORHINT_START.type);
+        msg.replyTo = mMessenger;
+        
+		sendMessageToDispatchService(msg);
+		
     }
     private void doStopSensorHintService(){
-    	stopService(new Intent(this, SensorHintService.class));	    		    
+    	/*stopService(new Intent(this, SensorHintService.class));	    		    
     	mBuffer.append("SensorHintService is NOT running ... \n");
-    	doRedraw();	    	
+    	doRedraw();*/	    	
+    	if(!mDispatchIsBound){							
+			Log.d(TAG, "Turn on the binding, since we need to send some messages to dispatch service");				
+			doBindDispatchService(true);
+		}
+		Message msg = Message.obtain(null, HolyCMessage.SENSORHINT_STOP.type);
+        msg.replyTo = mMessenger;
+        
+		sendMessageToDispatchService(msg);
     }
     private void doRedraw(){
     	tview_dispatcher_report.setText(mBuffer.toString());

@@ -57,7 +57,8 @@
 		<action android:name="holyc.intent.broadcast.PACKETIN"/>   
       </intent-filter>   
     </receiver>   
-	<receiver android:name=".peer.handler.PeerCoordinator">   
+	<receiver android:name=".peer.handler.PeerCoordinator">
+	<!-- <receiver android:name=".peer.handler.SensorBasedPeerCoordinator"> -->   
       <intent-filter>   
 		<action android:name="holyc.intent.broadcast.STATSREPLY"/>   
       </intent-filter>   

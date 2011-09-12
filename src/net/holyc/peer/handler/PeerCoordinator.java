@@ -324,6 +324,7 @@ public class PeerCoordinator extends BroadcastReceiver {
 						}											
 						sendNotifyPacket(notifiee_ip, ip_prev, ip_newList);
 					}
+					Log.d(TAG, "Sending out Notification to Servers");
 				}else if(action_string.equals("notify_middlebox_server")){
 					Iterator<String> itn = ip_notifyList.iterator();
 					String mobile_ip = ip_new;

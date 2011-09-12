@@ -196,9 +196,23 @@ public class HolyCMessage
     	public static final String data_key = "OF_REQUEST";
     }
     
-    /*public class OFCOMM_SEND_REQUEST_OFSERVICE
+    public class SENSORHINT_START
     {
     	public static final int type = MAX_MSG_TYPE+22;
-    	public static final String data_key = "OF_REQUEST";
-    }*/
+    	//public static final String data_key = "SENSORHINT_START";
+    }
+    
+    public class SENSORHINT_STOP
+    {
+    	public static final int type = MAX_MSG_TYPE+23;
+    	//public static final String data_key = "SENSORHINT_STOP";
+    }
+    public class SENSORHINT_REGISTER
+    {
+    	public static final int type = MAX_MSG_TYPE+25;    	
+    }
+    public class SENSORHINT_UNREGISTER
+    {
+    	public static final int type = MAX_MSG_TYPE+26;    	
+    }
 }

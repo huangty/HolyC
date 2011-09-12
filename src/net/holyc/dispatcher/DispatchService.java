@@ -8,6 +8,7 @@ import net.holyc.R;
 import net.holyc.controlUI;
 import net.holyc.host.EnvInitService;
 import net.holyc.ofcomm.OFCommService;
+import net.holyc.sensors.handler.SensorHintService;
 
 
 import android.app.Notification;
@@ -49,9 +50,11 @@ public class DispatchService extends Service {
 	/** Messenger for communicating with service. */
 	Messenger mOFService = null;
 	Messenger mEnvService = null;
+	Messenger mSensorService = null;
 	/** Flag indicating whether we have called bind on the service. */
 	boolean mIsOFBound;
 	boolean mIsEnvBound;
+	boolean mIsSensorBound;
 	
 	IntentFilter mIntentFilter;
 	/* Service binding */
@@ -114,19 +117,18 @@ public class DispatchService extends Service {
 				}else{
 					try {
 						Message ofmsg = new Message();
-						ofmsg.copyFrom(msg);
-						
-							/*Message.obtain(null, HolyCMessage.OFCOMM_SEND_REQUEST_OFSERVICE.type);
-						Bundle data = new Bundle();
-						data.putByteArray(HolyCMessage.OFCOMM_SEND_REQUEST_OFSERVICE.data_key, 
-								msg.getData().getByteArray(HolyCMessage.OFCOMM_SEND_REQUEST_UI.data_key));
-						ofmsg.setData();*/
-						
+						ofmsg.copyFrom(msg);						
 						mOFService.send(ofmsg);
 					} catch (RemoteException e) {
 						e.printStackTrace();
 					}
 				}				
+				break;
+			case HolyCMessage.SENSORHINT_START.type:
+				doBindSensorHintService();
+				break;
+			case HolyCMessage.SENSORHINT_STOP.type:
+				doUnbindSensorHintService();
 				break;
 			default:
 				super.handleMessage(msg);
@@ -358,4 +360,47 @@ public class DispatchService extends Service {
 			mEnvService = null;
 		}
 	};	
+	
+	
+	/** Bind with SensorHintService **/
+	void doBindSensorHintService() {
+		Log.d(TAG, "Bind SensorHint Service");
+		Intent intent = new Intent(this, SensorHintService.class);
+		bindService(intent, mSensorHintConnection, Context.BIND_AUTO_CREATE);
+		mIsSensorBound = true;
+	}
+
+	void doUnbindSensorHintService() {
+		if (mIsSensorBound) {
+			// Unregister ourselves from the service, since we unbind it.
+			if (mSensorService != null) {
+				try {
+					Message msg = Message.obtain(null, HolyCMessage.SENSORHINT_UNREGISTER.type);
+					msg.replyTo = mMessenger;
+					mSensorService.send(msg);
+				} catch (RemoteException e) {
+				}
+			}
+			// Detach our existing connection.
+			unbindService(mSensorHintConnection);
+			mIsSensorBound = false;
+		}
+	}
+
+	private ServiceConnection mSensorHintConnection = new ServiceConnection() {
+		public void onServiceConnected(ComponentName className, IBinder service) {
+			mSensorService = new Messenger(service);
+			Log.d(TAG, "SensorHint Service Attached");
+			try {			
+				Message msg = Message.obtain(null, HolyCMessage.SENSORHINT_REGISTER.type);
+				msg.replyTo = mMessenger;
+				mSensorService.send(msg);				
+			} catch (RemoteException e) {
+			}
+		}
+		public void onServiceDisconnected(ComponentName className) {
+			mSensorService = null;
+		}
+	};	
+	
 }
