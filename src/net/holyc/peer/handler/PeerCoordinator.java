@@ -54,8 +54,9 @@ public class PeerCoordinator extends BroadcastReceiver {
 	private String TAG = "HOLYC.PeerCoordinator";
 	private static Gson gson = new Gson();
 	private static List<String> default_rule_match_string = null; 
-	private static String wifi_ip = "172.24.74.56";
+	private static String wifi_ip = "172.27.75.83";
 	private static String middlebox_ip = "171.67.74.239";
+	private static String wimax_ip = "66.87.119.85";
 
 	@Override
 	public void onReceive(Context context, Intent intent) {		
@@ -320,6 +321,7 @@ public class PeerCoordinator extends BroadcastReceiver {
 							ip_newList.add(findIPfromInterface("wimax"));						
 						}else if(controlUI.interface_just_disabled.equals("wimax")){
 							//no need to change ip_prev
+							ip_prev = wimax_ip;
 							ip_newList.add(wifi_ip);
 						}											
 						sendNotifyPacket(notifiee_ip, ip_prev, ip_newList);
@@ -339,13 +341,14 @@ public class PeerCoordinator extends BroadcastReceiver {
 							mobile_ip = wifi_ip; //need to hardcode the wifi, since it's behind the NAT
 													
 						}else if(controlUI.interface_just_enabled.equals("wimax")){
-							mobile_ip = ip_new;
+							mobile_ip = wimax_ip;//ip_new;
 						}	
 						
 						if(controlUI.interface_just_disabled.equals("wifi")){
 							first_ip = wifi_ip; //need to hardcode the wifi, since it's behind the NAT												
 						}else if(controlUI.interface_just_disabled.equals("wimax")){							
-							first_ip = findIPfromInterface(controlUI.interface_just_disabled);
+							//first_ip = findIPfromInterface(controlUI.interface_just_disabled);
+							first_ip = wimax_ip;
 						}
 						//send message to Server telling him that instead of sending packets to me, send to middlebox 
 						sendNotifyPacket(server_ip, first_ip, middlebox_ipList);

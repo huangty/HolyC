@@ -243,7 +243,7 @@ public class EnvInitService extends Service {//implements Runnable{
         			threeGIF = new3g;
         		}
         	}
-        }else{
+        }else{        	
         	mobile_included = false;
         }
         

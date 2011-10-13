@@ -215,7 +215,7 @@ public class OFMultipleInterfaceRoundRobin extends FlowSwitch {
 				interface_mac = Ethernet.toMACAddress(EnvInitService.wifiIF.getMac());				
 				interface_ip = IPv4.toIPv4Address(EnvInitService.wifiIF.getIP());
 				gw_mac = Ethernet.toMACAddress(EnvInitService.wifiIF.getGateway().getMac());
-			}else if(EnvInitService.threeGIF!=null && round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName()) ||
+			}else if(EnvInitService.mobile_included && EnvInitService.threeGIF!=null && round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.getName()) ||
 					round_robin_out_port == (short) EnvInitService.ovs.dptable.get("dp0").indexOf(EnvInitService.threeGIF.veth2.getName()) ){
 				Log.d(TAG, "round_robin to 3G!");
 				if(EnvInitService.threeGIF.isPointToPoint()){
